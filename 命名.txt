@@ -1,0 +1,152 @@
+双流目标检测实验命名规则
+========================
+
+一、总体原则
+------------
+
+Ultralytics 训练目录使用 project 和 name 两级管理：
+
+project：表示长期稳定的“数据集 + 任务 + 研究方向”，不要随单次架构变化而改变。
+name：表示本次实验的论文来源、迁移模块、融合尺度、关键架构参数和版本。
+
+固定格式：
+
+project = {Dataset}_{Task}_FusionTransfer
+name    = {Paper}_{Module}_{Stages}_{Heads}_{Structure}_{Version}[_{Seed}]
+
+当前工程统一使用：
+
+project = DroneVehicle_OBB_FusionTransfer
+
+
+二、name 各字段含义
+------------------
+
+1. Paper：思想或模块的论文来源
+
+   示例：ASSANet、MBNet、Restormer、SwinTransformer。
+
+2. Module：迁移到双流检测后的模块名称
+
+   示例：ASSAFusion、DMAF、MDTAFusion、WindowFusion。
+
+3. Stages：模块实际使用的特征尺度
+
+   P345：P3、P4、P5 均使用。
+   P45：只在 P4、P5 使用。
+   P4：只在 P4 使用。
+   P35：只在 P3、P5 使用。
+
+   尺度必须按 P3、P4、P5 的顺序书写。
+
+4. Heads：各融合尺度对应的注意力头数
+
+   H2-4-8：P3=2 heads、P4=4 heads、P5=8 heads。
+   H4-8：当 Stages=P45 时，表示 P4=4 heads、P5=8 heads。
+   H4：当 Stages=P4 时，表示 P4=4 heads。
+   HNA：模块不使用多头注意力，heads 不适用。
+
+   Heads 中的数字必须与 Stages 一一对应，不能省略中间尺度后仍写成三组数字。
+
+5. Structure：只记录能够区分模型架构的关键设置
+
+   多个设置使用短横线连接，例如：
+
+   DynK3-FFN2       动态 3×3 局部卷积，FFN expansion=2。
+   DynK3-NoFFN      动态 3×3 局部卷积，不使用 FFN。
+   StaticDW-FFN2    静态深度卷积，FFN expansion=2。
+   W7               Window size=7。
+   Base             没有需要额外说明的结构变体。
+
+   batch、epochs、workers、device、imgsz 等普通训练参数不要写进名称，
+   这些参数由训练目录中的 args.yaml 保存。
+
+6. Version：同一套架构定义的实现版本
+
+   使用 v1、v2、v3……递增。
+   只有代码实现或结构定义发生变化时才提升 Version。
+   单纯修改学习率、batch、epochs 不提升 Version。
+
+7. Seed：可选的重复实验随机种子
+
+   使用 S0、S1、S2……表示。
+   只有同一架构需要多次重复训练、统计均值和方差时才添加。
+
+
+三、当前 ASSAFusion 实验名称
+--------------------------
+
+当前 P3、P4、P5 均使用 ASSAFusion，heads 分别为 2、4、8，
+动态卷积核为 3×3，FFN expansion=2，因此命名为：
+
+project = DroneVehicle_OBB_FusionTransfer
+name    = ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1
+
+训练代码示例：
+
+results = model.train(
+    ...,
+    project="DroneVehicle_OBB_FusionTransfer",
+    name="ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1",
+)
+
+
+四、ASSAFusion 后续消融实验示例
+-----------------------------
+
+1. 只在 P4、P5 使用，heads 分别为 4、8：
+
+   ASSANet_ASSAFusion_P45_H4-8_DynK3-FFN2_v1
+
+2. 只在 P4 使用，heads=4：
+
+   ASSANet_ASSAFusion_P4_H4_DynK3-FFN2_v1
+
+3. P3、P4、P5 均使用 4 heads：
+
+   ASSANet_ASSAFusion_P345_H4-4-4_DynK3-FFN2_v1
+
+4. 去掉 FFN：
+
+   ASSANet_ASSAFusion_P345_H2-4-8_DynK3-NoFFN_v1
+
+5. 将动态卷积改为静态深度卷积：
+
+   ASSANet_ASSAFusion_P345_H2-4-8_StaticDW-FFN2_v1
+
+6. 同一架构使用三个随机种子重复训练：
+
+   ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1_S0
+   ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1_S1
+   ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1_S2
+
+
+五、迁移其他论文架构的示例
+------------------------
+
+MBNet 模态融合思想：
+
+MBNet_DMAF_P345_HNA_Base_v1
+
+Restormer 的 MDTA 改造成跨模态融合：
+
+Restormer_MDTAFusion_P45_H4-8_FFN2_v1
+
+Swin Transformer 窗口注意力改造成跨模态融合：
+
+SwinTransformer_WindowFusion_P345_H4-8-16_W7_v1
+
+
+六、命名检查清单
+----------------
+
+开始训练前依次确认：
+
+1. Paper 是否准确表示论文来源。
+2. Module 是否与 YAML 和代码中的模块名称一致。
+3. Stages 是否与真实插入的 P3/P4/P5 位置一致。
+4. Heads 数量是否与 Stages 按顺序一一对应。
+5. Structure 是否只包含关键架构差异。
+6. Version 是否与当前实现版本一致。
+7. 重复实验是否正确添加 Seed。
+8. 不要使用含义不清的名称，例如 test、new、final、final2、best_model。

@@ -77,6 +77,7 @@ from .block import (
     Concat3,
     RIFusion
 )
+from .assa_fusion import ASSAFusion
 from .conv import (
     CBAM,
     ChannelAttention,
@@ -165,4 +166,5 @@ __all__ = (
     "CBFuse",
     "CBLinear",
     "Silence",
+    "ASSAFusion",
 )

@@ -1,0 +1,33 @@
+# DroneVehicle dataset config for this TwoStream YOLOv8 fork.
+#
+# IMPORTANT
+# This repo's dataloader derives labels from `train/val/test` image paths by replacing:
+#   /images/ -> /labels/
+# and keeping the same filename stem.
+#
+# Because your original labels are named like `ir_00001.txt` (IR stem), while RGB image files
+# are named `00001.jpg`, the training script `train_dronevehicle.py` will first prepare a
+# compatible dataset layout under `path` below:
+#   path/
+#     images/{train,val,test}/ir_xxxxx.jpg   (RGB images, but renamed to IR stem by symlink/copy)
+#     image/{train,val,test}/ir_xxxxx.png    (IR images)
+#     labels/{train,val,test}/ir_xxxxx.txt   (OBB labels)
+#
+# Then this YAML can be used directly for train/val/test.
+
+path: /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3
+
+train: images/train
+val: images/val
+test: /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3/images/test/
+
+train_ir: image/train
+val_ir: image/val
+test_ir: /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3/image/test/
+
+names:
+  0: car
+  1: truck
+  2: bus
+  3: van
+  4: freight_car

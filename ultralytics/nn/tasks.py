@@ -78,7 +78,8 @@ from ultralytics.nn.modules import (
     C2f_Faster,
     Fusion,
     Concat3,
-    RIFusion
+    RIFusion,
+    ASSAFusion
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -212,7 +213,8 @@ class BaseModel(nn.Module):
                         x3=torch.cat([rgb,ir],dim=1)
                         x3=m(x3)
                         rgb,ir = torch.chunk(x3, 2, dim=1)
-                        x=[]#中间层
+                        # Preserve both interacted streams for later neck inputs.
+                        x=(rgb,ir)
             elif m.i<23:
                 if isR:
                     x= m(rgb)
@@ -1059,7 +1061,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, args[0]]
         elif m is ADD:
 #            print("ch[f]", f, ch[f[0]])
-            c2 = ch[f[0]]
+            # A single ASSAFusion source is the saved (RGB, IR) feature pair.
+            # Existing two-source ADD configurations keep their old behavior.
+            c2 = ch[f if isinstance(f, int) else f[0]]
             args = [c2]  
         elif m is S2Attention:
             c1 = ch[f[0]]+ch[f[1]]
@@ -1067,6 +1071,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1,c2] 
         elif m is RIFusion:
             args = [args[0]] 
+        elif m is ASSAFusion:
+            c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            args = [c2, *args[1:]]
         elif m in {SKAttention,GLF,NAM,GLCBAM,GCBAM,SACBAM,CSFM}:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]

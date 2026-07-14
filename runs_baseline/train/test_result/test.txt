@@ -1,0 +1,29 @@
+(spikeyolo) biiteam@biiteam-SYS-4028GR-TR:/media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream$ python test_dronevehicle.py --weights /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/runs_baseline/train/weights/best.pt --project /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/runs_baseline/train  --name test_result
+Ultralytics YOLOv8.1.47 🚀 Python-3.9.0 torch-2.0.0+cu117 CUDA:0 (NVIDIA GeForce RTX 3090, 24133MiB)
+baseline summary (fused): 269 layers, 14720162 parameters, 0 gradients, 36.7 GFLOPs
+val: Scanning /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3/labels/test.cache... 8980 images, 18 backgrounds, 0 corrupt: 100%|██████████| 8980/89
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95):   1%|          | 4/562 [00:17<48:04,                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95):   1%|          | 5/562 [00:21<45:06,                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95): 100%|██████████| 562/562 [09:39<00:00,  1.03s/it]
+                   all       8980     159614      0.789      0.782      0.812       0.67
+                   car       8980     137146      0.947      0.968      0.985      0.836
+                 truck       8980       8657      0.766      0.775      0.817      0.646
+                   bus       8980       4467      0.916      0.938      0.959      0.815
+                   van       8980       4282      0.673      0.548      0.621      0.509
+           freight_car       8980       5062       0.64       0.68      0.678      0.542
+Speed: 0.4ms preprocess, 3.9ms inference, 0.0ms loss, 3.6ms postprocess per image
+前向传播 FPS:259.59
+Results saved to /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/runs_baseline/train/test_result
+ultralytics.utils.metrics.OBBMetrics object with attributes:
+
+ap_class_index: array([0, 1, 2, 3, 4])
+box: ultralytics.utils.metrics.Metric object
+confusion_matrix: <ultralytics.utils.metrics.ConfusionMatrix object at 0x7f812e205490>
+curves: []
+curves_results: []
+fitness: 0.6838082589864418
+keys: ['metrics/precision(B)', 'metrics/recall(B)', 'metrics/mAP50(B)', 'metrics/mAP50-95(B)']
+maps: array([    0.83585,     0.64594,     0.81501,     0.50901,       0.542])
+names: {0: 'car', 1: 'truck', 2: 'bus', 3: 'van', 4: 'freight_car'}
+plot: True
+results_dict: {'metrics/precision(B)': 0.7886686981704738, 'metrics/recall(B)': 0.7816682903221092, 'metrics/mAP50(B)': 0.8120227108890539, 'metrics/mAP50-95(B)': 0.6695622087750404, 'fitness': 0.6838082589864418}
+save_dir: PosixPath('/media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/runs_baseline/train/test_result')
+speed: {'preprocess': 0.3508218412675412, 'inference': 3.8522999907920514, 'loss': 0.0008165172585400281, 'postprocess': 3.604284001883526}
