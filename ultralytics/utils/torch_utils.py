@@ -123,7 +123,11 @@ def select_device(device="", batch=0, newline=False, verbose=True):
         if device == "cuda":
             device = "0"
         visible = os.environ.get("CUDA_VISIBLE_DEVICES", None)
-        os.environ["CUDA_VISIBLE_DEVICES"] = device  # set environment variable - must be before assert is_available()
+        queue_managed = bool(os.getenv("YOLO_QUEUE_JOB_ID") and visible)
+        if not queue_managed:
+            # In Agent-managed jobs, CUDA_VISIBLE_DEVICES already contains the
+            # assigned physical GPUs and `device` contains process-local IDs.
+            os.environ["CUDA_VISIBLE_DEVICES"] = device  # must be before assert is_available()
         if not (torch.cuda.is_available() and torch.cuda.device_count() >= len(device.split(","))):
             LOGGER.info(s)
             install = (

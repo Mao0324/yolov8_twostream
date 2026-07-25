@@ -15,15 +15,15 @@
 #
 # Then this YAML can be used directly for train/val/test.
 
-path: /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3
+path: /media/biiteam/新加卷1/biiteam/MCONG/datasets/DroneVehicle_twostream_3
 
 train: images/train
 val: images/val
-test: /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3/images/test/
+test: /media/biiteam/新加卷1/biiteam/MCONG/datasets/DroneVehicle_twostream_3/images/test/
 
 train_ir: image/train
 val_ir: image/val
-test_ir: /media/biiteam/新加卷/biiteam/MCONG/datasets/DroneVehicle_twostream_3/image/test/
+test_ir: /media/biiteam/新加卷1/biiteam/MCONG/datasets/DroneVehicle_twostream_3/image/test/
 
 names:
   0: car

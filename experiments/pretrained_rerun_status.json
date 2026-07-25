@@ -1,0 +1,121 @@
+{
+  "PT-R001": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "runs_baseline/train2",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R002": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R003": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P4_H4_StaticDW-NoFFN_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R004": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R005": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/CRFormer_FTCrossMerge_P3_H2_R4-P2-StaticDW-NoFFN_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R006": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/YOLOv8_BottleneckRefine_P345_HNA_E0p5-K1-3_v13",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R007": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R008": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v22",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R009": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v32",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R010": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R011": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DRefineLAFMergeFeedback_P345_H2-4-8_PostC2f-RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R012": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R013": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R014": {
+    "epochs_completed": 0,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1",
+    "status": "重新实验中断：KeyboardInterrupt",
+    "updated_at": "2026-07-18T14:27:13+08:00"
+  },
+  "PT-R015": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn_v2",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R016": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn-SqrtHW_v3",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  },
+  "PT-R017": {
+    "epochs_completed": 100,
+    "epochs_target": 100,
+    "run_dir": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn-L2Norm-LearnTemp0p2_v4",
+    "status": "已正确加载预训练权重重新实验",
+    "updated_at": "2026-07-24T18:34:49+08:00"
+  }
+}

@@ -1,0 +1,55 @@
+Snapshot time: 2026-07-22 11:05:30 Asia/Shanghai
+
+Agent state
+-----------
+job.id=f2751c878b0f73a277edddad
+job.name=DroneVehicle-darkact-maalaf-postlaf-refine
+job.command_text=/home/biiteam/anaconda3/envs/spikeyolo/bin/python train_dronevehicle_darkact_maalaf_postlaf_refine.py
+job.status=leased
+job.run_id=f18a39465e963ec52672965a
+job.assigned_gpus=[0,6]
+job.resume_checkpoint=DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12/weights/last.pt
+agent_state.saved_at=2026-07-22T03:05:26+00:00
+
+Actual trainer log
+------------------
+engine/trainer model=.../DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12/weights/last.pt
+engine/trainer name=DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12
+engine/trainer resume=.../DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12/weights/last.pt
+engine/trainer batch=64
+Resuming training .../DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12/weights/last.pt from epoch 51 to 100 total epochs
+Logging results to DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12
+Starting training for 100 epochs...
+
+At snapshot time, results.csv had completed epoch 83 and the log had entered epoch 84. The results.csv and last.pt mtimes were 2026-07-22 11:05:25 and 11:05:28 respectively, proving active forward progress.
+
+Identity comparison
+-------------------
+PT-R011 requested by the user:
+  script=train_dronevehicle_darkact_maalaf_postc2f_refine.py
+  run=DarkAct_StaticMAA2DRefineLAFMergeFeedback_..._PostC2f-..._v12
+  last completed epoch=43; results.csv and last.pt have not changed since 2026-07-19 14:00.
+
+PT-R012 named by the active queue job:
+  script=train_dronevehicle_darkact_maalaf_postlaf_refine.py
+  intended initial checkpoint=pre-pth/yolov8s-obb_twostream_darkact_staticmaa_laffeedback_refine_p345_e025_v1.pt
+  intended run=DarkAct_StaticMAA2DLAFMergeFeedbackRefine_..._v1
+
+PT-R013 actually loaded and updated:
+  script=train_dronevehicle_darkact_laffeedback_no_staticmaa.py
+  run=DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12
+  completed epoch at snapshot=83
+
+Mechanism that permits cross-task resume
+----------------------------------------
+1. tools/queue_runtime.py sets active_checkpoint = YOLO_QUEUE_RESUME_CHECKPOINT or the script checkpoint.
+2. train_dronevehicle_darkact_maalaf_postlaf_refine.py passes QUEUE.checkpoint to YOLO and records the run as PT-R012.
+3. tools/pretrained_rerun_tracker.py verifies only that the model checkpoint equals the explicit resume path. It does not verify that the resume checkpoint belongs to PT-R012 or matches PT-R012's expected architecture/run.
+4. /opt/yolo-monitor-agent/queue_agent.py discover_checkpoint() recursively scans the entire working directory for **/weights/last.pt and returns the one with the newest mtime. retry_or_finish() then stores that path as the current job's resume_checkpoint.
+
+This global-newest-checkpoint fallback is the direct mechanism capable of attaching another experiment's last.pt to the current queue job.
+
+Non-fatal warnings in the active attempt
+----------------------------------------
+PyTorch repeatedly warns that adaptive_max_pool2d_backward_cuda has no deterministic implementation while deterministic warn_only mode is enabled. The warning does not stop training and is not evidence of the mAP trend's cause.
+TensorBoard graph tracing also warns about a 2-channel input versus a 3-channel graph example. It affects graph visualization, not the training batches.

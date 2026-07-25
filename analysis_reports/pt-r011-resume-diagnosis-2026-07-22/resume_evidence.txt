@@ -1,0 +1,42 @@
+PT-R011 resume evidence snapshot
+Generated: 2026-07-22 Asia/Shanghai
+
+Run artifact state
+- results.csv: 43 rows, epochs 1 through 43, no gaps, no non-finite values.
+- results.csv mtime: 2026-07-19 14:00:47 +08:00.
+- best.pt and last.pt mtime: 2026-07-19 14:00:49 +08:00.
+- best.pt and last.pt SHA-256: fcffe04d80cce25818765991b53f53f413575c15410adb3e6634a750c6b30905.
+- Checkpoint epoch: zero-based 42 (completed epoch 43).
+- Checkpoint optimizer: present, 3 parameter groups, 438 optimizer state entries.
+- Checkpoint best_fitness: 0.74256.
+
+Resume event files
+- 2026-07-21 22:25:08: TensorBoard event file, 88 bytes.
+- 2026-07-22 00:21:34: TensorBoard event file, 88 bytes.
+- 2026-07-22 08:52:23: TensorBoard event file, 88 bytes.
+- None contains completed-epoch scalars; results.csv and checkpoints were not updated.
+
+Agent log excerpts (ANSI control codes removed)
+- "Resuming training .../weights/last.pt from epoch 44 to 100 total epochs"
+- "Starting training for 100 epochs..."
+- First resumed attempt failed at 0/282 batches:
+  "torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 26.00 MiB"
+  GPU 0 had 17.21 GiB allocated by PyTorch and only 28.38 MiB free.
+- Later retry also failed at 0/282 batches:
+  "torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 14.00 MiB"
+  GPU 0 had 17.26 GiB allocated by PyTorch and only 13.44 MiB free.
+- Every logged retry retained batch=64.
+
+Other observed messages
+- An earlier DDP attempt failed with ModuleNotFoundError: No module named 'ultralytics'.
+  The current repository bootstrap adds the repository and monitor paths to PYTHONPATH; later attempts reached the first batch, so this is historical rather than the current blocker.
+- TensorBoard graph tracing warned that a synthetic 2-channel input reached a 3-channel layer.
+  Training continued past this warning to dataloader setup; it is a visualization warning, not the failure cause.
+
+Metric checks
+- Epoch 42 mAP50: 0.86981 (run maximum).
+- Epoch 43 mAP50: 0.86953 (change: -0.00028, or -0.028 percentage points).
+- Epoch 43 mAP50-95: 0.72846 (run maximum; +0.00071 versus epoch 42).
+- Epoch 34 to 43 mAP50: +0.00918; mAP50-95: +0.01147.
+- Epoch 34 to 43 val/dfl_loss: +0.00830; val/box_loss: -0.00347; val/cls_loss: -0.01044.
+- Epoch 24 to 43 val/dfl_loss: +0.01870 while mAP50 rose +0.02171 and mAP50-95 rose +0.02611.
