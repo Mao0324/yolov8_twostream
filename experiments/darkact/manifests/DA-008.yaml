@@ -1,0 +1,45 @@
+schema_version: 1
+id: DA-008
+family: DarkAct
+title: OBB 目标显著性监督与 PaperLAF 版
+parent_id: DA-003
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 用 OBB mask 直接监督显著性图，可以避免 StaticMAA 空间门控退化为近似常数。
+change_from_parent: 用 OBB mask 监督的单通道目标显著性替换无监督 StaticMAA 输出。
+architecture:
+  summary: C2f/SPPF -> supervised target saliency -> full-C PaperLAF feedback
+  version: v1
+  stages: [P3, P4, P5]
+  heads: HNA
+  flow:
+    P3: C2f stage -> target saliency logits + OBB loss -> full-C PaperLAF feedback
+    P4: C2f stage -> target saliency logits + OBB loss -> full-C PaperLAF feedback
+    P5: C2f/SPPF stage -> target saliency logits + OBB loss -> full-C PaperLAF feedback
+files:
+  model_yaml: yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P345-v1.yaml
+  train_entrypoint: train_dronevehicle_darkact_target_saliency.py
+  migration_script: tools/make_twostream_obb_weights_darkact_target_saliency.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_target_saliency_paperlaf_p345_v1.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf_v3.py
+    - ultralytics/nn/modules/darkact_target_saliency.py
+    - ultralytics/models/yolo/obb/target_saliency_train.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - ultralytics/nn/modules/block.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1
+reports: []
+notes:
+  - 必须使用专用 TargetSaliencyOBBTrainer，额外计算 OBB mask 的 BCE 与 Dice 显著性损失。
+  - 该运行使用 checkpoint-direct 启动，确保多卡 DDP 子进程继承迁移权重和内嵌 YAML。
