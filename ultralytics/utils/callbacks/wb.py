@@ -1,17 +1,21 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
+import os
+
 from ultralytics.utils import SETTINGS, TESTS_RUNNING
 from ultralytics.utils.torch_utils import model_info_for_loggers
 
 try:
     assert not TESTS_RUNNING  # do not log pytest
     assert SETTINGS["wandb"] is True  # verify integration is enabled
+    assert os.getenv("WANDB_MODE", "").strip().lower() != "disabled"
+    assert os.getenv("WANDB_DISABLED", "").strip().lower() not in {"1", "true", "yes", "on"}
     import wandb as wb
 
     assert hasattr(wb, "__version__")  # verify package is not directory
     _processed_plots = {}
 
-except (ImportError, AssertionError):
+except (ImportError, AssertionError, AttributeError):
     wb = None
 
 

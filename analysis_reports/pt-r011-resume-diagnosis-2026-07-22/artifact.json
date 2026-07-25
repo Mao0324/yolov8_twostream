@@ -1,0 +1,397 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Agent 串线与恢复训练指标诊断",
+    "description": "核对 Agent 实时状态、队列任务、训练脚本、实际 checkpoint、写入目录及指标趋势，区分 PT-R011 停滞与 PT-R013 活跃续训。",
+    "generatedAt": "2026-07-22T11:05:30+08:00",
+    "sources": [
+      {
+        "id": "source-metrics-sql",
+        "label": "PT-R011 results.csv 指标切片",
+        "path": "analysis_reports/pt-r011-resume-diagnosis-2026-07-22/training_metric_diagnostics.sql",
+        "query": {
+          "engine": "SQLite",
+          "language": "sql",
+          "executed_at": "2026-07-22T11:00:00+08:00",
+          "description": "将 results.csv 规范化载入内存表 training_metrics 后，读取 epoch 24–43 的原始指标值。",
+          "sql": "SELECT epoch, map50, map50_95, val_dfl_loss, val_box_loss, val_cls_loss, train_dfl_loss, lr_pg0 FROM training_metrics WHERE epoch BETWEEN 24 AND 43 ORDER BY epoch;",
+          "tables_used": [
+            "training_metrics"
+          ],
+          "filters": [
+            "epoch BETWEEN 24 AND 43",
+            "不平滑、不插值、不删除任何 epoch"
+          ],
+          "metric_definitions": [
+            "mAP50：验证集 OBB 在 IoU=0.50 下的平均精度，按 0–1 比例记录。",
+            "mAP50-95：验证集 OBB 在 IoU 0.50–0.95 上的平均精度，按 0–1 比例记录。",
+            "val/dfl_loss：验证集正样本匹配框的分布焦点回归损失，保留训练日志中的原始加权值。"
+          ]
+        }
+      },
+      {
+        "id": "source-resume-evidence",
+        "label": "PT-R011 checkpoint 与 Agent 恢复日志证据",
+        "path": "analysis_reports/pt-r011-resume-diagnosis-2026-07-22/resume_evidence.txt",
+        "query": {
+          "description": "由本地 checkpoint 元数据、文件时间戳、TensorBoard 文件大小和 Agent 日志中的恢复/OOM 行汇总。",
+          "executed_at": "2026-07-22T11:00:00+08:00",
+          "language": "text"
+        }
+      },
+      {
+        "id": "source-active-metrics-sql",
+        "label": "实际活跃 PT-R013 results.csv 指标切片",
+        "path": "analysis_reports/pt-r011-resume-diagnosis-2026-07-22/active_training_metric_diagnostics.sql",
+        "query": {
+          "engine": "SQLite",
+          "language": "sql",
+          "executed_at": "2026-07-22T11:05:30+08:00",
+          "description": "将实际写入中的 PT-R013 results.csv 规范化为 active_training_metrics，读取峰值前后及恢复窗口 epoch 44–83。",
+          "sql": "SELECT epoch, precision, recall, map50, map50_95, train_box_loss, train_cls_loss, train_dfl_loss, val_box_loss, val_cls_loss, val_dfl_loss, lr_pg0 FROM active_training_metrics WHERE epoch BETWEEN 44 AND 83 ORDER BY epoch;",
+          "tables_used": [
+            "active_training_metrics"
+          ],
+          "filters": [
+            "epoch BETWEEN 44 AND 83",
+            "恢复窗口定义为 epoch 51–83",
+            "不平滑、不插值、不删除任何 epoch"
+          ],
+          "metric_definitions": [
+            "mAP50：验证集 OBB 在 IoU=0.50 下的平均精度，按 0–1 比例记录。",
+            "mAP50-95：验证集 OBB 在 IoU 0.50–0.95 上的平均精度，按 0–1 比例记录。",
+            "val/dfl_loss 与 train/dfl_loss：验证集和训练集正样本框距离分布回归损失的原始日志值。"
+          ]
+        }
+      },
+      {
+        "id": "source-live-agent-evidence",
+        "label": "Agent 状态、实际训练日志与跨任务恢复代码证据",
+        "path": "analysis_reports/pt-r011-resume-diagnosis-2026-07-22/live_agent_evidence.txt",
+        "query": {
+          "description": "汇总 agent-state.json、当前增长日志、三个实验身份及 queue_runtime/tracker/queue_agent 的恢复断点选择逻辑。",
+          "executed_at": "2026-07-22T11:05:30+08:00",
+          "language": "text"
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "map-trend",
+        "title": "验证集 mAP 趋势",
+        "subtitle": "Epoch 24–43；最后 20 个已完成 epoch，数值按比例显示",
+        "showDescription": true,
+        "type": "line",
+        "dataset": "training_metrics",
+        "sourceId": "source-metrics-sql",
+        "encodings": {
+          "x": {
+            "field": "epoch",
+            "type": "ordinal",
+            "label": "Epoch"
+          },
+          "y": {
+            "fields": [
+              "map50",
+              "map50_95"
+            ],
+            "type": "quantitative",
+            "format": "percent"
+          },
+          "tooltip": [
+            {
+              "field": "epoch",
+              "type": "ordinal",
+              "label": "Epoch"
+            },
+            {
+              "field": "map50",
+              "type": "quantitative",
+              "format": "percent",
+              "label": "mAP50"
+            },
+            {
+              "field": "map50_95",
+              "type": "quantitative",
+              "format": "percent",
+              "label": "mAP50-95"
+            }
+          ]
+        },
+        "xAxisTitle": "Epoch",
+        "yAxisTitle": "mAP",
+        "valueFormat": "percent",
+        "layout": "full",
+        "maxRows": 20
+      },
+      {
+        "id": "active-map-trend",
+        "title": "实际活跃实验的验证集 mAP 趋势",
+        "subtitle": "PT-R013，epoch 44–83；最新恢复从 epoch 51 开始，数值按比例显示",
+        "showDescription": true,
+        "type": "line",
+        "dataset": "active_training_metrics",
+        "sourceId": "source-active-metrics-sql",
+        "encodings": {
+          "x": {
+            "field": "epoch",
+            "type": "ordinal",
+            "label": "Epoch"
+          },
+          "y": {
+            "fields": [
+              "map50",
+              "map50_95"
+            ],
+            "type": "quantitative",
+            "format": "percent"
+          },
+          "tooltip": [
+            {
+              "field": "epoch",
+              "type": "ordinal",
+              "label": "Epoch"
+            },
+            {
+              "field": "map50",
+              "type": "quantitative",
+              "format": "percent",
+              "label": "mAP50"
+            },
+            {
+              "field": "map50_95",
+              "type": "quantitative",
+              "format": "percent",
+              "label": "mAP50-95"
+            }
+          ]
+        },
+        "xAxisTitle": "Epoch",
+        "yAxisTitle": "mAP",
+        "valueFormat": "percent",
+        "layout": "full",
+        "maxRows": 40
+      },
+      {
+        "id": "active-dfl-trend",
+        "title": "实际活跃实验的 DFL 泛化间隙",
+        "subtitle": "PT-R013，epoch 44–83；训练 DFL 下降而验证 DFL 自 epoch 58 附近转为上升",
+        "showDescription": true,
+        "type": "line",
+        "dataset": "active_training_metrics",
+        "sourceId": "source-active-metrics-sql",
+        "encodings": {
+          "x": {
+            "field": "epoch",
+            "type": "ordinal",
+            "label": "Epoch"
+          },
+          "y": {
+            "fields": [
+              "val_dfl_loss",
+              "train_dfl_loss"
+            ],
+            "type": "quantitative",
+            "format": "number"
+          },
+          "tooltip": [
+            {
+              "field": "epoch",
+              "type": "ordinal",
+              "label": "Epoch"
+            },
+            {
+              "field": "val_dfl_loss",
+              "type": "quantitative",
+              "format": "number",
+              "label": "val/dfl_loss"
+            },
+            {
+              "field": "train_dfl_loss",
+              "type": "quantitative",
+              "format": "number",
+              "label": "train/dfl_loss"
+            }
+          ]
+        },
+        "xAxisTitle": "Epoch",
+        "yAxisTitle": "DFL loss",
+        "valueFormat": "number",
+        "layout": "full",
+        "maxRows": 40
+      }
+    ],
+    "blocks": [
+      {
+        "id": "report-title",
+        "type": "markdown",
+        "body": "# Agent 串线与恢复训练指标诊断"
+      },
+      {
+        "id": "technical-summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n**Agent 确实正在训练；先前把它判断为未运行是不正确的。** 截至 11:05，当前日志已完成 epoch 83 并进入 epoch 84，`results.csv` 与 `last.pt` 都在持续更新。\n\n**但它没有训练用户指定的 PT-R011，也没有训练队列标签所说的 PT-R012。** 队列命令是 PT-R012 的 `train_dronevehicle_darkact_maalaf_postlaf_refine.py`，实际注入并加载的却是 PT-R013 `DarkAct_LAFMergeFeedback2D...v12/weights/last.pt`；训练参数、模型、恢复路径和写入目录全部随 PT-R013 checkpoint 走。\n\n**当前看到的 mAP50 下降和 `val/dfl_loss` 上升是真实的，但属于 PT-R013。** epoch 51→83，mAP50 从 0.87058 降至 0.86321（-0.00737），mAP50-95 从 0.73064 降至 0.72688（-0.00376），`val/dfl_loss` 从 1.4531 升至 1.4606（+0.0075）。同期 `train/dfl_loss` 从 1.3569 降到 1.3329，表现为后期泛化间隙。\n\n**下降并非由这次恢复突然触发。** PT-R013 的全程最佳点在 epoch 44（mAP50=0.87477，mAP50-95=0.73317）；到恢复前 epoch 50 已分别降至 0.86957 和 0.72982。恢复后的 epoch 51–52 短暂回升，随后延续既有的后期回落。\n\n**串线根因在 Agent 的 checkpoint 发现逻辑。** 任务失败重试时，Agent 会递归扫描整个工作目录的 `**/weights/last.pt` 并选择 mtime 最新者，而不是限定到当前任务目录；验证层只检查 checkpoint 等于显式 resume 路径，没有检查它是否属于 PT-R012。"
+      },
+      {
+        "id": "agent-identity-mismatch",
+        "type": "markdown",
+        "sourceId": "source-live-agent-evidence",
+        "body": "## 队列显示在跑，但任务、脚本与 checkpoint 已串线\n\n当前队列 job 名称是 `DroneVehicle-darkact-maalaf-postlaf-refine`，命令指向 PT-R012 的 post-LAF Refine 脚本；Agent 状态中的 `resume_checkpoint` 却指向 PT-R013 NoStaticMAA 的运行目录。Ultralytics 恢复训练会优先继承 checkpoint 内保存的模型和训练参数，所以日志最终显示 `model`、`resume`、`name`、`save_dir` 全部是 PT-R013。\n\n这不是界面命名问题，而是实验身份污染：PT-R012 的 tracker 状态被标记为‘等待续训结果’，实际新增 epoch 却写进 PT-R013。若让任务跑到 100，产物仍只能解释为 PT-R013 的延续，不能当作 PT-R011 或 PT-R012 结果。"
+      },
+      {
+        "id": "active-map-finding",
+        "type": "markdown",
+        "sourceId": "source-active-metrics-sql",
+        "body": "## 实际活跃 PT-R013 的 mAP 正在缓慢回落\n\n恢复窗口 epoch 51–83 的 mAP50 线性斜率为每 epoch -0.000250，mAP50-95 为 -0.000125。恢复后最高点在 epoch 52（mAP50=0.87080，mAP50-95=0.73113），到 epoch 83 分别下降 0.00759 和 0.00425。最近 10 个 epoch（74→83）mAP50 又下降 0.00223，说明不是单个 epoch 抖动。\n\n不过全程最高点早在 epoch 44，恢复前的 epoch 44→50 已经下降 0.00520；因此证据支持‘模型在中后期达到峰值后过拟合/饱和’，不支持‘checkpoint 恢复机制把指标突然弄坏’。"
+      },
+      {
+        "id": "active-map-chart-block",
+        "type": "chart",
+        "chartId": "active-map-trend",
+        "layout": "full"
+      },
+      {
+        "id": "active-dfl-finding",
+        "type": "markdown",
+        "sourceId": "source-active-metrics-sql",
+        "body": "## 训练 DFL 继续下降、验证 DFL 反向上升，符合后期泛化间隙\n\n从 epoch 51 到 83，`train/dfl_loss` 下降 0.0240，而 `val/dfl_loss` 上升 0.0075；验证 DFL 在 epoch 58 附近达到 1.4494 后持续走高至 1.4606。与此同时 `val/box_loss` 仍从 0.64810 小幅降至 0.64576，`val/cls_loss` 基本持平，因此退化主要集中在精细定位分布与排序质量，而不是所有验证损失一起发散。\n\nmAP50-95 与 mAP50 同向下降，说明这次 DFL 上升具有实际泛化含义；继续训练到 100 更可能得到更低的 last 指标，但 best.pt 应保留 epoch 44 附近的最佳权重。"
+      },
+      {
+        "id": "active-dfl-chart-block",
+        "type": "chart",
+        "chartId": "active-dfl-trend",
+        "layout": "full"
+      },
+      {
+        "id": "map-finding",
+        "type": "markdown",
+        "sourceId": "source-metrics-sql",
+        "body": "## mAP 在恢复点之前仍总体上升\n\n最后 20 个已完成 epoch 中，mAP50 增加 0.02171，mAP50-95 增加 0.02611。最近 10 个 epoch（34→43）也分别增加 0.00918 和 0.01147。曲线有逐 epoch 抖动，但没有持续下降；epoch 43 还是 mAP50-95 的全程最高点。"
+      },
+      {
+        "id": "map-chart-block",
+        "type": "chart",
+        "chartId": "map-trend",
+        "layout": "full"
+      },
+      {
+        "id": "dfl-finding",
+        "type": "markdown",
+        "sourceId": "source-metrics-sql",
+        "body": "## 原 PT-R011 的 DFL 轻微走高仍不能解释当前 Agent 曲线\n\nPT-R011 的 `val/dfl_loss` 从 epoch 24 的 1.4341 升至 epoch 43 的 1.4528（+0.0187），但同期 mAP50 和 mAP50-95 总体上升，`val/box_loss` 与 `val/cls_loss` 下降。它说明 DFL 与 mAP 并非严格单调对应，也再次证明当前监控中持续下降的曲线来自另一个 run，而不是 PT-R011。"
+      },
+      {
+        "id": "resume-failure",
+        "type": "markdown",
+        "sourceId": "source-resume-evidence",
+        "body": "## 用户指定的 PT-R011 仍停在 epoch 43\n\nPT-R011 checkpoint 的 zero-based epoch 为 42，优化器状态完整；它的两次恢复日志都从 epoch 44 启动，却在第一个 batch 的 0/282 处 CUDA OOM。该目录的 `results.csv` 和 `last.pt` 自 7 月 19 日 14:00 后没有更新，因此当前 Agent 新增的 epoch 51–83 不可能属于 PT-R011。\n\nPT-R011 的历史 DDP 导入失败和 TensorBoard graph tracing warning 都不是当前指标下降原因。当前真正需要修复的是任务级 checkpoint 绑定；否则 Agent 即使显示‘运行中’，也可能在继续另一个实验。"
+      },
+      {
+        "id": "scope-method",
+        "type": "markdown",
+        "body": "## 核查范围与方法\n\n本次同时核对三层身份：队列 job 名称/命令、脚本记录号与预期 checkpoint、Ultralytics 实际打印的 model/resume/name/save_dir。运行真实性以 Agent state 的持续更新时间、日志字节偏移、batch 进度、`results.csv` 行数和 `last.pt` mtime 交叉验证；由于当前工具所在 sandbox 与宿主机进程/GPU namespace 隔离，不再用 sandbox 内 `ps` 或 `nvidia-smi` 否定宿主训练。\n\n指标使用两个目录各自的未平滑 `results.csv`：PT-R011 取 epoch 24–43，实际活跃 PT-R013 取 epoch 44–83，并将 epoch 51–83 定义为本轮恢复窗口。趋势同时检查端点差、线性斜率、训练/验证损失方向以及恢复前是否已出现同方向变化。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 限制与不确定性\n\n证据能够确定当前 checkpoint 和写入目录串线，也能描述 PT-R013 的指标趋势，但不能仅凭离线日志确定服务器何时首次把 PT-R013 checkpoint 写入这个 PT-R012 job。代码层面可确认全工作目录‘最新 last.pt’回退能够直接造成该现象。\n\n当前活跃 run 尚未到 epoch 100，epoch 83 之后的最终指标仍可能波动；不过恢复窗口 33 个完成 epoch 和最近 10 个 epoch 的同向斜率已足以排除单点噪声。"
+      },
+      {
+        "id": "next-steps",
+        "type": "markdown",
+        "body": "## 建议的处理顺序\n\n1. **先决定是否保留当前 PT-R013 续训。** 它是真实运行但不是请求目标；若继续到 100，只把结果归入 PT-R013，并优先使用 `best.pt`，不要用下降中的 `last.pt` 代表最佳性能。\n2. **在下一次重试前修复 Agent。** `discover_checkpoint()` 必须限定到当前 job 的已知 run_dir/显式 checkpoint，找不到时应失败并报警，绝不能扫描整个工作目录取最新文件。\n3. **增强 tracker 校验。** resume checkpoint 应校验所属 record、预期 run 名/架构指纹，至少拒绝 PT-R012 加载 `DarkAct_LAFMergeFeedback2D...` 目录的 checkpoint。\n4. **重新恢复 PT-R011 时显式绑定其 own `...PostC2f...v12/weights/last.pt`。** 看到日志的 model、resume、name、save_dir 四项都属于 PT-R011，并确认 `results.csv` 新增 epoch 44，才算恢复成功。此前 OOM 还要求将总 batch 从 64 降到 32，必要时降到 16。"
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "body": "## 后续需要确认的选择\n\n当前最需要用户决定的是：让串线后的 PT-R013 跑完剩余 epoch，还是在安全边界暂停后修复队列并恢复真正的 PT-R011。无论选择哪一种，都应保留 PT-R013 的 epoch 44 best checkpoint，并把当前 job 从 PT-R012 记录中纠正，避免后续实验表误判完成状态。"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-22T11:05:30+08:00",
+    "status": "ready",
+    "datasets": {
+      "training_metrics": [
+        {"epoch": 24, "map50": 0.84782, "map50_95": 0.70235, "val_dfl_loss": 1.4341, "val_box_loss": 0.66857, "val_cls_loss": 0.42923, "train_dfl_loss": 1.3767, "lr_pg0": 0.007723},
+        {"epoch": 25, "map50": 0.86242, "map50_95": 0.71501, "val_dfl_loss": 1.4378, "val_box_loss": 0.66404, "val_cls_loss": 0.42115, "train_dfl_loss": 1.3739, "lr_pg0": 0.007624},
+        {"epoch": 26, "map50": 0.84771, "map50_95": 0.70513, "val_dfl_loss": 1.4438, "val_box_loss": 0.66499, "val_cls_loss": 0.42354, "train_dfl_loss": 1.3794, "lr_pg0": 0.007525},
+        {"epoch": 27, "map50": 0.85072, "map50_95": 0.7078, "val_dfl_loss": 1.4518, "val_box_loss": 0.66174, "val_cls_loss": 0.42189, "train_dfl_loss": 1.3692, "lr_pg0": 0.007426},
+        {"epoch": 28, "map50": 0.84924, "map50_95": 0.70503, "val_dfl_loss": 1.4311, "val_box_loss": 0.66269, "val_cls_loss": 0.42605, "train_dfl_loss": 1.3668, "lr_pg0": 0.007327},
+        {"epoch": 29, "map50": 0.85685, "map50_95": 0.71105, "val_dfl_loss": 1.4578, "val_box_loss": 0.66039, "val_cls_loss": 0.41548, "train_dfl_loss": 1.3741, "lr_pg0": 0.007228},
+        {"epoch": 30, "map50": 0.85643, "map50_95": 0.71358, "val_dfl_loss": 1.4526, "val_box_loss": 0.65962, "val_cls_loss": 0.41557, "train_dfl_loss": 1.3705, "lr_pg0": 0.007129},
+        {"epoch": 31, "map50": 0.86663, "map50_95": 0.72239, "val_dfl_loss": 1.4526, "val_box_loss": 0.65546, "val_cls_loss": 0.41021, "train_dfl_loss": 1.3764, "lr_pg0": 0.00703},
+        {"epoch": 32, "map50": 0.86394, "map50_95": 0.72108, "val_dfl_loss": 1.4474, "val_box_loss": 0.65695, "val_cls_loss": 0.41063, "train_dfl_loss": 1.3753, "lr_pg0": 0.006931},
+        {"epoch": 33, "map50": 0.85896, "map50_95": 0.71581, "val_dfl_loss": 1.4424, "val_box_loss": 0.65404, "val_cls_loss": 0.41295, "train_dfl_loss": 1.3674, "lr_pg0": 0.006832},
+        {"epoch": 34, "map50": 0.86035, "map50_95": 0.71699, "val_dfl_loss": 1.4445, "val_box_loss": 0.65363, "val_cls_loss": 0.41014, "train_dfl_loss": 1.368, "lr_pg0": 0.006733},
+        {"epoch": 35, "map50": 0.86371, "map50_95": 0.71915, "val_dfl_loss": 1.4428, "val_box_loss": 0.65373, "val_cls_loss": 0.41036, "train_dfl_loss": 1.3697, "lr_pg0": 0.006634},
+        {"epoch": 36, "map50": 0.86401, "map50_95": 0.72112, "val_dfl_loss": 1.4451, "val_box_loss": 0.65206, "val_cls_loss": 0.40643, "train_dfl_loss": 1.3608, "lr_pg0": 0.006535},
+        {"epoch": 37, "map50": 0.86287, "map50_95": 0.72184, "val_dfl_loss": 1.4411, "val_box_loss": 0.65135, "val_cls_loss": 0.4072, "train_dfl_loss": 1.3621, "lr_pg0": 0.006436},
+        {"epoch": 38, "map50": 0.86451, "map50_95": 0.72365, "val_dfl_loss": 1.4417, "val_box_loss": 0.65113, "val_cls_loss": 0.40619, "train_dfl_loss": 1.368, "lr_pg0": 0.006337},
+        {"epoch": 39, "map50": 0.86367, "map50_95": 0.72263, "val_dfl_loss": 1.4453, "val_box_loss": 0.65152, "val_cls_loss": 0.40457, "train_dfl_loss": 1.3721, "lr_pg0": 0.006238},
+        {"epoch": 40, "map50": 0.86516, "map50_95": 0.72298, "val_dfl_loss": 1.4553, "val_box_loss": 0.65201, "val_cls_loss": 0.4034, "train_dfl_loss": 1.3706, "lr_pg0": 0.006139},
+        {"epoch": 41, "map50": 0.86843, "map50_95": 0.72594, "val_dfl_loss": 1.4545, "val_box_loss": 0.65189, "val_cls_loss": 0.40086, "train_dfl_loss": 1.3733, "lr_pg0": 0.00604},
+        {"epoch": 42, "map50": 0.86981, "map50_95": 0.72775, "val_dfl_loss": 1.4552, "val_box_loss": 0.65075, "val_cls_loss": 0.40105, "train_dfl_loss": 1.3661, "lr_pg0": 0.005941},
+        {"epoch": 43, "map50": 0.86953, "map50_95": 0.72846, "val_dfl_loss": 1.4528, "val_box_loss": 0.65016, "val_cls_loss": 0.3997, "train_dfl_loss": 1.3671, "lr_pg0": 0.005842}
+      ],
+      "active_training_metrics": [
+        {"epoch": 44, "precision": 0.85274, "recall": 0.81955, "map50": 0.87477, "map50_95": 0.73317, "train_box_loss": 0.67094, "train_cls_loss": 0.43518, "train_dfl_loss": 1.36530, "val_box_loss": 0.65053, "val_cls_loss": 0.39810, "val_dfl_loss": 1.45310, "lr_pg0": 0.005743},
+        {"epoch": 45, "precision": 0.84502, "recall": 0.82356, "map50": 0.87390, "map50_95": 0.73222, "train_box_loss": 0.67392, "train_cls_loss": 0.43643, "train_dfl_loss": 1.37030, "val_box_loss": 0.64990, "val_cls_loss": 0.39768, "val_dfl_loss": 1.45500, "lr_pg0": 0.005644},
+        {"epoch": 46, "precision": 0.83526, "recall": 0.83005, "map50": 0.87061, "map50_95": 0.72985, "train_box_loss": 0.67095, "train_cls_loss": 0.43660, "train_dfl_loss": 1.37040, "val_box_loss": 0.65023, "val_cls_loss": 0.39892, "val_dfl_loss": 1.45320, "lr_pg0": 0.005545},
+        {"epoch": 47, "precision": 0.84718, "recall": 0.82070, "map50": 0.87155, "map50_95": 0.73167, "train_box_loss": 0.66966, "train_cls_loss": 0.43201, "train_dfl_loss": 1.36540, "val_box_loss": 0.64941, "val_cls_loss": 0.39782, "val_dfl_loss": 1.45300, "lr_pg0": 0.005446},
+        {"epoch": 48, "precision": 0.85155, "recall": 0.81372, "map50": 0.86920, "map50_95": 0.72935, "train_box_loss": 0.66736, "train_cls_loss": 0.43151, "train_dfl_loss": 1.36970, "val_box_loss": 0.64843, "val_cls_loss": 0.39769, "val_dfl_loss": 1.45610, "lr_pg0": 0.005347},
+        {"epoch": 49, "precision": 0.84204, "recall": 0.82684, "map50": 0.87041, "map50_95": 0.73017, "train_box_loss": 0.66459, "train_cls_loss": 0.42773, "train_dfl_loss": 1.35800, "val_box_loss": 0.64822, "val_cls_loss": 0.39714, "val_dfl_loss": 1.45350, "lr_pg0": 0.005248},
+        {"epoch": 50, "precision": 0.84683, "recall": 0.82499, "map50": 0.86957, "map50_95": 0.72982, "train_box_loss": 0.65919, "train_cls_loss": 0.42374, "train_dfl_loss": 1.36230, "val_box_loss": 0.64806, "val_cls_loss": 0.39717, "val_dfl_loss": 1.45460, "lr_pg0": 0.005149},
+        {"epoch": 51, "precision": 0.84414, "recall": 0.82788, "map50": 0.87058, "map50_95": 0.73064, "train_box_loss": 0.65708, "train_cls_loss": 0.41766, "train_dfl_loss": 1.35690, "val_box_loss": 0.64810, "val_cls_loss": 0.39673, "val_dfl_loss": 1.45310, "lr_pg0": 0.005050},
+        {"epoch": 52, "precision": 0.83950, "recall": 0.83194, "map50": 0.87080, "map50_95": 0.73113, "train_box_loss": 0.66100, "train_cls_loss": 0.42466, "train_dfl_loss": 1.36750, "val_box_loss": 0.64809, "val_cls_loss": 0.39669, "val_dfl_loss": 1.45220, "lr_pg0": 0.004951},
+        {"epoch": 53, "precision": 0.84131, "recall": 0.83011, "map50": 0.87068, "map50_95": 0.73060, "train_box_loss": 0.66035, "train_cls_loss": 0.42190, "train_dfl_loss": 1.36020, "val_box_loss": 0.64792, "val_cls_loss": 0.39671, "val_dfl_loss": 1.45150, "lr_pg0": 0.004852},
+        {"epoch": 54, "precision": 0.83147, "recall": 0.83328, "map50": 0.86976, "map50_95": 0.73031, "train_box_loss": 0.65824, "train_cls_loss": 0.42287, "train_dfl_loss": 1.36500, "val_box_loss": 0.64773, "val_cls_loss": 0.39686, "val_dfl_loss": 1.45110, "lr_pg0": 0.004753},
+        {"epoch": 55, "precision": 0.82895, "recall": 0.83869, "map50": 0.87041, "map50_95": 0.73103, "train_box_loss": 0.65936, "train_cls_loss": 0.41955, "train_dfl_loss": 1.36460, "val_box_loss": 0.64757, "val_cls_loss": 0.39660, "val_dfl_loss": 1.45120, "lr_pg0": 0.004654},
+        {"epoch": 56, "precision": 0.83794, "recall": 0.82879, "map50": 0.86967, "map50_95": 0.73050, "train_box_loss": 0.65327, "train_cls_loss": 0.41786, "train_dfl_loss": 1.36120, "val_box_loss": 0.64737, "val_cls_loss": 0.39649, "val_dfl_loss": 1.45080, "lr_pg0": 0.004555},
+        {"epoch": 57, "precision": 0.83461, "recall": 0.83045, "map50": 0.86957, "map50_95": 0.73037, "train_box_loss": 0.65227, "train_cls_loss": 0.41487, "train_dfl_loss": 1.36110, "val_box_loss": 0.64736, "val_cls_loss": 0.39655, "val_dfl_loss": 1.45000, "lr_pg0": 0.004456},
+        {"epoch": 58, "precision": 0.83338, "recall": 0.83090, "map50": 0.86902, "map50_95": 0.73010, "train_box_loss": 0.65571, "train_cls_loss": 0.41390, "train_dfl_loss": 1.36060, "val_box_loss": 0.64728, "val_cls_loss": 0.39691, "val_dfl_loss": 1.44940, "lr_pg0": 0.004357},
+        {"epoch": 59, "precision": 0.83080, "recall": 0.83381, "map50": 0.86910, "map50_95": 0.73030, "train_box_loss": 0.65469, "train_cls_loss": 0.41205, "train_dfl_loss": 1.36390, "val_box_loss": 0.64704, "val_cls_loss": 0.39633, "val_dfl_loss": 1.45070, "lr_pg0": 0.004258},
+        {"epoch": 60, "precision": 0.82866, "recall": 0.83432, "map50": 0.86918, "map50_95": 0.73072, "train_box_loss": 0.65184, "train_cls_loss": 0.41323, "train_dfl_loss": 1.36010, "val_box_loss": 0.64706, "val_cls_loss": 0.39598, "val_dfl_loss": 1.45290, "lr_pg0": 0.004159},
+        {"epoch": 61, "precision": 0.82867, "recall": 0.83544, "map50": 0.86857, "map50_95": 0.73026, "train_box_loss": 0.65054, "train_cls_loss": 0.41001, "train_dfl_loss": 1.36250, "val_box_loss": 0.64706, "val_cls_loss": 0.39591, "val_dfl_loss": 1.45350, "lr_pg0": 0.004060},
+        {"epoch": 62, "precision": 0.82928, "recall": 0.83441, "map50": 0.86756, "map50_95": 0.72957, "train_box_loss": 0.64589, "train_cls_loss": 0.40738, "train_dfl_loss": 1.35680, "val_box_loss": 0.64682, "val_cls_loss": 0.39594, "val_dfl_loss": 1.45390, "lr_pg0": 0.003961},
+        {"epoch": 63, "precision": 0.82890, "recall": 0.83660, "map50": 0.86786, "map50_95": 0.72972, "train_box_loss": 0.64819, "train_cls_loss": 0.40802, "train_dfl_loss": 1.35810, "val_box_loss": 0.64674, "val_cls_loss": 0.39560, "val_dfl_loss": 1.45420, "lr_pg0": 0.003862},
+        {"epoch": 64, "precision": 0.82871, "recall": 0.83626, "map50": 0.86763, "map50_95": 0.72936, "train_box_loss": 0.64736, "train_cls_loss": 0.40619, "train_dfl_loss": 1.36190, "val_box_loss": 0.64673, "val_cls_loss": 0.39539, "val_dfl_loss": 1.45480, "lr_pg0": 0.003763},
+        {"epoch": 65, "precision": 0.82860, "recall": 0.83569, "map50": 0.86762, "map50_95": 0.72955, "train_box_loss": 0.64140, "train_cls_loss": 0.40141, "train_dfl_loss": 1.35470, "val_box_loss": 0.64670, "val_cls_loss": 0.39534, "val_dfl_loss": 1.45510, "lr_pg0": 0.003664},
+        {"epoch": 66, "precision": 0.83019, "recall": 0.83578, "map50": 0.86733, "map50_95": 0.72956, "train_box_loss": 0.64220, "train_cls_loss": 0.40304, "train_dfl_loss": 1.34930, "val_box_loss": 0.64658, "val_cls_loss": 0.39561, "val_dfl_loss": 1.45500, "lr_pg0": 0.003565},
+        {"epoch": 67, "precision": 0.82836, "recall": 0.83725, "map50": 0.86718, "map50_95": 0.72969, "train_box_loss": 0.64563, "train_cls_loss": 0.40073, "train_dfl_loss": 1.34910, "val_box_loss": 0.64648, "val_cls_loss": 0.39562, "val_dfl_loss": 1.45470, "lr_pg0": 0.003466},
+        {"epoch": 68, "precision": 0.82994, "recall": 0.83713, "map50": 0.86716, "map50_95": 0.72968, "train_box_loss": 0.64065, "train_cls_loss": 0.39817, "train_dfl_loss": 1.35130, "val_box_loss": 0.64642, "val_cls_loss": 0.39553, "val_dfl_loss": 1.45490, "lr_pg0": 0.003367},
+        {"epoch": 69, "precision": 0.82916, "recall": 0.83692, "map50": 0.86718, "map50_95": 0.72951, "train_box_loss": 0.63858, "train_cls_loss": 0.39731, "train_dfl_loss": 1.35340, "val_box_loss": 0.64636, "val_cls_loss": 0.39556, "val_dfl_loss": 1.45540, "lr_pg0": 0.003268},
+        {"epoch": 70, "precision": 0.82741, "recall": 0.83680, "map50": 0.86626, "map50_95": 0.72904, "train_box_loss": 0.63942, "train_cls_loss": 0.39864, "train_dfl_loss": 1.34420, "val_box_loss": 0.64632, "val_cls_loss": 0.39574, "val_dfl_loss": 1.45490, "lr_pg0": 0.003169},
+        {"epoch": 71, "precision": 0.82982, "recall": 0.83390, "map50": 0.86582, "map50_95": 0.72907, "train_box_loss": 0.63650, "train_cls_loss": 0.39334, "train_dfl_loss": 1.35140, "val_box_loss": 0.64636, "val_cls_loss": 0.39581, "val_dfl_loss": 1.45540, "lr_pg0": 0.003070},
+        {"epoch": 72, "precision": 0.82669, "recall": 0.83526, "map50": 0.86533, "map50_95": 0.72864, "train_box_loss": 0.63272, "train_cls_loss": 0.38957, "train_dfl_loss": 1.35240, "val_box_loss": 0.64628, "val_cls_loss": 0.39584, "val_dfl_loss": 1.45590, "lr_pg0": 0.002971},
+        {"epoch": 73, "precision": 0.82581, "recall": 0.83719, "map50": 0.86546, "map50_95": 0.72854, "train_box_loss": 0.63117, "train_cls_loss": 0.38894, "train_dfl_loss": 1.35730, "val_box_loss": 0.64623, "val_cls_loss": 0.39557, "val_dfl_loss": 1.45620, "lr_pg0": 0.002872},
+        {"epoch": 74, "precision": 0.82696, "recall": 0.83536, "map50": 0.86544, "map50_95": 0.72868, "train_box_loss": 0.62843, "train_cls_loss": 0.38965, "train_dfl_loss": 1.34340, "val_box_loss": 0.64619, "val_cls_loss": 0.39553, "val_dfl_loss": 1.45670, "lr_pg0": 0.002773},
+        {"epoch": 75, "precision": 0.82855, "recall": 0.83294, "map50": 0.86493, "map50_95": 0.72849, "train_box_loss": 0.63172, "train_cls_loss": 0.38942, "train_dfl_loss": 1.34760, "val_box_loss": 0.64602, "val_cls_loss": 0.39559, "val_dfl_loss": 1.45710, "lr_pg0": 0.002674},
+        {"epoch": 76, "precision": 0.83091, "recall": 0.83024, "map50": 0.86486, "map50_95": 0.72828, "train_box_loss": 0.62333, "train_cls_loss": 0.38382, "train_dfl_loss": 1.34500, "val_box_loss": 0.64599, "val_cls_loss": 0.39567, "val_dfl_loss": 1.45760, "lr_pg0": 0.002575},
+        {"epoch": 77, "precision": 0.83264, "recall": 0.82867, "map50": 0.86432, "map50_95": 0.72792, "train_box_loss": 0.62782, "train_cls_loss": 0.38516, "train_dfl_loss": 1.34560, "val_box_loss": 0.64597, "val_cls_loss": 0.39551, "val_dfl_loss": 1.45820, "lr_pg0": 0.002476},
+        {"epoch": 78, "precision": 0.83469, "recall": 0.82720, "map50": 0.86403, "map50_95": 0.72763, "train_box_loss": 0.62610, "train_cls_loss": 0.38325, "train_dfl_loss": 1.34130, "val_box_loss": 0.64586, "val_cls_loss": 0.39559, "val_dfl_loss": 1.45830, "lr_pg0": 0.002377},
+        {"epoch": 79, "precision": 0.83495, "recall": 0.82666, "map50": 0.86366, "map50_95": 0.72720, "train_box_loss": 0.62165, "train_cls_loss": 0.37908, "train_dfl_loss": 1.34110, "val_box_loss": 0.64579, "val_cls_loss": 0.39564, "val_dfl_loss": 1.45890, "lr_pg0": 0.002278},
+        {"epoch": 80, "precision": 0.83641, "recall": 0.82638, "map50": 0.86374, "map50_95": 0.72743, "train_box_loss": 0.61903, "train_cls_loss": 0.37862, "train_dfl_loss": 1.34780, "val_box_loss": 0.64579, "val_cls_loss": 0.39563, "val_dfl_loss": 1.45940, "lr_pg0": 0.002179},
+        {"epoch": 81, "precision": 0.83515, "recall": 0.82749, "map50": 0.86353, "map50_95": 0.72736, "train_box_loss": 0.61818, "train_cls_loss": 0.37619, "train_dfl_loss": 1.34460, "val_box_loss": 0.64569, "val_cls_loss": 0.39581, "val_dfl_loss": 1.46000, "lr_pg0": 0.002080},
+        {"epoch": 82, "precision": 0.83343, "recall": 0.82960, "map50": 0.86308, "map50_95": 0.72679, "train_box_loss": 0.62166, "train_cls_loss": 0.37759, "train_dfl_loss": 1.33630, "val_box_loss": 0.64567, "val_cls_loss": 0.39575, "val_dfl_loss": 1.46030, "lr_pg0": 0.001981},
+        {"epoch": 83, "precision": 0.83518, "recall": 0.82842, "map50": 0.86321, "map50_95": 0.72688, "train_box_loss": 0.61879, "train_cls_loss": 0.37538, "train_dfl_loss": 1.33290, "val_box_loss": 0.64576, "val_cls_loss": 0.39592, "val_dfl_loss": 1.46060, "lr_pg0": 0.001882}
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [],
+  "package_info": {
+    "report_type": "technical_diagnostic",
+    "analysis_window": "PT-R011 epochs 24-43; actual active PT-R013 epochs 44-83; agent snapshot 2026-07-22 11:05:30 +08:00",
+    "chart_map": [
+      "Active mAP section: line chart; PT-R013 epoch 44-83 on x; mAP50 and mAP50-95 on y; shows that decline starts before the latest resume and continues afterward.",
+      "Active DFL section: line chart; PT-R013 epoch 44-83 on x; validation and training DFL on y; shows the widening generalization gap.",
+      "Original PT-R011 section: line chart; epoch 24-43 on x; mAP50 and mAP50-95 on y; distinguishes the requested run from the active run. Three line charts are retained because all three analytical questions concern continuous epoch trajectories, while mixed-scale loss and mAP are kept separate."
+    ],
+    "audience_specification": "technical-report.md",
+    "structure_mapping": "Title, technical summary, key findings with visual evidence, scope/data/definitions, methodology, limitations/robustness, recommended next steps, and further questions are all visible blocks."
+  }
+}

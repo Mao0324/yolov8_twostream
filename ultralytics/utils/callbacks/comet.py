@@ -1,15 +1,17 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
+import os
+
 from ultralytics.utils import LOGGER, RANK, SETTINGS, TESTS_RUNNING, ops
 
 try:
     assert not TESTS_RUNNING  # do not log pytest
     assert SETTINGS["comet"] is True  # verify integration is enabled
+    assert os.getenv("COMET_MODE", "").strip().lower() not in {"disabled", "disable"}
     import comet_ml
 
     assert hasattr(comet_ml, "__version__")  # verify package is not directory
 
-    import os
     from pathlib import Path
 
     # Ensures certain logging functions only run for supported tasks

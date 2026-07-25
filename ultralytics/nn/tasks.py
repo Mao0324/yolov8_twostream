@@ -79,7 +79,21 @@ from ultralytics.nn.modules import (
     Fusion,
     Concat3,
     RIFusion,
-    ASSAFusion
+    ASSAFusion,
+    PartialChannelASSAFusion,
+    ASSAFusionStaticNoFFN,
+    MAA2D,
+    LAFMerge2D,
+    StaticMAA2D,
+    LAFMergeFeedback2D,
+    PaperLAFMergeFeedback2D,
+    StaticMAAContext2D,
+    StaticMAAContext2DFP32Safe,
+    StaticMAAContext2DL2Temp,
+    StaticMAAContext2DSqrtHW,
+    TargetSaliencyPaperLAFMergeFeedback2D,
+    FTCrossMerge,
+    ZeroInitResidualRefine2D,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -185,20 +199,41 @@ class BaseModel(nn.Module):
 
         isR=True # 当前是否为RGB
 
+        legacy_graph_active = False
         for m in self.model:
-            
-            # 既不是ADD 也不是 Fusion 也不为-1 
-            if m.f != -4:
-                if m.f != -3:
-                    if m.f != -1:  # if not from previous layer
-                        x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+            # Models built from YAML receive a semantic route from parse_model.
+            # The fallback preserves compatibility with older serialized models
+            # that predate this attribute.
+            route = getattr(m, "twostream_route", None)
+            if route is None:
+                if m.f == -4:
+                    route = "switch"
+                elif m.f == -5:
+                    route = "rgb_branch"
+                elif m.f == -6:
+                    route = "ir_branch"
+                elif m.f == -3:
+                    route = "pair"
+                elif isinstance(
+                    m,
+                    (LAFMergeFeedback2D, PaperLAFMergeFeedback2D, TargetSaliencyPaperLAFMergeFeedback2D),
+                ):
+                    route = "feedback"
+                elif legacy_graph_active or isinstance(m, (ADD, LAFMerge2D, FTCrossMerge)):
+                    route = "graph"
+                    legacy_graph_active = True
+                else:
+                    route = "branch"
+
+            if route in {"graph", "context", "feedback"} and m.f != -1:  # fetch explicit graph inputs
+                x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]
        
             if profile:
                 self._profile_one_layer(m, x, dt)
 
 
             
-            if m.f==-4:
+            if route == "switch":
                 # 跳转另外一个分支
                 if isR:
                     x= m(ir)
@@ -208,14 +243,22 @@ class BaseModel(nn.Module):
                     x = m(rgb)  # run
                     rgb=x
                     isR=True
-            elif m.f==-3:
-                    if(len(list(m.named_parameters()))>0):
-                        x3=torch.cat([rgb,ir],dim=1)
-                        x3=m(x3)
-                        rgb,ir = torch.chunk(x3, 2, dim=1)
-                        # Preserve both interacted streams for later neck inputs.
-                        x=(rgb,ir)
-            elif m.i<23:
+            elif route == "rgb_branch":
+                    x = m(rgb)
+                    rgb = x
+            elif route == "ir_branch":
+                    x = m(ir)
+                    ir = x
+            elif route == "pair":
+                    x3=torch.cat([rgb,ir],dim=1)
+                    x3=m(x3)
+                    rgb,ir = torch.chunk(x3, 2, dim=1)
+                    # Preserve both streams for later neck inputs. Parameter-free
+                    # RIFusion layers are exact identity pair carriers.
+                    x=(rgb,ir)
+            elif route == "feedback":
+                    rgb, ir, x = m(x)
+            elif route == "branch":
                 if isR:
                     x= m(rgb)
                     rgb=x
@@ -965,7 +1008,12 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         
     ty=0
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
+    rgb_stream_ch = ir_stream_ch = ch[-1]
+    backbone_layers = len(d["backbone"])
+    twostream_branch_active = any(layer[0] in (-3, -4, -5, -6) for layer in d["backbone"] + d["head"])
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
+        if i == backbone_layers:
+            twostream_branch_active = False
         # m = getattr(torch.nn, m[3:]) if "nn." in m else globals()[m]  # get module
         try:
             if m == 'node_mode':
@@ -1020,11 +1068,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2f_FEM,
             C2f_Faster,
             C2f_RG,
+            ZeroInitResidualRefine2D,
             
         }:  
             
 
-            c1, c2 = ch[f], args[0]
+            if f == -5:
+                c1, c2 = rgb_stream_ch, args[0]
+            elif f == -6:
+                c1, c2 = ir_stream_ch, args[0]
+            else:
+                c1, c2 = ch[f], args[0]
             if f==-4:
                 c1=tx[ty]
                 if ty!=0:
@@ -1071,9 +1125,78 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1,c2] 
         elif m is RIFusion:
             args = [args[0]] 
-        elif m is ASSAFusion:
+        elif m in {ASSAFusion, PartialChannelASSAFusion, ASSAFusionStaticNoFFN}:
             c2 = make_divisible(min(args[0], max_channels) * width, 8)
             args = [c2, *args[1:]]
+        elif m in {MAA2D, StaticMAA2D}:
+            c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            args = [c2, *args[1:]]
+        elif m in {
+            StaticMAAContext2D,
+            StaticMAAContext2DFP32Safe,
+            StaticMAAContext2DSqrtHW,
+            StaticMAAContext2DL2Temp,
+        }:
+            if not isinstance(f, list) or len(f) != 2:
+                raise ValueError("StaticMAAContext2D requires [RGB stage, IR stage] sources")
+            stream_c2 = ch[f[0]]
+            if ch[f[1]] != stream_c2:
+                raise ValueError(f"StaticMAAContext2D source channels differ: {stream_c2} vs {ch[f[1]]}")
+            configured_c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            if configured_c2 != stream_c2:
+                raise ValueError(
+                    f"StaticMAAContext2D configured channels {configured_c2} do not match inputs {stream_c2}"
+                )
+            args = [stream_c2, *args[1:]]
+            c2 = 2  # packed one-channel (S_rgb, S_ir) logits
+        elif m in {LAFMerge2D, LAFMergeFeedback2D}:
+            if isinstance(f, int) and m is LAFMergeFeedback2D:
+                # A saved StaticMAA2D layer carries the (RGB, IR) pair as one
+                # graph source. Existing two-source LAF configurations retain
+                # their original parsing and execution behavior.
+                c2 = ch[f]
+            elif isinstance(f, list) and len(f) == 2:
+                c2 = ch[f[0]]
+                if ch[f[1]] != c2:
+                    raise ValueError(f"{m.__name__} source channels differ: {c2} vs {ch[f[1]]}")
+            else:
+                raise ValueError(f"{m.__name__} requires two source layers or one saved pair source")
+            configured_c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            if configured_c2 != c2:
+                raise ValueError(f"{m.__name__} configured channels {configured_c2} do not match inputs {c2}")
+            args = [c2, *args[1:]]
+        elif m is PaperLAFMergeFeedback2D:
+            if not isinstance(f, list) or len(f) != 3:
+                raise ValueError(f"{m.__name__} requires [StaticMAA2D, RGB stage, IR stage] sources")
+            c2 = ch[f[1]]
+            source_channels = [ch[source] for source in f]
+            if any(source_c != c2 for source_c in source_channels):
+                raise ValueError(f"{m.__name__} source channels differ: {source_channels}")
+            configured_c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            if configured_c2 != c2:
+                raise ValueError(f"{m.__name__} configured channels {configured_c2} do not match inputs {c2}")
+            args = [c2, *args[1:]]
+        elif m is TargetSaliencyPaperLAFMergeFeedback2D:
+            if not isinstance(f, list) or len(f) != 3:
+                raise ValueError(
+                    f"{m.__name__} requires [StaticMAAContext2D, RGB stage, IR stage] sources"
+                )
+            if ch[f[0]] != 2:
+                raise ValueError(f"{m.__name__} requires two packed single-channel saliency logits")
+            c2 = ch[f[1]]
+            if ch[f[2]] != c2:
+                raise ValueError(f"{m.__name__} stage channels differ: {c2} vs {ch[f[2]]}")
+            configured_c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            if configured_c2 != c2:
+                raise ValueError(f"{m.__name__} configured channels {configured_c2} do not match inputs {c2}")
+            args = [c2, *args[1:]]
+        elif m is FTCrossMerge:
+            if not isinstance(f, list) or len(f) != 2:
+                raise ValueError("FTCrossMerge requires exactly two source layers")
+            c2 = ch[f[0]]
+            if ch[f[1]] != c2:
+                raise ValueError(f"FTCrossMerge source channels differ: {c2} vs {ch[f[1]]}")
+            args = [c2, *args]
         elif m in {SKAttention,GLF,NAM,GLCBAM,GCBAM,SACBAM,CSFM}:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
@@ -1157,16 +1280,51 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         t = str(m)[8:-2].replace("__main__.", "")  # module type
         m.np = sum(x.numel() for x in m_.parameters())  # number params
         m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
+        if twostream_branch_active:
+            if f == -4:
+                m_.twostream_route = "switch"
+            elif f == -5:
+                m_.twostream_route = "rgb_branch"
+            elif f == -6:
+                m_.twostream_route = "ir_branch"
+            elif f == -3:
+                m_.twostream_route = "pair"
+            elif m in {
+                StaticMAAContext2D,
+                StaticMAAContext2DFP32Safe,
+                StaticMAAContext2DSqrtHW,
+                StaticMAAContext2DL2Temp,
+            }:
+                m_.twostream_route = "context"
+            elif m in {LAFMergeFeedback2D, PaperLAFMergeFeedback2D, TargetSaliencyPaperLAFMergeFeedback2D}:
+                m_.twostream_route = "feedback"
+            elif m in {ADD, LAFMerge2D, FTCrossMerge}:
+                m_.twostream_route = "graph"
+                twostream_branch_active = False
+            else:
+                m_.twostream_route = "branch"
+        else:
+            m_.twostream_route = "graph"
         if verbose:
             LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m.np:10.0f}  {t:<45}{str(args):<30}")  # print
 
-        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x not in [-1,-3,-4])  # append to savelist
+        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x not in [-1, -3, -4, -5, -6])
         
         
         layers.append(m_)
         if i == 0:
             ch = []
         ch.append(c2)
+        if f == -5:
+            rgb_stream_ch = c2
+        elif f == -6:
+            ir_stream_ch = c2
+        elif f == -3 or m in {
+            LAFMergeFeedback2D,
+            PaperLAFMergeFeedback2D,
+            TargetSaliencyPaperLAFMergeFeedback2D,
+        }:
+            rgb_stream_ch = ir_stream_ch = c2
         
     return nn.Sequential(*layers), sorted(save)
 

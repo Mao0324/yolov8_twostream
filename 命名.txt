@@ -150,3 +150,52 @@ SwinTransformer_WindowFusion_P345_H4-8-16_W7_v1
 6. Version 是否与当前实现版本一致。
 7. 重复实验是否正确添加 Seed。
 8. 不要使用含义不清的名称，例如 test、new、final、final2、best_model。
+
+
+七、永久实验 ID 与 Manifest
+---------------------------
+
+长名称继续负责描述架构，但不再单独承担实验身份和文件关联。每个实验还必须分配一个
+永久 ID，例如 DarkAct 系列使用 DA-001、DA-002……。ID 一经分配不得因文件改名、
+训练重跑或结果目录变化而复用给其他架构。
+
+二者职责如下：
+
+1. ID：稳定身份和父子谱系，例如 DA-005。
+2. name：继续遵循本文前述格式，完整描述论文、模块、尺度、heads、结构和版本。
+3. Manifest：记录 ID、父实验、唯一改动、YAML、模块源码、初始化权重、迁移脚本、
+   Trainer、历史运行目录和报告路径。
+4. Seed/重复训练：仍在 name 中按 S0、S1……区分，同时归属于同一个架构 ID。
+
+实验索引与使用命令：
+
+   experiments/INDEX.md
+   experiments/<family>/README.md
+
+   python tools/experiment_registry.py validate
+   python tools/experiment_registry.py render
+   python tools/experiment_registry.py list --family DarkAct
+   python tools/experiment_registry.py show DA-005
+
+新增实验时的顺序固定为：
+
+1. 先分配永久 ID，并选择 parent_id。
+2. 新增模型 YAML 和迁移权重。
+3. 写 Manifest，明确相对父实验的唯一结构变化。
+4. 运行 validate 和 render。
+5. 使用 tools/train_experiment.py 按 ID 启动训练。
+
+已有 YAML、历史训练目录和旧训练脚本不因登记 ID 而移动或改名；Manifest 只建立
+稳定映射，避免破坏续训、评测和既有分析报告。
+
+
+八、预训练权重迁移公平性约定
+--------------------------------
+
+所有新架构和消融实验的迁移源必须直接为：
+
+   /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/pre-pth/yolov8s-obb.pt
+
+不得从任何已迁移的双流 checkpoint、中间实验 best.pt/last.pt 或其他实验权重
+二次迁移。新模块的随机初始化必须使用明确且相同的迁移随机种子，checkpoint
+的 migration 元数据必须记录源绝对路径、SHA256、迁移随机种子和实际复制张量数。

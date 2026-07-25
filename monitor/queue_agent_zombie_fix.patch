@@ -1,0 +1,46 @@
+--- queue_agent.py.orig
++++ queue_agent.py
+@@ -111,10 +111,24 @@
+     def process_alive(pid: int) -> bool:
+         if pid <= 0:
+             return False
+         try:
++            # kill(pid, 0) succeeds for zombies.  Treat /proc state Z as
++            # terminated so recovered jobs cannot remain leased forever.
++            stat = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
++            closing_paren = stat.rfind(")")
++            if closing_paren >= 0 and stat[closing_paren + 1 :].strip().startswith("Z"):
++                return False
+             os.kill(pid, 0)
+             return True
+-        except (ProcessLookupError, PermissionError):
++        except (ProcessLookupError, FileNotFoundError):
+             return False
++        except OSError:
++            # Preserve the previous conservative behavior for processes whose
++            # /proc metadata exists but cannot be inspected by this account.
++            try:
++                os.kill(pid, 0)
++                return True
++            except (ProcessLookupError, PermissionError):
++                return False
+ 
+     def process_matches(self, pid: int, job_id: str) -> bool:
+         if not self.process_alive(pid):
+@@ -496,7 +510,15 @@
+         if not job:
+             return
+         last_heartbeat = 0.0
+-        while self.current_pid and self.process_alive(self.current_pid) and not self.stop_requested:
++        while self.current_pid and not self.stop_requested:
++            # Popen.poll() both detects completion and reaps a child.  Merely
++            # probing it with kill(pid, 0) reports a terminated-but-unreaped
++            # zombie as alive forever, which wedges the Agent on a failed job.
++            if self.current_process is not None:
++                if self.current_process.poll() is not None:
++                    break
++            elif not self.process_alive(self.current_pid):
++                break
+             self.read_new_log()
+             if time.monotonic() - last_heartbeat >= self.poll_seconds:
+                 last_heartbeat = time.monotonic()

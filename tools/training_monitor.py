@@ -1,0 +1,51 @@
+"""Shared bootstrap for DDP-safe monitoring in repository training scripts."""
+
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+MONITOR_DIR = ROOT / "monitor"
+
+
+def _bootstrap_monitor_imports() -> None:
+    """Make repository and monitor modules importable in parent/DDP processes."""
+    os.environ.setdefault("YOLO_MONITOR_URL", "https://monitor.maocong.me")
+    os.environ["YOLO_MONITOR_USE_PROXY"] = "false"
+
+    required_paths = (str(ROOT), str(MONITOR_DIR))
+    for path in reversed(required_paths):
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+    existing_paths = [entry for entry in os.environ.get("PYTHONPATH", "").split(os.pathsep) if entry]
+    existing_paths = [entry for entry in existing_paths if entry not in required_paths]
+    # Ultralytics writes its DDP launcher under ~/.config/Ultralytics/DDP, so
+    # the child cannot rely on the training script's repository working path.
+    os.environ["PYTHONPATH"] = os.pathsep.join((*required_paths, *existing_paths))
+
+
+_bootstrap_monitor_imports()
+
+from monitored_obb_trainer import MonitoredOBBTrainer  # noqa: E402
+from monitored_target_saliency_trainer import MonitoredTargetSaliencyOBBTrainer  # noqa: E402
+from yolo_monitor import RemoteMonitorTrainerMixin, YoloExperimentMonitor  # noqa: E402
+
+
+def create_monitor(experiment_name: str) -> YoloExperimentMonitor:
+    """Validate required configuration and create a monitor for one run."""
+    if not os.getenv("YOLO_MONITOR_URL") or not os.getenv("YOLO_MONITOR_TOKEN"):
+        raise RuntimeError("Set YOLO_MONITOR_URL and YOLO_MONITOR_TOKEN before training")
+    return YoloExperimentMonitor(experiment_name=experiment_name)
+
+
+__all__ = (
+    "MonitoredOBBTrainer",
+    "MonitoredTargetSaliencyOBBTrainer",
+    "RemoteMonitorTrainerMixin",
+    "YoloExperimentMonitor",
+    "create_monitor",
+)
