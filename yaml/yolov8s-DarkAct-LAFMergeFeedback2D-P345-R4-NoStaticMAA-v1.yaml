@@ -1,0 +1,71 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 来源与消融说明：
+# 本架构基于 yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v2.yaml 新建，
+# 仅用于验证 StaticMAA2D 在 DroneVehicle 双流 OBB 任务中是否冗余。
+# 它完全删除 P3/P4/P5 的 StaticMAA2D，不修改任何旧类或旧 YAML。
+#
+# 三个尺度均保留：
+#   RGB C2f / IR C2f_Faster -> LAFMergeFeedback2D
+# LAF 融合特征输入 neck，融合修正量继续反馈 RGB/IR 两条 backbone 流。
+# LAF 仍为 C/4 部分通道交互，P3/P4/P5 heads=2/4/8，dilation=1/2/2。
+
+nc: 5
+scales:
+  # n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+scale: s
+
+backbone:
+  # RGB 分支：提取至 P3/8。
+  - [-5, 1, Conv, [64, 3, 2]]                              # 0 RGB-P1/2
+  - [-5, 1, Conv, [128, 3, 2]]                             # 1 RGB-P2/4
+  - [-5, 3, C2f, [128, True]]                              # 2
+  - [-5, 1, Conv, [256, 3, 2]]                             # 3 RGB-P3/8
+
+  # IR 分支：提取至 P3/8。
+  - [-6, 1, Conv, [64, 3, 2]]                              # 4 IR-P1/2
+  - [-6, 1, Conv, [128, 3, 2]]                             # 5
+  - [-6, 3, C2f_Faster, [128, True]]                       # 6
+  - [-6, 1, Conv, [256, 3, 2]]                             # 7 IR-P3/8
+
+  # P3：两流分别提炼后直接融合，无 StaticMAA2D。
+  - [-5, 6, C2f, [256, True]]                              # 8 RGB-P3
+  - [-6, 6, C2f_Faster, [256, True]]                       # 9 IR-P3
+  - [[8, 9], 1, LAFMergeFeedback2D, [256, 2, 4, 1, 8]]    # 10 P3 fused/feedback
+
+  - [-5, 1, Conv, [512, 3, 2]]                             # 11 RGB-P4/16
+  - [-6, 1, Conv, [512, 3, 2]]                             # 12 IR-P4/16
+
+  # P4：两流分别提炼后直接融合，无 StaticMAA2D。
+  - [-5, 6, C2f, [512, True]]                              # 13 RGB-P4
+  - [-6, 6, C2f_Faster, [512, True]]                       # 14 IR-P4
+  - [[13, 14], 1, LAFMergeFeedback2D, [512, 4, 4, 2, 8]]  # 15 P4 fused/feedback
+
+  - [-5, 1, Conv, [1024, 3, 2]]                            # 16 RGB-P5/32
+  - [-6, 1, Conv, [1024, 3, 2]]                            # 17 IR-P5/32
+
+  # P5：与 V2 一致，两边 C2f/C2f_Faster + SPPF 都完成后融合。
+  - [-5, 3, C2f, [1024, True]]                             # 18 RGB-P5
+  - [-5, 1, SPPF, [1024, 5]]                              # 19
+  - [-6, 3, C2f_Faster, [1024, True]]                      # 20 IR-P5
+  - [-6, 1, SPPF, [1024, 5]]                              # 21
+  - [[19, 21], 1, LAFMergeFeedback2D, [1024, 8, 4, 2, 8]] # 22 P5 fused/feedback
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]           # 23
+  - [[-1, 15], 1, Concat, [1]]                            # 24 P5 up + P4 fused
+  - [-1, 3, C2f, [512]]                                   # 25
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]           # 26
+  - [[-1, 10], 1, Concat, [1]]                            # 27 P4 up + P3 fused
+  - [-1, 3, C2f, [256]]                                   # 28 P3/8
+  - [-1, 1, Conv, [256, 3, 2]]                            # 29
+  - [[-1, 25], 1, Concat, [1]]                            # 30
+  - [-1, 3, C2f, [512]]                                   # 31 P4/16
+  - [-1, 1, Conv, [512, 3, 2]]                            # 32
+  - [[-1, 22], 1, Concat, [1]]                            # 33
+  - [-1, 3, C2f, [1024]]                                  # 34 P5/32
+  - [[28, 31, 34], 1, OBB, [nc, 1]]                       # 35

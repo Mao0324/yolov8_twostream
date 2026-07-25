@@ -1,0 +1,896 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DarkAct 三个融合架构：V2 的门控与反馈带来唯一明显提升",
+    "description": "比较 DarkAct V1/V2/V3 与 baseline 的验证集、测试集、逐类指标、复杂度与关键学习权重。",
+    "generatedAt": "2026-07-16T12:00:00+08:00",
+    "sources": [
+      {
+        "id": "evidence_notes",
+        "label": "DarkAct comparison evidence notes",
+        "path": "analysis_reports/darkact_architecture_comparison_20260716/source_notes.md",
+        "query": {
+          "engine": "local-files",
+          "language": "python+shell",
+          "description": "Compare aligned train/validation/test artifacts, model complexity, learned parameters, and 16-image feature probes.",
+          "executed_at": "2026-07-16T12:00:00+08:00",
+          "filters": [
+            "DroneVehicle test: 8980 images, 159614 instances, 5 classes",
+            "best.pt EMA weights",
+            "mechanism probe: 16 evenly spaced test image pairs"
+          ],
+          "metric_definitions": [
+            "test delta pp = (variant test mAP50-95 - baseline test mAP50-95) * 100",
+            "correction RMS ratio = RMS(fused - (RGB + IR)) / RMS(RGB + IR)",
+            "MAA gain = spatial mean of 1 + beta * sigmoid gate"
+          ],
+          "tables_used": [
+            "runs_baseline/train/results.csv",
+            "runs_baseline/train/test_result/test.txt",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_*/results.csv",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_*/test_result/test.txt",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_*/weights/best.pt"
+          ]
+        }
+      },
+      {
+        "id": "report_sql",
+        "label": "Bounded report datasets",
+        "path": "analysis_reports/darkact_architecture_comparison_20260716/source_data.sql"
+      },
+      {
+        "id": "analysis_json",
+        "label": "Reproduced analysis output",
+        "path": "analysis_reports/darkact_architecture_comparison_20260716/analysis.json"
+      },
+      {
+        "id": "analysis_script",
+        "label": "Reproducible checkpoint and activation probe",
+        "path": "analysis_reports/darkact_architecture_comparison_20260716/analyze.py"
+      },
+      {
+        "id": "baseline_results",
+        "label": "Baseline training and test artifacts",
+        "path": "runs_baseline/train/results.csv"
+      },
+      {
+        "id": "v1_results",
+        "label": "DarkAct V1 training results",
+        "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1/results.csv"
+      },
+      {
+        "id": "v2_results",
+        "label": "DarkAct V2 training results",
+        "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2/results.csv"
+      },
+      {
+        "id": "v3_results",
+        "label": "DarkAct V3 training results",
+        "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3/results.csv"
+      },
+      {
+        "id": "v1_code",
+        "label": "V1 MAA/LAF module",
+        "path": "ultralytics/nn/modules/darkact_maalaf.py"
+      },
+      {
+        "id": "v2_code",
+        "label": "V2 StaticMAA/LAF feedback module",
+        "path": "ultralytics/nn/modules/darkact_maalaf_v2.py"
+      },
+      {
+        "id": "v3_code",
+        "label": "V3 paper-style LAF module",
+        "path": "ultralytics/nn/modules/darkact_maalaf_v3.py"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# DarkAct 三个融合架构：V2 的门控与反馈带来唯一明显提升"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n**当前三个 DarkAct 实验中，V2 `StaticMAA2D + LAFMergeFeedback2D` 是明确胜者。** 它的 test mAP50-95 约从 baseline 的 0.66956 升到 0.683，提升约 **1.34 个百分点**；5 个类全部上升，van 和 freight_car 各约 +2.2 个百分点。\n\n权重探针表明，这个收益主要来自 **P3/P4/P5 分尺度模态门控和融合修正回馈后续 backbone**：P3 强调 IR，P4/P5 转向 RGB。反而 StaticMAA 的空间 gate 几乎退化为常数，V1/V2 的 C/4 cross-value 分支输出 RMS 仅为原 ADD 特征的 1e-6–1e-5，基本没有对融合产生实质贡献。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "headline_metrics",
+        "type": "metric-strip",
+        "cardIds": [
+          "v2_map",
+          "v2_complexity",
+          "v3_generalization"
+        ]
+      },
+      {
+        "id": "ranking",
+        "type": "markdown",
+        "body": "## V2 的 test 收益是 V1 的约 4 倍，也明显高于 V3\n\nV1 和 V3 相对 baseline 只分别上升约 0.34 和 0.54 个百分点；V2 上升约 1.34 个百分点。DarkAct 结果虽然只保留三位小数，但最大四舍五入误差只有 ±0.05 个百分点，不会改变 V2 的当前排名。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "test_delta_chart",
+        "type": "chart",
+        "chartId": "test_delta"
+      },
+      {
+        "id": "experiment_audit_intro",
+        "type": "markdown",
+        "body": "## V3 验证集最高，但测试集泛化反而落后\n\nV3 的 best-val mAP50-95=0.71097，高于 V2 的 0.70874；但 test 上 V3=0.675，比 V2=0.683 低 0.8 个百分点。V3 的 val-test gap 也是最大的 3.60 个百分点，同时需要 24.69M 参数和 55.30 GFLOPs。这支持“full-C 复杂度没有转化为 test 收益”，但单 seed 不足以证明严格过拟合因果。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "experiment_table",
+        "type": "table",
+        "tableId": "experiment_comparison"
+      },
+      {
+        "id": "class_driver",
+        "type": "markdown",
+        "body": "## V2 的提升覆盖全部 5 类，最难的 van 和 freight_car 收益最大\n\ncar 已接近 0.84 的 mAP50-95 天花板，仍小幅提升；truck 上升约 1.61 个百分点，van 和 freight_car 各上升约 2.2 个百分点。这比 V1 主要依赖 truck 的小幅改善更有说服力。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "class_chart",
+        "type": "chart",
+        "chartId": "v2_class_map"
+      },
+      {
+        "id": "v2_mechanism",
+        "type": "markdown",
+        "body": "## V2 实际学到的是“P3 偏 IR，P4/P5 偏 RGB”的分尺度融合\n\nP3 的平均权重是 RGB 0.318 / IR 1.682，且 RGB 权重与输入 RGB 亮度相关系数为 0.916，说明低层会随可见光可靠性自适应地更依赖 IR。P4/P5 则转为 RGB 优势，更符合高层语义特征需要。三层修正 RMS 比例约为 0.598/0.543/0.348，并且 P3/P4 修正会继续回馈后续 backbone。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "v2_stage_table",
+        "type": "table",
+        "tableId": "v2_stage_probe"
+      },
+      {
+        "id": "inactive_paths",
+        "type": "markdown",
+        "body": "## V2 中两个看似复杂的分支其实没有学出预期功能\n\nStaticMAA 的 `beta` 确实从 0.01 增长到约 0.16，但 gate 空间标准差只有 1e-5 量级，所以输出几乎只是对 RGB/IR 统一乘以约 1.08。C/4 cross-value 分支的实际输出 RMS 也只有原 ADD 特征的 1e-6–1e-5。因此 V2 的有效核心是门控与 feedback，不是 StaticMAA 空间显著性或 partial cross attention。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "v3_mechanism",
+        "type": "markdown",
+        "body": "## V3 的 paper-style LAF 已学起来，但残差从 P3 到 P5 快速衰减\n\nV3 的零初始输出 BN gamma 已离开 0，证明分支不是断路。但 P3/P4/P5 的 correction RMS 比例只有 0.209/0.137/0.034，输出 BN gamma RMS 也从 0.120 降到 0.026。尤其 P5 接近弱作用，却使用完整 C 维 query/key/value 计算，因此参数与算力投入的性价比很低。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "v3_stage_table",
+        "type": "table",
+        "tableId": "v3_stage_probe"
+      },
+      {
+        "id": "scope_method",
+        "type": "markdown",
+        "body": "## 比较口径与诊断方法\n\n四次训练都使用同一 DroneVehicle 划分、100 epochs、batch 64、imgsz 640、SGD、seed 0 和 deterministic 模式。测试都基于 `best.pt` 的 8,980 张 test 图像。诊断脚本从 checkpoint 读取 EMA model，对 16 张等间隔 test 图做前向，直接测量 MAA 乘子、门控权重、融合修正 RMS 和独立 cross 分支 RMS。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 稳健性限制：当前能判断单次胜者，不能声称统计显著\n\n- 每个架构只有 seed 0 一次，需要至少 3 seeds 才能报告 mean±std。\n- DarkAct test 指标只保留三位小数，但其误差不足以颠覆 V2 对 V1/V3 的排名。\n- 16 张激活探针可以判断分支是否近似退化，不能代替全 test 的亮度/昼夜分箱 mAP。\n- V2 同时改了 StaticMAA、门控和 feedback，当前权重证据能锁定“哪条路径活跃”，但不能在没有单变量 ablation 时严格分配因果贡献。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "body": "## 下一组实验应先做减法，保留 V2 的有效核心\n\n1. **V2 gate-only + feedback**：删除近乎零贡献的 cross-value 分支。\n2. **V2 no-StaticMAA**：验证删除退化成常数增益的 StaticMAA 后 mAP 是否保持。\n3. **P3/P4 feedback + P5 ADD**：优先保留对小目标关键的低/中层融合，降低 P5 成本。\n4. **V3 P3/P4 only**：先移除弱作用的 P5 full-C LAF，再判断论文式路径是否值得保留。\n5. 对最终候选结构跑至少 3 seeds，并增加暗光分箱和昼/夜分组评估。",
+        "sourceId": "evidence_notes"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 还需要回答的问题\n\n- V2 的 +1.34 个百分点在 3–5 个 seeds 下能否保持？\n- P3 亮度自适应的收益是否真的集中在暗光 RGB 样本？\n- 删除 StaticMAA 和 cross-value 后，是否能在保持 V2 mAP 的同时把参数/FLOPs 压回接近 baseline？"
+      }
+    ],
+    "cards": [
+      {
+        "id": "v2_map",
+        "dataset": "headline",
+        "sourceId": "report_sql",
+        "description": "同一 DroneVehicle test split 上的宏平均 OBB mAP50-95。",
+        "metrics": [
+          {
+            "label": "V2 test mAP50-95",
+            "field": "v2_test_map",
+            "format": "number"
+          },
+          {
+            "label": "baseline",
+            "field": "baseline_test_map",
+            "format": "number"
+          },
+          {
+            "label": "delta pp",
+            "field": "v2_delta_pp",
+            "format": "number",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "v2_complexity",
+        "dataset": "headline",
+        "sourceId": "report_sql",
+        "description": "未 fuse checkpoint 参数量；V2 主要增量来自 StaticMAA 与融合模块。",
+        "metrics": [
+          {
+            "label": "V2 params M",
+            "field": "v2_params_m",
+            "format": "number"
+          },
+          {
+            "label": "baseline M",
+            "field": "baseline_params_m",
+            "format": "number"
+          },
+          {
+            "label": "delta %",
+            "field": "v2_params_delta_pct",
+            "format": "number",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "v3_generalization",
+        "dataset": "headline",
+        "sourceId": "report_sql",
+        "description": "V3 的 best-val 最高，但 test 相对 V2 退后。",
+        "metrics": [
+          {
+            "label": "V3 test mAP50-95",
+            "field": "v3_test_map",
+            "format": "number"
+          },
+          {
+            "label": "V3 best val",
+            "field": "v3_best_val_map",
+            "format": "number"
+          },
+          {
+            "label": "val-test gap pp",
+            "field": "v3_val_test_gap_pp",
+            "format": "number"
+          }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "test_delta",
+        "title": "DarkAct 变体的 test mAP50-95 增量",
+        "subtitle": "相对 Baseline ADD，单位为百分点；DarkAct test 值保留三位小数",
+        "showDescription": true,
+        "intent": "comparison",
+        "question": "哪个 DarkAct 架构在 test 上带来最大提升？",
+        "rationale": "三个离散架构的单指标增量比较。",
+        "type": "bar",
+        "dataset": "variant_delta",
+        "sourceId": "report_sql",
+        "encodings": {
+          "x": {
+            "field": "variant",
+            "type": "nominal",
+            "label": "architecture"
+          },
+          "y": {
+            "field": "test_delta_pp",
+            "type": "quantitative",
+            "label": "test mAP50-95 delta",
+            "unit": "pp",
+            "format": "number"
+          },
+          "tooltip": [
+            {
+              "field": "test_map5095",
+              "type": "quantitative",
+              "label": "test mAP50-95",
+              "format": "number"
+            },
+            {
+              "field": "best_val_map5095",
+              "type": "quantitative",
+              "label": "best val mAP50-95",
+              "format": "number"
+            },
+            {
+              "field": "params_m",
+              "type": "quantitative",
+              "label": "params M",
+              "format": "number"
+            }
+          ]
+        },
+        "valueFormat": "number",
+        "unit": "pp",
+        "layout": "full",
+        "palette": {
+          "kind": "sequential",
+          "name": "blue"
+        },
+        "labels": {
+          "values": "all"
+        },
+        "settings": {
+          "sort": "descending",
+          "showValues": true
+        },
+        "surface": {
+          "surface": "card",
+          "viewMode": "both"
+        }
+      },
+      {
+        "id": "v2_class_map",
+        "title": "Baseline 与 V2 逐类 test mAP50-95",
+        "subtitle": "5 个 DroneVehicle 类别；V2 在每个类别上均高于 baseline",
+        "showDescription": true,
+        "intent": "comparison",
+        "question": "V2 的总体收益是否覆盖所有类别？",
+        "rationale": "同一指标在两个模型与五个类别上的分组比较。",
+        "type": "bar",
+        "dataset": "class_map_long",
+        "sourceId": "report_sql",
+        "encodings": {
+          "x": {
+            "field": "class",
+            "type": "nominal",
+            "label": "class"
+          },
+          "y": {
+            "field": "map5095",
+            "type": "quantitative",
+            "label": "test mAP50-95",
+            "format": "number"
+          },
+          "color": {
+            "field": "series",
+            "type": "nominal",
+            "label": "model"
+          },
+          "tooltip": [
+            {
+              "field": "instances",
+              "type": "quantitative",
+              "label": "instances",
+              "format": "number"
+            },
+            {
+              "field": "delta_pp",
+              "type": "quantitative",
+              "label": "V2 delta pp",
+              "format": "number"
+            }
+          ]
+        },
+        "valueFormat": "number",
+        "layout": "full",
+        "palette": {
+          "kind": "categorical",
+          "name": "blue-gold"
+        },
+        "labels": {
+          "values": "all"
+        },
+        "settings": {
+          "showValues": true,
+          "grouped": true
+        },
+        "surface": {
+          "surface": "card",
+          "viewMode": "both"
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "experiment_comparison",
+        "title": "实验结果与复杂度对照",
+        "subtitle": "同一训练设置；test delta 相对 baseline，val-test gap 单位为百分点",
+        "showDescription": true,
+        "dataset": "experiment_comparison",
+        "sourceId": "report_sql",
+        "density": "spacious",
+        "layout": "full",
+        "defaultSort": {
+          "field": "ordering",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "experiment",
+            "label": "experiment",
+            "type": "text"
+          },
+          {
+            "field": "best_val_map5095",
+            "label": "best val",
+            "type": "number"
+          },
+          {
+            "field": "test_map5095",
+            "label": "test",
+            "type": "number"
+          },
+          {
+            "field": "test_delta_pp",
+            "label": "test delta pp",
+            "type": "number",
+            "movement": true
+          },
+          {
+            "field": "val_test_gap_pp",
+            "label": "val-test gap pp",
+            "type": "number"
+          },
+          {
+            "field": "params_m",
+            "label": "params M",
+            "type": "number"
+          },
+          {
+            "field": "gflops",
+            "label": "GFLOPs",
+            "type": "number"
+          },
+          {
+            "field": "fps",
+            "label": "FPS",
+            "type": "number"
+          },
+          {
+            "field": "ordering",
+            "label": "order",
+            "type": "number"
+          }
+        ]
+      },
+      {
+        "id": "v2_stage_probe",
+        "title": "V2 分尺度权重与融合修正",
+        "subtitle": "16 张等间隔 test 样本；RGB/IR 门控权重之和为 2",
+        "showDescription": true,
+        "dataset": "v2_stage_probe",
+        "sourceId": "report_sql",
+        "density": "spacious",
+        "layout": "full",
+        "defaultSort": {
+          "field": "ordering",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "stage",
+            "label": "stage",
+            "type": "text"
+          },
+          {
+            "field": "maa_gain_rgb",
+            "label": "MAA RGB gain",
+            "type": "number"
+          },
+          {
+            "field": "maa_gain_ir",
+            "label": "MAA IR gain",
+            "type": "number"
+          },
+          {
+            "field": "maa_gate_spatial_std_max",
+            "label": "MAA gate std max",
+            "type": "number"
+          },
+          {
+            "field": "laf_rgb_weight",
+            "label": "LAF RGB weight",
+            "type": "number"
+          },
+          {
+            "field": "laf_ir_weight",
+            "label": "LAF IR weight",
+            "type": "number"
+          },
+          {
+            "field": "correction_rms_ratio",
+            "label": "correction RMS ratio",
+            "type": "number"
+          },
+          {
+            "field": "cross_rms_ratio",
+            "label": "cross RMS ratio",
+            "type": "number"
+          },
+          {
+            "field": "brightness_corr",
+            "label": "brightness corr",
+            "type": "number"
+          },
+          {
+            "field": "ordering",
+            "label": "order",
+            "type": "number"
+          }
+        ]
+      },
+      {
+        "id": "v3_stage_probe",
+        "title": "V3 paper-style LAF 残差强度",
+        "subtitle": "16 张等间隔 test 样本；残差强度与零初始输出 BN gamma 均向 P5 衰减",
+        "showDescription": true,
+        "dataset": "v3_stage_probe",
+        "sourceId": "report_sql",
+        "density": "spacious",
+        "layout": "full",
+        "defaultSort": {
+          "field": "ordering",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "stage",
+            "label": "stage",
+            "type": "text"
+          },
+          {
+            "field": "maa_gain_rgb",
+            "label": "MAA RGB gain",
+            "type": "number"
+          },
+          {
+            "field": "maa_gain_ir",
+            "label": "MAA IR gain",
+            "type": "number"
+          },
+          {
+            "field": "maa_gate_spatial_std_max",
+            "label": "MAA gate std max",
+            "type": "number"
+          },
+          {
+            "field": "correction_rms_ratio",
+            "label": "correction RMS ratio",
+            "type": "number"
+          },
+          {
+            "field": "output_bn_gamma_rms",
+            "label": "output BN gamma RMS",
+            "type": "number"
+          },
+          {
+            "field": "ordering",
+            "label": "order",
+            "type": "number"
+          }
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-16T12:00:00+08:00",
+    "status": "ready",
+    "datasets": {
+      "headline": [
+        {
+          "v2_test_map": 0.683,
+          "baseline_test_map": 0.669562,
+          "v2_delta_pp": 1.344,
+          "v2_params_m": 16.698253,
+          "baseline_params_m": 14.734722,
+          "v2_params_delta_pct": 13.33,
+          "v3_test_map": 0.675,
+          "v3_best_val_map": 0.71097,
+          "v3_val_test_gap_pp": 3.597
+        }
+      ],
+      "variant_delta": [
+        {
+          "variant": "V1",
+          "test_delta_pp": 0.344,
+          "test_map5095": 0.673,
+          "best_val_map5095": 0.70309,
+          "params_m": 15.702371
+        },
+        {
+          "variant": "V2",
+          "test_delta_pp": 1.344,
+          "test_map5095": 0.683,
+          "best_val_map5095": 0.70874,
+          "params_m": 16.698253
+        },
+        {
+          "variant": "V3",
+          "test_delta_pp": 0.544,
+          "test_map5095": 0.675,
+          "best_val_map5095": 0.71097,
+          "params_m": 24.69332
+        }
+      ],
+      "experiment_comparison": [
+        {
+          "experiment": "Baseline ADD",
+          "best_val_map5095": 0.70117,
+          "test_map5095": 0.669562,
+          "test_delta_pp": 0.0,
+          "val_test_gap_pp": 3.161,
+          "params_m": 14.734722,
+          "gflops": 37.0351,
+          "fps": 259.59,
+          "ordering": 0
+        },
+        {
+          "experiment": "V1 MAA2D + LAFMerge",
+          "best_val_map5095": 0.70309,
+          "test_map5095": 0.673,
+          "test_delta_pp": 0.344,
+          "val_test_gap_pp": 3.009,
+          "params_m": 15.702371,
+          "gflops": 38.5563,
+          "fps": 181.6,
+          "ordering": 1
+        },
+        {
+          "experiment": "V2 StaticMAA + LAF feedback",
+          "best_val_map5095": 0.70874,
+          "test_map5095": 0.683,
+          "test_delta_pp": 1.344,
+          "val_test_gap_pp": 2.574,
+          "params_m": 16.698253,
+          "gflops": 40.3729,
+          "fps": 200.16,
+          "ordering": 2
+        },
+        {
+          "experiment": "V3 full-C paper LAF feedback",
+          "best_val_map5095": 0.71097,
+          "test_map5095": 0.675,
+          "test_delta_pp": 0.544,
+          "val_test_gap_pp": 3.597,
+          "params_m": 24.69332,
+          "gflops": 55.3006,
+          "fps": 180.79,
+          "ordering": 3
+        }
+      ],
+      "class_map_long": [
+        {
+          "class": "car",
+          "series": "Baseline",
+          "map5095": 0.83585,
+          "instances": 137146,
+          "delta_pp": 0.315,
+          "ordering": 1
+        },
+        {
+          "class": "car",
+          "series": "V2",
+          "map5095": 0.839,
+          "instances": 137146,
+          "delta_pp": 0.315,
+          "ordering": 1
+        },
+        {
+          "class": "truck",
+          "series": "Baseline",
+          "map5095": 0.64594,
+          "instances": 8657,
+          "delta_pp": 1.606,
+          "ordering": 2
+        },
+        {
+          "class": "truck",
+          "series": "V2",
+          "map5095": 0.662,
+          "instances": 8657,
+          "delta_pp": 1.606,
+          "ordering": 2
+        },
+        {
+          "class": "bus",
+          "series": "Baseline",
+          "map5095": 0.81501,
+          "instances": 4467,
+          "delta_pp": 0.499,
+          "ordering": 3
+        },
+        {
+          "class": "bus",
+          "series": "V2",
+          "map5095": 0.82,
+          "instances": 4467,
+          "delta_pp": 0.499,
+          "ordering": 3
+        },
+        {
+          "class": "van",
+          "series": "Baseline",
+          "map5095": 0.50901,
+          "instances": 4282,
+          "delta_pp": 2.199,
+          "ordering": 4
+        },
+        {
+          "class": "van",
+          "series": "V2",
+          "map5095": 0.531,
+          "instances": 4282,
+          "delta_pp": 2.199,
+          "ordering": 4
+        },
+        {
+          "class": "freight_car",
+          "series": "Baseline",
+          "map5095": 0.542,
+          "instances": 5062,
+          "delta_pp": 2.2,
+          "ordering": 5
+        },
+        {
+          "class": "freight_car",
+          "series": "V2",
+          "map5095": 0.564,
+          "instances": 5062,
+          "delta_pp": 2.2,
+          "ordering": 5
+        }
+      ],
+      "v2_stage_probe": [
+        {
+          "stage": "P3",
+          "maa_gain_rgb": 1.08,
+          "maa_gain_ir": 1.08,
+          "maa_gate_spatial_std_max": 9.8e-06,
+          "laf_rgb_weight": 0.3176,
+          "laf_ir_weight": 1.6824,
+          "correction_rms_ratio": 0.5976,
+          "cross_rms_ratio": 9.5e-06,
+          "brightness_corr": 0.9159,
+          "ordering": 1
+        },
+        {
+          "stage": "P4",
+          "maa_gain_rgb": 1.08,
+          "maa_gain_ir": 1.08,
+          "maa_gate_spatial_std_max": 1.22e-05,
+          "laf_rgb_weight": 1.5339,
+          "laf_ir_weight": 0.4661,
+          "correction_rms_ratio": 0.5432,
+          "cross_rms_ratio": 1e-06,
+          "brightness_corr": -0.3485,
+          "ordering": 2
+        },
+        {
+          "stage": "P5",
+          "maa_gain_rgb": 1.0799,
+          "maa_gain_ir": 1.08,
+          "maa_gate_spatial_std_max": 6.9e-06,
+          "laf_rgb_weight": 1.3305,
+          "laf_ir_weight": 0.6695,
+          "correction_rms_ratio": 0.348,
+          "cross_rms_ratio": 2.5e-06,
+          "brightness_corr": -0.4089,
+          "ordering": 3
+        }
+      ],
+      "v3_stage_probe": [
+        {
+          "stage": "P3",
+          "maa_gain_rgb": 1.0805,
+          "maa_gain_ir": 1.082,
+          "maa_gate_spatial_std_max": 1.34e-05,
+          "correction_rms_ratio": 0.2087,
+          "output_bn_gamma_rms": 0.1196,
+          "ordering": 1
+        },
+        {
+          "stage": "P4",
+          "maa_gain_rgb": 1.08,
+          "maa_gain_ir": 1.0825,
+          "maa_gate_spatial_std_max": 1e-05,
+          "correction_rms_ratio": 0.1374,
+          "output_bn_gamma_rms": 0.1004,
+          "ordering": 2
+        },
+        {
+          "stage": "P5",
+          "maa_gain_rgb": 1.0813,
+          "maa_gain_ir": 1.0813,
+          "maa_gate_spatial_std_max": 4.5e-06,
+          "correction_rms_ratio": 0.0336,
+          "output_bn_gamma_rms": 0.0258,
+          "ordering": 3
+        }
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    {
+      "id": "evidence_notes",
+      "label": "DarkAct comparison evidence notes",
+      "path": "analysis_reports/darkact_architecture_comparison_20260716/source_notes.md",
+      "query": {
+        "engine": "local-files",
+        "language": "python+shell",
+        "description": "Compare aligned train/validation/test artifacts, model complexity, learned parameters, and 16-image feature probes.",
+        "executed_at": "2026-07-16T12:00:00+08:00",
+        "filters": [
+          "DroneVehicle test: 8980 images, 159614 instances, 5 classes",
+          "best.pt EMA weights",
+          "mechanism probe: 16 evenly spaced test image pairs"
+        ],
+        "metric_definitions": [
+          "test delta pp = (variant test mAP50-95 - baseline test mAP50-95) * 100",
+          "correction RMS ratio = RMS(fused - (RGB + IR)) / RMS(RGB + IR)",
+          "MAA gain = spatial mean of 1 + beta * sigmoid gate"
+        ],
+        "tables_used": [
+          "runs_baseline/train/results.csv",
+          "runs_baseline/train/test_result/test.txt",
+          "DroneVehicle_OBB_FusionTransfer/DarkAct_*/results.csv",
+          "DroneVehicle_OBB_FusionTransfer/DarkAct_*/test_result/test.txt",
+          "DroneVehicle_OBB_FusionTransfer/DarkAct_*/weights/best.pt"
+        ]
+      }
+    },
+    {
+      "id": "report_sql",
+      "label": "Bounded report datasets",
+      "path": "analysis_reports/darkact_architecture_comparison_20260716/source_data.sql"
+    },
+    {
+      "id": "analysis_json",
+      "label": "Reproduced analysis output",
+      "path": "analysis_reports/darkact_architecture_comparison_20260716/analysis.json"
+    },
+    {
+      "id": "analysis_script",
+      "label": "Reproducible checkpoint and activation probe",
+      "path": "analysis_reports/darkact_architecture_comparison_20260716/analyze.py"
+    },
+    {
+      "id": "baseline_results",
+      "label": "Baseline training and test artifacts",
+      "path": "runs_baseline/train/results.csv"
+    },
+    {
+      "id": "v1_results",
+      "label": "DarkAct V1 training results",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1/results.csv"
+    },
+    {
+      "id": "v2_results",
+      "label": "DarkAct V2 training results",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2/results.csv"
+    },
+    {
+      "id": "v3_results",
+      "label": "DarkAct V3 training results",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3/results.csv"
+    },
+    {
+      "id": "v1_code",
+      "label": "V1 MAA/LAF module",
+      "path": "ultralytics/nn/modules/darkact_maalaf.py"
+    },
+    {
+      "id": "v2_code",
+      "label": "V2 StaticMAA/LAF feedback module",
+      "path": "ultralytics/nn/modules/darkact_maalaf_v2.py"
+    },
+    {
+      "id": "v3_code",
+      "label": "V3 paper-style LAF module",
+      "path": "ultralytics/nn/modules/darkact_maalaf_v3.py"
+    }
+  ]
+}

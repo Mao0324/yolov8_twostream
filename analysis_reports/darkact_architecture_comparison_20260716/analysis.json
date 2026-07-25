@@ -1,0 +1,555 @@
+{
+  "generated_at": "2026-07-16T12:00:00+08:00",
+  "sample_files": [
+    "00001.jpg",
+    "00599.jpg",
+    "01198.jpg",
+    "01796.jpg",
+    "02395.jpg",
+    "02994.jpg",
+    "03592.jpg",
+    "04191.jpg",
+    "04789.jpg",
+    "05388.jpg",
+    "05987.jpg",
+    "06585.jpg",
+    "07184.jpg",
+    "07782.jpg",
+    "08381.jpg",
+    "08980.jpg"
+  ],
+  "runs": {
+    "baseline": {
+      "display": "Baseline ADD",
+      "path": "runs_baseline/train",
+      "validation": {
+        "epochs": 100,
+        "best_epoch": 96,
+        "best_map50": 0.85134,
+        "best_map5095": 0.70117,
+        "last10_map5095_mean": 0.7007109999999999,
+        "last10_map5095_std": 0.0003009136088647344,
+        "final_train_box_loss": 0.65883,
+        "final_train_cls_loss": 0.41388,
+        "final_train_dfl_loss": 1.4837
+      },
+      "test": {
+        "rows": {
+          "all": {
+            "precision": 0.7886686981704738,
+            "recall": 0.7816682903221092,
+            "map50": 0.8120227108890539,
+            "map5095": 0.6695622087750404
+          },
+          "car": {
+            "precision": 0.947,
+            "recall": 0.968,
+            "map50": 0.985,
+            "map5095": 0.83585
+          },
+          "truck": {
+            "precision": 0.766,
+            "recall": 0.775,
+            "map50": 0.817,
+            "map5095": 0.64594
+          },
+          "bus": {
+            "precision": 0.916,
+            "recall": 0.938,
+            "map50": 0.959,
+            "map5095": 0.81501
+          },
+          "van": {
+            "precision": 0.673,
+            "recall": 0.548,
+            "map50": 0.621,
+            "map5095": 0.50901
+          },
+          "freight_car": {
+            "precision": 0.64,
+            "recall": 0.68,
+            "map50": 0.678,
+            "map5095": 0.542
+          }
+        },
+        "inference_ms": 3.9,
+        "fps": 259.59,
+        "precision_note": "exact"
+      },
+      "params": 14734722,
+      "gflops_640": 37.0350848,
+      "probe": []
+    },
+    "v1": {
+      "display": "V1 MAA2D + LAFMerge2D",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1",
+      "validation": {
+        "epochs": 100,
+        "best_epoch": 97,
+        "best_map50": 0.85306,
+        "best_map5095": 0.70309,
+        "last10_map5095_mean": 0.7026020000000001,
+        "last10_map5095_std": 0.00033644613238970815,
+        "final_train_box_loss": 0.65233,
+        "final_train_cls_loss": 0.40327,
+        "final_train_dfl_loss": 1.4976
+      },
+      "test": {
+        "rows": {
+          "all": {
+            "precision": 0.788,
+            "recall": 0.787,
+            "map50": 0.815,
+            "map5095": 0.673
+          },
+          "car": {
+            "precision": 0.947,
+            "recall": 0.969,
+            "map50": 0.985,
+            "map5095": 0.837,
+            "delta_map5095_pp": 0.11499999999999844
+          },
+          "truck": {
+            "precision": 0.767,
+            "recall": 0.782,
+            "map50": 0.826,
+            "map5095": 0.654,
+            "delta_map5095_pp": 0.8060000000000067
+          },
+          "bus": {
+            "precision": 0.918,
+            "recall": 0.942,
+            "map50": 0.963,
+            "map5095": 0.818,
+            "delta_map5095_pp": 0.2989999999999937
+          },
+          "van": {
+            "precision": 0.678,
+            "recall": 0.547,
+            "map50": 0.623,
+            "map5095": 0.511,
+            "delta_map5095_pp": 0.19900000000000473
+          },
+          "freight_car": {
+            "precision": 0.628,
+            "recall": 0.694,
+            "map50": 0.679,
+            "map5095": 0.543,
+            "delta_map5095_pp": 0.10000000000000009
+          }
+        },
+        "inference_ms": 5.5,
+        "fps": 181.6,
+        "precision_note": "rounded_to_3_decimals"
+      },
+      "params": 15702371,
+      "gflops_640": 38.5562752,
+      "probe": [
+        {
+          "layer": 8,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0132483094930649,
+          "gain_rgb_std": 3.9802468764476796e-05,
+          "gain_ir_mean": 0.5521214976906776,
+          "gain_ir_std": 0.017001270435474718,
+          "gate_rgb_spatial_std_mean": 0.004818892804905772,
+          "gate_rgb_spatial_std_std": 0.000808416212294375,
+          "gate_ir_spatial_std_mean": 0.1335685644298792,
+          "gate_ir_spatial_std_std": 0.00770888325640728,
+          "beta_rgb": 0.031280517578125,
+          "beta_ir": -0.5595703125
+        },
+        {
+          "layer": 13,
+          "kind": "MAA",
+          "gain_rgb_mean": 0.9954777956008911,
+          "gain_rgb_std": 1.66528726779802e-05,
+          "gain_ir_mean": 0.962456539273262,
+          "gain_ir_std": 9.548664209287561e-05,
+          "gate_rgb_spatial_std_mean": 0.0041109460580628365,
+          "gate_rgb_spatial_std_std": 0.0011199651568748114,
+          "gate_ir_spatial_std_mean": 0.004285682109184563,
+          "gate_ir_spatial_std_std": 0.0008886712696375549,
+          "beta_rgb": -0.00872039794921875,
+          "beta_ir": -0.06317138671875
+        },
+        {
+          "layer": 18,
+          "kind": "MAA",
+          "gain_rgb_mean": 0.9998535513877869,
+          "gain_rgb_std": 7.884953353001448e-08,
+          "gain_ir_mean": 1.0214586555957794,
+          "gain_ir_std": 6.90360296781083e-05,
+          "gate_rgb_spatial_std_mean": 0.0023432183952536434,
+          "gate_rgb_spatial_std_std": 0.0005609673378095627,
+          "gate_ir_spatial_std_mean": 0.003873130423016846,
+          "gate_ir_spatial_std_std": 0.0007890812373567853,
+          "beta_rgb": -0.0002493858337402344,
+          "beta_ir": 0.04815673828125
+        },
+        {
+          "layer": 23,
+          "kind": "LAF",
+          "rgb_weight_mean": 0.6845209933817387,
+          "rgb_weight_std": 0.07186865178573656,
+          "ir_weight_mean": 1.3154790177941322,
+          "ir_weight_std": 0.07186865675130212,
+          "corr_rms_ratio_mean": 0.3132944516837597,
+          "corr_rms_ratio_std": 0.06597825369855455,
+          "gate_corr_rms_ratio_mean": 0.3132945643737912,
+          "gate_corr_rms_ratio_std": 0.06597817033837439,
+          "cross_corr_rms_ratio_mean": 8.280243207536842e-06,
+          "cross_corr_rms_ratio_std": 4.692621110887646e-07,
+          "cross_scale": -0.004695892333984375,
+          "brightness_rgb_weight_corr": 0.9223224701207818
+        },
+        {
+          "layer": 24,
+          "kind": "LAF",
+          "rgb_weight_mean": 0.7700954489409924,
+          "rgb_weight_std": 0.06364044424118798,
+          "ir_weight_mean": 1.229904554784298,
+          "ir_weight_std": 0.06364043488042624,
+          "corr_rms_ratio_mean": 0.33062450028955936,
+          "corr_rms_ratio_std": 0.038673469894661035,
+          "gate_corr_rms_ratio_mean": 0.33062444254755974,
+          "gate_corr_rms_ratio_std": 0.038673459189992626,
+          "cross_corr_rms_ratio_mean": 5.715817934515144e-06,
+          "cross_corr_rms_ratio_std": 3.184755607683962e-07,
+          "cross_scale": -0.0037021636962890625,
+          "brightness_rgb_weight_corr": 0.8629556949138958
+        },
+        {
+          "layer": 25,
+          "kind": "LAF",
+          "rgb_weight_mean": 0.7915474586188793,
+          "rgb_weight_std": 0.03944383651106725,
+          "ir_weight_mean": 1.208452545106411,
+          "ir_weight_std": 0.03944384295301676,
+          "corr_rms_ratio_mean": 0.24488076008856297,
+          "corr_rms_ratio_std": 0.05338841832491842,
+          "gate_corr_rms_ratio_mean": 0.2448807256296277,
+          "gate_corr_rms_ratio_std": 0.05338837735537359,
+          "cross_corr_rms_ratio_mean": 6.604617652783418e-06,
+          "cross_corr_rms_ratio_std": 3.9801069497742407e-07,
+          "cross_scale": 0.0041351318359375,
+          "brightness_rgb_weight_corr": 0.7852910225202964
+        }
+      ],
+      "delta_vs_baseline": {
+        "test_map5095_pp": 0.34377912249596854,
+        "best_val_map5095_pp": 0.19200000000000328,
+        "params_pct": 6.567134418959508,
+        "gflops_pct": 4.107430584309069,
+        "fps_pct": -30.04353018221041
+      }
+    },
+    "v2": {
+      "display": "V2 StaticMAA2D + LAF feedback",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2",
+      "validation": {
+        "epochs": 100,
+        "best_epoch": 92,
+        "best_map50": 0.8533,
+        "best_map5095": 0.70874,
+        "last10_map5095_mean": 0.708555,
+        "last10_map5095_std": 0.00015615697230671657,
+        "final_train_box_loss": 0.64263,
+        "final_train_cls_loss": 0.39452,
+        "final_train_dfl_loss": 1.4867
+      },
+      "test": {
+        "rows": {
+          "all": {
+            "precision": 0.797,
+            "recall": 0.79,
+            "map50": 0.824,
+            "map5095": 0.683
+          },
+          "car": {
+            "precision": 0.948,
+            "recall": 0.969,
+            "map50": 0.986,
+            "map5095": 0.839,
+            "delta_map5095_pp": 0.3149999999999986
+          },
+          "truck": {
+            "precision": 0.768,
+            "recall": 0.791,
+            "map50": 0.825,
+            "map5095": 0.662,
+            "delta_map5095_pp": 1.6060000000000074
+          },
+          "bus": {
+            "precision": 0.92,
+            "recall": 0.946,
+            "map50": 0.962,
+            "map5095": 0.82,
+            "delta_map5095_pp": 0.4989999999999939
+          },
+          "van": {
+            "precision": 0.697,
+            "recall": 0.559,
+            "map50": 0.646,
+            "map5095": 0.531,
+            "delta_map5095_pp": 2.1990000000000065
+          },
+          "freight_car": {
+            "precision": 0.651,
+            "recall": 0.687,
+            "map50": 0.7,
+            "map5095": 0.564,
+            "delta_map5095_pp": 2.199999999999991
+          }
+        },
+        "inference_ms": 5.0,
+        "fps": 200.16,
+        "precision_note": "rounded_to_3_decimals"
+      },
+      "params": 16698253,
+      "gflops_640": 40.372864,
+      "probe": [
+        {
+          "layer": 8,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0799676403403282,
+          "gain_rgb_std": 4.652886091469525e-08,
+          "gain_ir_mean": 1.0799676179885864,
+          "gain_ir_std": 0.0,
+          "gate_rgb_spatial_std_mean": 8.858379970888564e-06,
+          "gate_rgb_spatial_std_std": 1.6610419662086721e-06,
+          "gate_ir_spatial_std_mean": 9.777038656011428e-06,
+          "gate_ir_spatial_std_std": 6.648197026480124e-07,
+          "beta_rgb": 0.15993523597717285,
+          "beta_ir": 0.15993523597717285
+        },
+        {
+          "layer": 11,
+          "kind": "LAF",
+          "rgb_weight_mean": 0.3176167532801628,
+          "rgb_weight_std": 0.03640085619571865,
+          "ir_weight_mean": 1.6823832392692566,
+          "ir_weight_std": 0.03640086530088082,
+          "corr_rms_ratio_mean": 0.5976232290267944,
+          "corr_rms_ratio_std": 0.05178228019795413,
+          "gate_corr_rms_ratio_mean": 0.5976232439279556,
+          "gate_corr_rms_ratio_std": 0.051782207159706974,
+          "cross_corr_rms_ratio_mean": 9.54039921907679e-06,
+          "cross_corr_rms_ratio_std": 5.359836315843931e-07,
+          "cross_scale": -0.005397796630859375,
+          "brightness_rgb_weight_corr": 0.9158828066032464
+        },
+        {
+          "layer": 14,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0799676179885864,
+          "gain_rgb_std": 0.0,
+          "gain_ir_mean": 1.0800397023558617,
+          "gain_ir_std": 5.5254984550890796e-08,
+          "gate_rgb_spatial_std_mean": 8.590989608592281e-06,
+          "gate_rgb_spatial_std_std": 9.980393577400065e-07,
+          "gate_ir_spatial_std_mean": 1.2199647130728408e-05,
+          "gate_ir_spatial_std_std": 1.275069560275321e-06,
+          "beta_rgb": 0.15993523597717285,
+          "beta_ir": 0.16007962822914124
+        },
+        {
+          "layer": 17,
+          "kind": "LAF",
+          "rgb_weight_mean": 1.533939816057682,
+          "rgb_weight_std": 0.010560243715143887,
+          "ir_weight_mean": 0.46606018394231796,
+          "ir_weight_std": 0.010560243715143887,
+          "corr_rms_ratio_mean": 0.5432406514883041,
+          "corr_rms_ratio_std": 0.012125820558622302,
+          "gate_corr_rms_ratio_mean": 0.5432406514883041,
+          "gate_corr_rms_ratio_std": 0.012125820558622302,
+          "cross_corr_rms_ratio_mean": 9.522546839946244e-07,
+          "cross_corr_rms_ratio_std": 6.024486244394051e-08,
+          "cross_scale": 0.0005240440368652344,
+          "brightness_rgb_weight_corr": -0.3485281233804755
+        },
+        {
+          "layer": 20,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0798952728509903,
+          "gain_rgb_std": 1.5699347485382465e-07,
+          "gain_ir_mean": 1.0799676179885864,
+          "gain_ir_std": 0.0,
+          "gate_rgb_spatial_std_mean": 5.397090205860877e-06,
+          "gate_rgb_spatial_std_std": 5.676715597654086e-07,
+          "gate_ir_spatial_std_mean": 6.942148274902138e-06,
+          "gate_ir_spatial_std_std": 1.0366478086335944e-06,
+          "beta_rgb": 0.15979096293449402,
+          "beta_ir": 0.15993523597717285
+        },
+        {
+          "layer": 25,
+          "kind": "LAF",
+          "rgb_weight_mean": 1.3305122926831245,
+          "rgb_weight_std": 0.015310183369882317,
+          "ir_weight_mean": 0.6694877073168755,
+          "ir_weight_std": 0.015310183369882317,
+          "corr_rms_ratio_mean": 0.3479871414601803,
+          "corr_rms_ratio_std": 0.028785627363800168,
+          "gate_corr_rms_ratio_mean": 0.34798716753721237,
+          "gate_corr_rms_ratio_std": 0.028785608472424746,
+          "cross_corr_rms_ratio_mean": 2.4720305162873046e-06,
+          "cross_corr_rms_ratio_std": 1.9095354468036327e-07,
+          "cross_scale": 0.0013589859008789062,
+          "brightness_rgb_weight_corr": -0.4089044024941248
+        }
+      ],
+      "delta_vs_baseline": {
+        "test_map5095_pp": 1.3437791224959694,
+        "best_val_map5095_pp": 0.7570000000000077,
+        "params_pct": 13.325877474987301,
+        "gflops_pct": 9.012478891367358,
+        "fps_pct": -22.893794059863627
+      }
+    },
+    "v3": {
+      "display": "V3 paper-style full-C LAF feedback",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3",
+      "validation": {
+        "epochs": 100,
+        "best_epoch": 95,
+        "best_map50": 0.8621,
+        "best_map5095": 0.71097,
+        "last10_map5095_mean": 0.710665,
+        "last10_map5095_std": 0.00020426698215813546,
+        "final_train_box_loss": 0.64692,
+        "final_train_cls_loss": 0.39862,
+        "final_train_dfl_loss": 1.4938
+      },
+      "test": {
+        "rows": {
+          "all": {
+            "precision": 0.793,
+            "recall": 0.783,
+            "map50": 0.816,
+            "map5095": 0.675
+          },
+          "car": {
+            "precision": 0.95,
+            "recall": 0.967,
+            "map50": 0.985,
+            "map5095": 0.838,
+            "delta_map5095_pp": 0.21499999999999853
+          },
+          "truck": {
+            "precision": 0.77,
+            "recall": 0.79,
+            "map50": 0.828,
+            "map5095": 0.657,
+            "delta_map5095_pp": 1.106000000000007
+          },
+          "bus": {
+            "precision": 0.92,
+            "recall": 0.94,
+            "map50": 0.965,
+            "map5095": 0.82,
+            "delta_map5095_pp": 0.4989999999999939
+          },
+          "van": {
+            "precision": 0.687,
+            "recall": 0.538,
+            "map50": 0.624,
+            "map5095": 0.512,
+            "delta_map5095_pp": 0.2990000000000048
+          },
+          "freight_car": {
+            "precision": 0.64,
+            "recall": 0.678,
+            "map50": 0.68,
+            "map5095": 0.546,
+            "delta_map5095_pp": 0.40000000000000036
+          }
+        },
+        "inference_ms": 5.5,
+        "fps": 180.79,
+        "precision_note": "rounded_to_3_decimals"
+      },
+      "params": 24693320,
+      "gflops_640": 55.300582399999996,
+      "probe": [
+        {
+          "layer": 8,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0804743766784668,
+          "gain_rgb_std": 0.0,
+          "gain_ir_mean": 1.082012228667736,
+          "gain_ir_std": 8.396377913344386e-08,
+          "gate_rgb_spatial_std_mean": 1.3430441754280764e-05,
+          "gate_rgb_spatial_std_std": 2.0194003962894323e-06,
+          "gate_ir_spatial_std_mean": 9.573096747317322e-06,
+          "gate_ir_spatial_std_std": 8.513815067992843e-07,
+          "beta_rgb": 0.16094854474067688,
+          "beta_ir": 0.16402406990528107
+        },
+        {
+          "layer": 11,
+          "kind": "PaperLAF",
+          "corr_rms_ratio_mean": 0.2087208991870284,
+          "corr_rms_ratio_std": 0.01772896107444213,
+          "corr_cos_add_mean": 0.06018518510973081,
+          "corr_cos_add_std": 0.031615523678662064,
+          "output_bn_gamma_rms": 0.11957582086324692
+        },
+        {
+          "layer": 14,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0800397768616676,
+          "gain_rgb_std": 5.5254984550890796e-08,
+          "gain_ir_mean": 1.0824564844369888,
+          "gain_ir_std": 3.942476676500724e-08,
+          "gate_rgb_spatial_std_mean": 1.0000388243724956e-05,
+          "gate_rgb_spatial_std_std": 2.2361951025617134e-06,
+          "gate_ir_spatial_std_mean": 6.026940525316604e-06,
+          "gate_ir_spatial_std_std": 4.643584647207077e-07,
+          "beta_rgb": 0.16007962822914124,
+          "beta_ir": 0.1649126559495926
+        },
+        {
+          "layer": 17,
+          "kind": "PaperLAF",
+          "corr_rms_ratio_mean": 0.13736333837732673,
+          "corr_rms_ratio_std": 0.038620974990063214,
+          "corr_cos_add_mean": 0.026251094684994314,
+          "corr_cos_add_std": 0.02291982438447668,
+          "output_bn_gamma_rms": 0.10041265189647675
+        },
+        {
+          "layer": 20,
+          "kind": "MAA",
+          "gain_rgb_mean": 1.0812762826681137,
+          "gain_rgb_std": 3.942476676500724e-08,
+          "gain_ir_mean": 1.081276297569275,
+          "gain_ir_std": 0.0,
+          "gate_rgb_spatial_std_mean": 3.3501653859957514e-06,
+          "gate_rgb_spatial_std_std": 5.204181937214967e-07,
+          "gate_ir_spatial_std_mean": 4.49523606960156e-06,
+          "gate_ir_spatial_std_std": 3.982661043513567e-07,
+          "beta_rgb": 0.1625528335571289,
+          "beta_ir": 0.1625528335571289
+        },
+        {
+          "layer": 25,
+          "kind": "PaperLAF",
+          "corr_rms_ratio_mean": 0.03358920128084719,
+          "corr_rms_ratio_std": 0.01620038677534231,
+          "corr_cos_add_mean": -0.0233714513015002,
+          "corr_cos_add_std": 0.18547996582162207,
+          "output_bn_gamma_rms": 0.02582184225320816
+        }
+      ],
+      "delta_vs_baseline": {
+        "test_map5095_pp": 0.5437791224959687,
+        "best_val_map5095_pp": 0.9800000000000031,
+        "params_pct": 67.58592391495408,
+        "gflops_pct": 49.31944316757713,
+        "fps_pct": -30.35556069186024
+      }
+    }
+  }
+}

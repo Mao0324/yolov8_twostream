@@ -1,0 +1,306 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DarkAct MAA2D/LAFMerge 在 DroneVehicle 上的小增益诊断",
+    "description": "对 MAA2D+LAFMerge 与 baseline 的训练、测试、逐类结果、可学参数与 DarkAct 论文公式进行对照。",
+    "generatedAt": "2026-07-15T16:00:00+08:00",
+    "sources": [
+      {
+        "id": "diagnostic_notes",
+        "label": "诊断证据与计算记录",
+        "path": "analysis_reports/darkact_maalaf_vs_baseline_20260715/source_notes.md",
+        "query": {
+          "engine": "local-files",
+          "language": "shell+python",
+          "description": "从两次实验的 args.yaml、results.csv、test.txt 和 best.pt 计算差异，并对 16 张均匀抽样测试图执行前向门控诊断。",
+          "executed_at": "2026-07-15T16:00:00+08:00",
+          "filters": [
+            "test split: 8980 images, 159614 instances",
+            "gate probe: 16 evenly spaced test images",
+            "same training setup except model, device and output path"
+          ],
+          "metric_definitions": [
+            "mAP50-95 delta percentage points = (variant mAP50-95 - baseline mAP50-95) * 100",
+            "RGB reliability correlation = Pearson correlation between raw RGB grayscale mean and per-image mean LAF RGB weight"
+          ],
+          "tables_used": [
+            "runs_baseline/train/results.csv",
+            "runs_baseline/train/test_result/test.txt",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1/results.csv",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1/test_result/test.txt"
+          ]
+        }
+      },
+      {
+        "id": "darkact_paper",
+        "label": "DarkAct CVPR 2026 paper",
+        "href": "https://openaccess.thecvf.com/content/CVPR2026/html/Tan_DarkAct_A_RGB-Thermal_Dataset_and_Fusion_Framework_for_Multimodal_Low-Light_CVPR_2026_paper.html"
+      },
+      {
+        "id": "module_code",
+        "label": "MAA2D/LAFMerge2D implementation",
+        "path": "ultralytics/nn/modules/darkact_maalaf.py"
+      },
+      {
+        "id": "model_yaml",
+        "label": "MAA2D/LAFMerge model YAML",
+        "path": "yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4.yaml"
+      },
+      {
+        "id": "report_sql",
+        "label": "Report bounded datasets",
+        "path": "analysis_reports/darkact_maalaf_vs_baseline_20260715/source_data.sql"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# DarkAct MAA2D/LAFMerge 在 DroneVehicle 上的小增益诊断"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n**小增益的主因不是 LAF 没学起来，而是当前方案本质上是 DarkAct 思想的单帧重设计，不是论文结构的等价迁移。** LAF 的 RGB 权重与 RGB 亮度存在强正相关，说明自适应门控确实激活；但 P3 MAA2D 将 IR 特征平均压到约 0.55，后面 LAF 又重新提高 IR 权重，形成明显对冲。\n\n测试 mAP50-95 约从 0.66956 提高到 0.673（约 +0.34 百分点），但参数量增加 6.57%，推理延迟增加约 42.8%。当前只有一个 seed，还不能证明这个差异超过训练方差。",
+        "sourceId": "diagnostic_notes"
+      },
+      {
+        "id": "headline_metrics",
+        "type": "metric-strip",
+        "cardIds": ["test_map", "latency", "params"]
+      },
+      {
+        "id": "gain_driver",
+        "type": "markdown",
+        "body": "## 收益主要来自 truck，其余类提升接近噪声量级\n\ntruck 的 mAP50-95 约提升 0.81 百分点，其余四类只提升约 0.10–0.30 百分点。car 占全部 test 实例的 85.9%，但 baseline mAP50-95 已经约为 0.836，大类天花板与小类样本不足同时压缩了可见的宏平均收益。",
+        "sourceId": "diagnostic_notes"
+      },
+      {
+        "id": "class_delta_chart",
+        "type": "chart",
+        "chartId": "class_delta"
+      },
+      {
+        "id": "mechanism_activation",
+        "type": "markdown",
+        "body": "## LAF 已经具有亮度自适应性，但 MAA2D 在 P3 过度抑制 IR\n\n16 张均匀抽样图像上，P3/P4/P5 的 RGB 亮度与 LAF RGB 权重相关系数分别为 0.92/0.86/0.79，因此 LAF 并非退化成固定 ADD。相反，P3 的 `beta_ir=-0.56`，导致 MAA2D 的 IR 平均增益仅约 0.55。这与 DroneVehicle 中暗场景主要依赖 IR 的目标相冲突，而且小航拍目标最依赖 P3，所以这是当前最值得优先修改的点。",
+        "sourceId": "diagnostic_notes"
+      },
+      {
+        "id": "stage_diag_table",
+        "type": "table",
+        "tableId": "stage_diagnostics"
+      },
+      {
+        "id": "paper_gap",
+        "type": "markdown",
+        "body": "## 与论文的差距是结构级，不是几个超参数的差距\n\n原 MAA 的核心是时间运动差分和通道注意力；单帧 MAA2D 则是局部高通空间 mask。原 LAF 使用 MAA 输出与 stage feature 显式构造 dynamic query，再经完整 query/key/value 注意力和 stage-to-stage 残差回馈；当前 LAFMerge2D 是 neck 入口的可靠性门控与部分通道交互。因此，论文中 MAA/LAF 的 Top-1 ablation 幅度不能用来预期当前 OBB mAP 的提升幅度。"
+      },
+      {
+        "id": "paper_gap_table",
+        "type": "table",
+        "tableId": "implementation_gap"
+      },
+      {
+        "id": "scope_method",
+        "type": "markdown",
+        "body": "## 比较口径与诊断方法\n\n两次训练均使用 DroneVehicle 的同一个 train/val/test 划分、100 epochs、batch 16、imgsz 640、SGD 和 seed 0。对比了完整 results.csv、test.txt、args.yaml，并从 best.pt 读取 MAA beta、LAF cross scale 及门控层参数。机制探针使用 16 张均匀抽取的 test 图像，与 dataloader 保持一致的双模态颜色通道与 letterbox 预处理。",
+        "sourceId": "diagnostic_notes"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 当前证据能证明机制激活，但不能证明统计显著\n\n- 只有一个 seed，+0.34 百分点可能仍在 YOLO 训练波动内。\n- MAA/LAF 门控相关诊断只抽样 16 张图，能判断模块是否退化，不能代替全量分箱评测。\n- 新实验的 test.txt 只保留三位小数，所以测试 delta 为近似值；但 best-val 与 last-10-val 同样只提升约 0.19 百分点，与“真实但很小”的判断一致。\n- 当前无法从公开网页检索到可审核的官方 MAA/LAF 源码文件，所以只能做论文公式级对照，不能声称已完成官方代码级一致性验证。",
+        "sourceId": "diagnostic_notes"
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## 最值得的下一版不是加大 LAF，而是先解决 P3 MAA 与 IR 的对冲\n\n1. **先做三个单变量 ablation**：`LAF only`、`MAA2D only`、`MAA2D+LAF`。当前数据强烈暗示 LAF 是正向的，P3 MAA2D 可能抵消了它的一部分收益。\n2. **把 MAA2D 改成受限残差**：将 `beta` 参数化为非负的小幅增强，或者先只在 RGB 分支使用静态显著性，避免抑制暗场景中最可靠的 IR。\n3. **优先保留 P3/P4 LAF，去掉 P5 的 partial cross attention**：航拍小目标主要依赖 P3/P4，而当前 cross_scale 在三层都只有约 0.004，其额外成本与贡献不成比例。\n4. **第二阶段再做更忠实的 LAF**：将 MAA 输出 `Y_r/Y_t` 显式传入 LAF query，融合残差回馈后续 backbone stage，而不是仅替换 neck ADD。\n5. **每个候选结构至少跑 3 seeds**，同时报告 mean±std、逐亮度分箱 mAP 与逐类 mAP，再决定是否保留。",
+        "sourceId": "diagnostic_notes"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 还需要回答的问题\n\n- 提升是否真的集中在最暗的 RGB 样本，还是只是 truck 类的随机波动？\n- 移除 P3 MAA2D 的 IR 抑制后，LAF 的亮度自适应性能否转化为更大 mAP 收益？\n- 在不增加大量延迟的前提下，是“P3/P4 完整 LAF”还是“P3/P4 纯门控 LAF”更合适？"
+      }
+    ],
+    "cards": [
+      {
+        "id": "test_map",
+        "dataset": "headline",
+        "sourceId": "report_sql",
+        "description": "同一 DroneVehicle test split 上的宏平均 OBB mAP50-95。",
+        "metrics": [
+          {"label": "MAA2D+LAF test mAP50-95", "field": "variant_map", "format": "number"},
+          {"label": "baseline", "field": "baseline_map", "format": "number"},
+          {"label": "delta pp", "field": "map_delta_pp", "format": "number", "signed": true}
+        ]
+      },
+      {
+        "id": "latency",
+        "dataset": "headline",
+        "sourceId": "report_sql",
+        "description": "test.txt 报告的单图推理时间，硬件与运行时状态会影响绝对值。",
+        "metrics": [
+          {"label": "MAA2D+LAF latency ms", "field": "variant_latency", "format": "number"},
+          {"label": "baseline ms", "field": "baseline_latency", "format": "number"},
+          {"label": "delta %", "field": "latency_delta_pct", "format": "number", "signed": true}
+        ]
+      },
+      {
+        "id": "params",
+        "dataset": "headline",
+        "sourceId": "report_sql",
+        "description": "checkpoint 中的模型参数量，单位为百万。",
+        "metrics": [
+          {"label": "MAA2D+LAF params M", "field": "variant_params_m", "format": "number"},
+          {"label": "baseline M", "field": "baseline_params_m", "format": "number"},
+          {"label": "delta %", "field": "params_delta_pct", "format": "number", "signed": true}
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "class_delta",
+        "title": "逐类 test mAP50-95 增量",
+        "subtitle": "MAA2D+LAFMerge 相对 baseline，单位为百分点；新实验的测试值为三位小数",
+        "showDescription": true,
+        "intent": "comparison",
+        "question": "总收益由哪些类别贡献？",
+        "rationale": "5 个离散类别的单指标比较，用单序列柱状图最直接。",
+        "type": "bar",
+        "dataset": "class_delta",
+        "sourceId": "report_sql",
+        "encodings": {
+          "x": {"field": "class", "type": "nominal", "label": "class"},
+          "y": {"field": "delta_pp", "type": "quantitative", "label": "mAP50-95 delta", "unit": "pp", "format": "number"},
+          "tooltip": [
+            {"field": "instances", "type": "quantitative", "label": "instances", "format": "number"},
+            {"field": "baseline", "type": "quantitative", "label": "baseline", "format": "number"},
+            {"field": "variant", "type": "quantitative", "label": "MAA2D+LAF", "format": "number"}
+          ]
+        },
+        "valueFormat": "number",
+        "unit": "pp",
+        "layout": "full",
+        "palette": {"kind": "sequential", "name": "blue"},
+        "labels": {"values": "all"},
+        "settings": {"sort": "descending", "showValues": true},
+        "surface": {"surface": "card", "viewMode": "both"}
+      }
+    ],
+    "tables": [
+      {
+        "id": "stage_diagnostics",
+        "title": "MAA/LAF stage 诊断",
+        "subtitle": "16 张均匀抽样 test 图像；LAF RGB/IR 权重之和为 2",
+        "showDescription": true,
+        "dataset": "stage_diagnostics",
+        "sourceId": "report_sql",
+        "density": "spacious",
+        "layout": "full",
+        "defaultSort": {"field": "stage_order", "direction": "asc"},
+        "columns": [
+          {"field": "stage", "label": "stage", "type": "text"},
+          {"field": "beta_rgb", "label": "beta RGB", "type": "number"},
+          {"field": "beta_ir", "label": "beta IR", "type": "number"},
+          {"field": "maa_gain_rgb", "label": "MAA RGB gain", "type": "number"},
+          {"field": "maa_gain_ir", "label": "MAA IR gain", "type": "number"},
+          {"field": "laf_rgb_weight", "label": "LAF RGB weight", "type": "number"},
+          {"field": "brightness_corr", "label": "brightness corr", "type": "number"},
+          {"field": "cross_scale", "label": "cross scale", "type": "number"},
+          {"field": "stage_order", "label": "order", "type": "number"}
+        ]
+      },
+      {
+        "id": "implementation_gap",
+        "title": "DarkAct 论文与当前单帧迁移的结构差异",
+        "subtitle": "按 MAA、LAF、融合位置与任务口径对照",
+        "showDescription": true,
+        "dataset": "implementation_gap",
+        "sourceId": "report_sql",
+        "density": "spacious",
+        "layout": "full",
+        "defaultSort": {"field": "order", "direction": "asc"},
+        "columns": [
+          {"field": "component", "label": "component", "type": "text"},
+          {"field": "paper", "label": "DarkAct paper", "type": "text"},
+          {"field": "current", "label": "current implementation", "type": "text"},
+          {"field": "impact", "label": "likely impact", "type": "text"},
+          {"field": "order", "label": "order", "type": "number"}
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-15T16:00:00+08:00",
+    "status": "ready",
+    "datasets": {
+      "headline": [
+        {
+          "variant_map": 0.673,
+          "baseline_map": 0.669562,
+          "map_delta_pp": 0.3438,
+          "variant_latency": 5.5,
+          "baseline_latency": 3.8523,
+          "latency_delta_pct": 42.77,
+          "variant_params_m": 15.702371,
+          "baseline_params_m": 14.734722,
+          "params_delta_pct": 6.57
+        }
+      ],
+      "class_delta": [
+        {"class": "truck", "instances": 8657, "baseline": 0.64594, "variant": 0.654, "delta_pp": 0.806},
+        {"class": "bus", "instances": 4467, "baseline": 0.81501, "variant": 0.818, "delta_pp": 0.299},
+        {"class": "van", "instances": 4282, "baseline": 0.50901, "variant": 0.511, "delta_pp": 0.199},
+        {"class": "car", "instances": 137146, "baseline": 0.83585, "variant": 0.837, "delta_pp": 0.115},
+        {"class": "freight_car", "instances": 5062, "baseline": 0.542, "variant": 0.543, "delta_pp": 0.1}
+      ],
+      "stage_diagnostics": [
+        {"stage": "P3", "beta_rgb": 0.03128, "beta_ir": -0.55957, "maa_gain_rgb": 1.0132, "maa_gain_ir": 0.5521, "laf_rgb_weight": 0.6845, "brightness_corr": 0.9202, "cross_scale": -0.004696, "stage_order": 1},
+        {"stage": "P4", "beta_rgb": -0.00872, "beta_ir": -0.06317, "maa_gain_rgb": 0.9955, "maa_gain_ir": 0.9625, "laf_rgb_weight": 0.7701, "brightness_corr": 0.864, "cross_scale": -0.003702, "stage_order": 2},
+        {"stage": "P5", "beta_rgb": -0.000249, "beta_ir": 0.04816, "maa_gain_rgb": 0.9999, "maa_gain_ir": 1.0215, "laf_rgb_weight": 0.7915, "brightness_corr": 0.794, "cross_scale": 0.004135, "stage_order": 3}
+      ],
+      "implementation_gap": [
+        {"component": "MAA saliency", "paper": "Adjacent-frame temporal difference + normalization + sine mapping + MLP", "current": "Single-frame |F-AvgPool3(F)| local contrast mask", "impact": "Motion semantics are entirely absent; static edges/noise can become salient", "order": 1},
+        {"component": "MAA attention", "paper": "Spatial-tolerant query from max/avg pooling, MLP and learnable map; channel attention", "current": "One-channel spatial sigmoid mask with scalar beta", "impact": "Misalignment tolerance and channel selection are not equivalent", "order": 2},
+        {"component": "LAF query", "paper": "Explicit phi([Y_r*F_r; Y_t*F_t])", "current": "Global feature pooling plus local contrast logits", "impact": "MAA output does not explicitly condition the fusion query", "order": 3},
+        {"component": "LAF key/value", "paper": "Dilated-conv modality keys, bidirectional cross values, hierarchical pooling and final attention", "current": "Reliability softmax plus C/4 partial-channel cross residual", "impact": "A useful efficient adaptation, but not Eq.4-Eq.8 reproduction", "order": 4},
+        {"component": "Fusion placement", "paper": "After every Transformer stage; residual enters the next stage", "current": "P3/P4/P5 streams merge only at the neck entrance", "impact": "No stage-to-stage cross-modal refinement", "order": 5},
+        {"component": "Task and data", "paper": "Paired RGB-thermal videos for human action classification", "current": "Paired static aerial images for vehicle OBB detection", "impact": "Paper ablation effect sizes are not transferable", "order": 6}
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    {
+      "id": "diagnostic_notes",
+      "label": "诊断证据与计算记录",
+      "path": "analysis_reports/darkact_maalaf_vs_baseline_20260715/source_notes.md"
+    },
+    {
+      "id": "darkact_paper",
+      "label": "DarkAct CVPR 2026 paper",
+      "href": "https://openaccess.thecvf.com/content/CVPR2026/html/Tan_DarkAct_A_RGB-Thermal_Dataset_and_Fusion_Framework_for_Multimodal_Low-Light_CVPR_2026_paper.html"
+    },
+    {
+      "id": "module_code",
+      "label": "MAA2D/LAFMerge2D implementation",
+      "path": "ultralytics/nn/modules/darkact_maalaf.py"
+    },
+      {
+        "id": "model_yaml",
+        "label": "MAA2D/LAFMerge model YAML",
+        "path": "yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4.yaml"
+      },
+      {
+        "id": "report_sql",
+        "label": "Report bounded datasets",
+        "path": "analysis_reports/darkact_maalaf_vs_baseline_20260715/source_data.sql"
+      }
+  ]
+}

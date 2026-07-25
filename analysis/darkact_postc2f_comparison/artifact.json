@@ -1,0 +1,396 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DarkAct StaticMAA 位置与 Refine 消融对比",
+    "description": "对比原 V2、Post-C2f StaticMAA 与 Post-C2f+Refine 在 DroneVehicle OBB 上的验证、测试和关键权重行为。",
+    "generatedAt": "2026-07-17T12:02:59+08:00",
+    "cards": [
+      {
+        "id": "test_v2",
+        "description": "原 V2 best.pt 在 test split 的整体结果。",
+        "dataset": "summary",
+        "filter": {"model_key": "V2"},
+        "sourceId": "comparison_analysis",
+        "metrics": [
+          {"label": "V2 test mAP50-95", "field": "test_map5095", "format": "percent"},
+          {"label": "相对 V2 (pp)", "field": "test_delta_pp", "format": "number", "signed": true}
+        ]
+      },
+      {
+        "id": "test_post",
+        "description": "StaticMAA 后移到 C2f/C2f_Faster 之后的 test 结果。",
+        "dataset": "summary",
+        "filter": {"model_key": "PostC2f"},
+        "sourceId": "comparison_analysis",
+        "metrics": [
+          {"label": "Post-C2f test mAP50-95", "field": "test_map5095", "format": "percent"},
+          {"label": "相对 V2 (pp)", "field": "test_delta_pp", "format": "number", "signed": true}
+        ]
+      },
+      {
+        "id": "test_refine",
+        "description": "Post-C2f StaticMAA 后增加独立零初始残差 Refine 的 test 结果。",
+        "dataset": "summary",
+        "filter": {"model_key": "Refine"},
+        "sourceId": "comparison_analysis",
+        "metrics": [
+          {"label": "Post-C2f+Refine test mAP50-95", "field": "test_map5095", "format": "percent"},
+          {"label": "相对 V2 (pp)", "field": "test_delta_pp", "format": "number", "signed": true}
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "validation_trajectory",
+        "title": "验证集 mAP50-95 训练轨迹",
+        "subtitle": "100 epoch 中选取 8 个固定锚点；精确最佳值见下方汇总表。",
+        "type": "line",
+        "intent": "trend",
+        "question": "两个新架构是否改变收敛轨迹和最终平台？",
+        "rationale": "8 个有序 epoch 锚点足以显示三条曲线的早期差异和后期平台。",
+        "dataset": "validation_anchor",
+        "sourceId": "validation_analysis",
+        "encodings": {
+          "x": {"field": "epoch", "type": "quantitative", "label": "Epoch"},
+          "y": {"field": "map5095", "type": "quantitative", "label": "Validation mAP50-95", "format": "percent"},
+          "color": {"field": "model", "type": "nominal", "label": "Architecture"},
+          "tooltip": [
+            {"field": "epoch", "type": "quantitative", "label": "Epoch"},
+            {"field": "map50", "type": "quantitative", "label": "mAP50", "format": "percent"},
+            {"field": "map5095", "type": "quantitative", "label": "mAP50-95", "format": "percent"}
+          ]
+        },
+        "palette": {"kind": "categorical"},
+        "legend": {"position": "bottom", "sort": "spec"},
+        "labels": {"values": "endpoints"},
+        "valueFormat": "percent",
+        "layout": "full"
+      },
+      {
+        "id": "test_class_ap",
+        "title": "Test 分类 mAP50-95",
+        "subtitle": "8980 张图像、159614 个实例；数值为 test.txt 保存的3位有效数字。",
+        "type": "bar",
+        "intent": "comparison",
+        "question": "总体变化由哪些类别驱动？",
+        "rationale": "5 个类别与 3 个模型的分组柱状图可同时显示困难类别的恢复与退化。",
+        "dataset": "test_class",
+        "sourceId": "test_class_analysis",
+        "encodings": {
+          "x": {"field": "class", "type": "nominal", "label": "Class"},
+          "y": {"field": "map5095", "type": "quantitative", "label": "Test mAP50-95", "format": "percent"},
+          "color": {"field": "model", "type": "nominal", "label": "Architecture"},
+          "tooltip": [
+            {"field": "precision", "type": "quantitative", "label": "Precision", "format": "percent"},
+            {"field": "recall", "type": "quantitative", "label": "Recall", "format": "percent"},
+            {"field": "map50", "type": "quantitative", "label": "mAP50", "format": "percent"},
+            {"field": "map5095", "type": "quantitative", "label": "mAP50-95", "format": "percent"}
+          ]
+        },
+        "settings": {"groupMode": "grouped", "sort": "none"},
+        "palette": {"kind": "categorical"},
+        "legend": {"position": "bottom", "sort": "spec"},
+        "valueFormat": "percent",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "aggregate_results",
+        "title": "三个实验的精确汇总",
+        "subtitle": "验证指标取 results.csv 中 mAP50-95 最高行；测试指标取 best.pt 在同一 test split 的结果。",
+        "dataset": "summary",
+        "sourceId": "comparison_analysis",
+        "defaultSort": {"field": "test_map5095", "direction": "desc"},
+        "density": "spacious",
+        "columns": [
+          {"field": "model", "label": "Architecture", "type": "text"},
+          {"field": "params", "label": "Parameters", "format": "compact"},
+          {"field": "best_epoch", "label": "Best val epoch", "format": "number"},
+          {"field": "val_best_map50", "label": "Best val mAP50", "format": "percent"},
+          {"field": "val_best_map5095", "label": "Best val mAP50-95", "format": "percent"},
+          {"field": "test_precision", "label": "Test P", "format": "percent"},
+          {"field": "test_recall", "label": "Test R", "format": "percent"},
+          {"field": "test_map50", "label": "Test mAP50", "format": "percent"},
+          {"field": "test_map5095", "label": "Test mAP50-95", "format": "percent"},
+          {"field": "test_delta_pp", "label": "Test vs V2 (pp)", "format": "number", "movement": true}
+        ],
+        "layout": "full"
+      },
+      {
+        "id": "learned_components",
+        "title": "StaticMAA 与 LAF 关键权重",
+        "subtitle": "Beta 和 cross_scale 取自 best.pt；gate std 由同一批 32 对 test 图像的前向 hook 得到。",
+        "dataset": "learned_components",
+        "sourceId": "gate_weight_probe",
+        "defaultSort": {"field": "model", "direction": "asc"},
+        "density": "dense",
+        "columns": [
+          {"field": "model", "label": "Architecture", "type": "text"},
+          {"field": "stage", "label": "Stage", "type": "text"},
+          {"field": "beta_rgb", "label": "MAA beta RGB", "format": "number"},
+          {"field": "beta_ir", "label": "MAA beta IR", "format": "number"},
+          {"field": "rgb_spatial_std", "label": "RGB gate spatial std", "format": "number"},
+          {"field": "ir_spatial_std", "label": "IR gate spatial std", "format": "number"},
+          {"field": "laf_cross_scale", "label": "LAF cross_scale", "format": "number"}
+        ],
+        "layout": "full"
+      },
+      {
+        "id": "refine_gamma",
+        "title": "Refine 零初始残差系数",
+        "subtitle": "六个 gamma 初始均为 0；表中为 Post-C2f+Refine best.pt 训练后数值。",
+        "dataset": "refine_gamma",
+        "sourceId": "refine_gamma_analysis",
+        "defaultSort": {"field": "stage", "direction": "asc"},
+        "density": "spacious",
+        "columns": [
+          {"field": "stage", "label": "Stage", "type": "text"},
+          {"field": "rgb_gamma", "label": "RGB gamma", "format": "number", "movement": true},
+          {"field": "ir_gamma", "label": "IR gamma", "format": "number", "movement": true},
+          {"field": "interpretation", "label": "Direction", "type": "text"}
+        ],
+        "layout": "full"
+      }
+    ],
+    "sources": [
+      {
+        "id": "comparison_analysis",
+        "label": "DarkAct 三次实验训练与测试产物",
+        "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT * FROM summary ORDER BY test_map5095 DESC;",
+          "description": "返回三个实验的最佳验证、测试与参数量汇总。",
+          "executed_at": "2026-07-17T12:02:59+08:00",
+          "tables_used": ["summary"],
+          "metric_definitions": ["Best validation is the maximum metrics/mAP50-95(B) row in each results.csv; test values are persisted best.pt test results."]
+        }
+      },
+      {
+        "id": "validation_analysis",
+        "label": "验证轨迹锚点",
+        "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT model, epoch, map50, map5095 FROM validation_anchor ORDER BY model, epoch;",
+          "description": "返回每个模型在 8 个固定 epoch 锚点的验证 mAP。",
+          "executed_at": "2026-07-17T12:02:59+08:00",
+          "tables_used": ["validation_anchor"]
+        }
+      },
+      {
+        "id": "test_class_analysis",
+        "label": "Test 分类指标",
+        "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT class, model, precision, recall, map50, map5095 FROM test_class ORDER BY class, model;",
+          "description": "返回三个 best.pt 在同一 test split 的五类指标。",
+          "executed_at": "2026-07-17T12:02:59+08:00",
+          "tables_used": ["test_class"]
+        }
+      },
+      {
+        "id": "gate_weight_probe",
+        "label": "best.pt 关键权重与 StaticMAA gate 真实样本探针",
+        "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT model, stage, beta_rgb, beta_ir, rgb_spatial_std, ir_spatial_std, laf_cross_scale FROM learned_components ORDER BY sort_key;",
+          "description": "返回 best.pt 的 StaticMAA beta、LAF cross_scale 与 32 对图像 gate 空间标准差。",
+          "executed_at": "2026-07-17T11:55:00+08:00",
+          "tables_used": ["learned_components"],
+          "metric_definitions": ["Spatial std is computed over HxW per sample/channel and then averaged over 32 samples and all channels."]
+        }
+      },
+      {
+        "id": "refine_gamma_analysis",
+        "label": "Refine gamma 参数",
+        "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT stage, rgb_gamma, ir_gamma, interpretation FROM refine_gamma ORDER BY sort_key;",
+          "description": "返回 Post-C2f+Refine best.pt 中三个尺度的 RGB/IR gamma。",
+          "executed_at": "2026-07-17T11:55:00+08:00",
+          "tables_used": ["refine_gamma"]
+        }
+      },
+      {
+        "id": "architecture_yaml",
+        "label": "DarkAct 架构 YAML 与模块实现",
+        "path": "analysis/darkact_postc2f_comparison/source_notes.md"
+      }
+    ],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# DarkAct StaticMAA 位置与 Refine 消融对比"},
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## 技术摘要\n\n**单纯将 StaticMAA 移到 C2f 后没有提升。** Post-C2f 的 test mAP50-95 与原 V2 同为 0.683，最佳 val mAP50-95 反而从 0.70874 降至 0.70668（-0.206 pp）。这不支持“StaticMAA 主要因为放在 C2f 前而被后续网络洗掉”。\n\n**Post-C2f+Refine 是 test 最高，但只有小幅、尚未复现的收益。** 它的 test mAP50-95=0.685，比 V2 高 0.2 pp；但最佳 val mAP50-95=0.70601，比 V2 低 0.273 pp。在单 seed 下，这只能视为值得复验的泛化信号，不能视为稳定提升。\n\n**StaticMAA 有梯度，但空间门退化成常数。** 32 对真实 test 图像上，三个模型的 gate 均值都约为 0.5，空间 std 仅 1.28e-6～8.18e-6；后移后仍然如此。beta 却从约 0.01 增至 0.11～0.18，因此 StaticMAA 的实际作用是约 5.7%～9.2% 的按模态/尺度均匀增益，而非空间显著性。\n\n**Refine 确实学起来了。** 六个 gamma 均明显离开 0，RGB 三层均为负、IR 三层均为正。其 test 收益主要来自 truck、bus、van，并恢复了 Post-C2f 对 van/freight_car 的退化。"
+      },
+      {"id": "headline_metrics", "type": "metric-strip", "cardIds": ["test_v2", "test_post", "test_refine"]},
+      {
+        "id": "validation_finding",
+        "type": "markdown",
+        "body": "## 后移 MAA 更稳定，但稳定在更低的验证平台\n\nPost-C2f 在后 20 轮的 val mAP50-95 均值为 0.70615，低于 V2 的 0.70778；它的波动更小，但没有转化成更高峰值。Refine 在 epoch 100 达到最佳值，说明可能尚未完全收敛；但在相同 100 epoch 公平比较下，它仍低于 V2。"
+      },
+      {"id": "validation_chart", "type": "chart", "chartId": "validation_trajectory", "layout": "full"},
+      {"id": "aggregate_table", "type": "table", "tableId": "aggregate_results", "layout": "full"},
+      {
+        "id": "test_class_finding",
+        "type": "markdown",
+        "body": "## Refine 的小幅 test 收益集中在困难类别\n\nPost-C2f 相对 V2 提升 truck/bus 的 mAP50-95，却让 van 下降 0.4 pp、freight_car 下降 0.5 pp，最终总体持平。加入 Refine 后，相对 Post-C2f，van 恢复 0.6 pp、freight_car 恢复 0.5 pp；相对 V2，truck/bus 均提升 0.4 pp，van 提升 0.2 pp。这更像模态特征精炼对少数/困难类的补偿，而不是 StaticMAA 空间门恢复了显著性。"
+      },
+      {"id": "test_class_chart", "type": "chart", "chartId": "test_class_ap", "layout": "full"},
+      {
+        "id": "weight_finding",
+        "type": "markdown",
+        "body": "## StaticMAA 选择了“常数增益”，Refine 和 LAF reliability gate 才是活跃分支\n\nStaticMAA 的迁移初始 gate 空间 std 约为 1.4e-4～5.5e-3，训练后反而下降约 20 至近 1000 倍。Post-C2f 与 Refine 的 P5 最平，空间 std 仅约 1.3e-6～1.7e-6。这是训练主动压平空间分支的强证据，不是初始就没有空间变化。\n\nLAF 的 global/local gate 零初始末层权重均已明显非零，说明 reliability gate 确实学起来；但 cross_scale 多数接近 0，仅 Post-C2f P3=-0.0315 和 Refine P4=+0.0102 相对明显。因此 LAF 主要依赖全局/局部模态可靠性门，不是 cross-attention 残差。"
+      },
+      {"id": "learned_table", "type": "table", "tableId": "learned_components", "layout": "full"},
+      {"id": "gamma_table", "type": "table", "tableId": "refine_gamma", "layout": "full"},
+      {
+        "id": "scope_definitions",
+        "type": "markdown",
+        "body": "## 比较范围与指标定义\n\n三次训练均为 DroneVehicle OBB，100 epoch、batch 64、imgsz 640、SGD、seed 0、deterministic=true，使用同一数据 YAML 和增强配置。Refine 训练使用 GPU 1,3，其余两次使用 GPU 4,5；这不改变模型定义，但仍是单次训练的环境差异。\n\n“最佳验证”指 results.csv 中 metrics/mAP50-95(B) 最高的 epoch。“测试”指各 run 的 best.pt 在同一 test split 上的结果：8980 张图像、159614 个实例、imgsz 640、batch 16。mAP50-95 是 5 个类别的宏平均 AP，不按实例数加权。"
+      },
+      {
+        "id": "experimental_design",
+        "type": "markdown",
+        "sourceId": "architecture_yaml",
+        "body": "## 消融设计能够分离两个问题\n\n**V2 对 Post-C2f** 保持参数量 16.70M 不变，仅将 StaticMAA 移到每流 C2f/C2f_Faster 之后，P5 则放在两流 C2f+SPPF 之后。这是“是否被后续 C2f 洗掉”的直接检验。\n\n**Post-C2f 对 Post-C2f+Refine** 在相同 MAA 位置后增加 RGB/IR 独立 `1x1 C→C/4 + 3x3 C/4→C` 残差分支，gamma=0 保证起点为恒等映射。它将参数量提高到 18.42M（+10.33%），因此它的收益必须同时考虑额外容量。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 局限、不确定性与稳健性检查\n\n- **只有单 seed。** 0.2～0.3 pp 的 AP 差距可能落在训练随机性内，不能声称统计显著。\n- **val 与 test 方向不一致。** Refine 的 test mAP50-95 高 0.2 pp，但最佳 val 低 0.273 pp，所以结论必须标注为“有候选收益，未确认”。\n- **test.txt 只保存 3 位有效数字。** 显示为 0.683 的两个模型仍可能存在小于显示精度的差异。\n- **Gate 探针是诊断性的。** 它使用 32 对固定 test 图像和同一预处理，足以证明跨图像/空间都几乎常数，但不是全 test 集统计。\n- **单次速度无法用于架构结论。** 三次 test 时间和机器负载未锁定；同参数的 V2/Post-C2f 却显示近两倍延迟差，明显包含环境噪声，因此未将 FPS 用于排名。"
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## 建议的下一步\n\n1. **暂不用 Post-C2f 替换原 V2。** 它是有价值的负消融：后移 MAA 并未解决问题。\n2. **优先复验 Refine，但先保持 100 epoch 公平对比。** 补 seed 1、2，报告均值±标准差；若方向一致，再单独做延长训练，因为当前最佳值出现在 epoch 100。\n3. **新增 `C2f → Refine → LAF` 的 no-StaticMAA 消融。** 当前 StaticMAA 只是近似常数缩放；删除它可直接验证 test 收益是否完全来自 Refine。\n4. **如果继续研究 StaticMAA，将 gate 统计变成训练期监控项。** 至少记录 gate mean/std、beta×gate std 和分类别 AP；并考虑能阻止 gate 恒定化的约束或门控参数化。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 尚待回答的问题\n\n- Refine 在 seed 1、2 上是否仍对 truck/bus/van 有一致收益？\n- 删除 StaticMAA 后，Refine 的 gamma 符号模式（RGB 负、IR 正）和 test 收益是否保留？\n- StaticMAA gate 压平是由 sigmoid 门控、没有直接显著性监督，还是 beta 与 gate 存在可替代的尺度路径所导致？"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-17T12:02:59+08:00",
+    "status": "ready",
+    "datasets": {
+      "summary": [
+        {"model_key": "V2", "model": "V2 pre-C2f", "params": 16698253, "best_epoch": 92, "val_best_map50": 0.85330, "val_best_map5095": 0.70874, "test_precision": 0.797, "test_recall": 0.790, "test_map50": 0.824, "test_map5095": 0.683, "test_delta_pp": 0.0},
+        {"model_key": "PostC2f", "model": "Post-C2f", "params": 16698253, "best_epoch": 95, "val_best_map50": 0.85266, "val_best_map5095": 0.70668, "test_precision": 0.790, "test_recall": 0.798, "test_map50": 0.822, "test_map5095": 0.683, "test_delta_pp": 0.0},
+        {"model_key": "Refine", "model": "Post-C2f + Refine", "params": 18423059, "best_epoch": 100, "val_best_map50": 0.85057, "val_best_map5095": 0.70601, "test_precision": 0.795, "test_recall": 0.793, "test_map50": 0.824, "test_map5095": 0.685, "test_delta_pp": 0.2}
+      ],
+      "validation_anchor": [
+        {"model": "V2 pre-C2f", "epoch": 1, "map50": 0.17872, "map5095": 0.08712},
+        {"model": "V2 pre-C2f", "epoch": 5, "map50": 0.56667, "map5095": 0.40599},
+        {"model": "V2 pre-C2f", "epoch": 10, "map50": 0.68535, "map5095": 0.52792},
+        {"model": "V2 pre-C2f", "epoch": 20, "map50": 0.77501, "map5095": 0.61723},
+        {"model": "V2 pre-C2f", "epoch": 40, "map50": 0.83831, "map5095": 0.68582},
+        {"model": "V2 pre-C2f", "epoch": 60, "map50": 0.84714, "map5095": 0.70007},
+        {"model": "V2 pre-C2f", "epoch": 80, "map50": 0.85164, "map5095": 0.70530},
+        {"model": "V2 pre-C2f", "epoch": 100, "map50": 0.85286, "map5095": 0.70860},
+        {"model": "Post-C2f", "epoch": 1, "map50": 0.19830, "map5095": 0.10787},
+        {"model": "Post-C2f", "epoch": 5, "map50": 0.55725, "map5095": 0.40847},
+        {"model": "Post-C2f", "epoch": 10, "map50": 0.65758, "map5095": 0.50126},
+        {"model": "Post-C2f", "epoch": 20, "map50": 0.78875, "map5095": 0.62900},
+        {"model": "Post-C2f", "epoch": 40, "map50": 0.83301, "map5095": 0.68202},
+        {"model": "Post-C2f", "epoch": 60, "map50": 0.85175, "map5095": 0.70217},
+        {"model": "Post-C2f", "epoch": 80, "map50": 0.85286, "map5095": 0.70548},
+        {"model": "Post-C2f", "epoch": 100, "map50": 0.85215, "map5095": 0.70602},
+        {"model": "Post-C2f + Refine", "epoch": 1, "map50": 0.20573, "map5095": 0.10153},
+        {"model": "Post-C2f + Refine", "epoch": 5, "map50": 0.56220, "map5095": 0.40719},
+        {"model": "Post-C2f + Refine", "epoch": 10, "map50": 0.65274, "map5095": 0.49456},
+        {"model": "Post-C2f + Refine", "epoch": 20, "map50": 0.78148, "map5095": 0.62380},
+        {"model": "Post-C2f + Refine", "epoch": 40, "map50": 0.82540, "map5095": 0.67855},
+        {"model": "Post-C2f + Refine", "epoch": 60, "map50": 0.84318, "map5095": 0.69593},
+        {"model": "Post-C2f + Refine", "epoch": 80, "map50": 0.84859, "map5095": 0.70169},
+        {"model": "Post-C2f + Refine", "epoch": 100, "map50": 0.85057, "map5095": 0.70601}
+      ],
+      "test_class": [
+        {"class": "car", "model": "V2 pre-C2f", "precision": 0.948, "recall": 0.969, "map50": 0.986, "map5095": 0.839},
+        {"class": "car", "model": "Post-C2f", "precision": 0.948, "recall": 0.970, "map50": 0.985, "map5095": 0.840},
+        {"class": "car", "model": "Post-C2f + Refine", "precision": 0.951, "recall": 0.967, "map50": 0.985, "map5095": 0.840},
+        {"class": "truck", "model": "V2 pre-C2f", "precision": 0.768, "recall": 0.791, "map50": 0.825, "map5095": 0.662},
+        {"class": "truck", "model": "Post-C2f", "precision": 0.763, "recall": 0.808, "map50": 0.827, "map5095": 0.664},
+        {"class": "truck", "model": "Post-C2f + Refine", "precision": 0.769, "recall": 0.800, "map50": 0.827, "map5095": 0.666},
+        {"class": "bus", "model": "V2 pre-C2f", "precision": 0.920, "recall": 0.946, "map50": 0.962, "map5095": 0.820},
+        {"class": "bus", "model": "Post-C2f", "precision": 0.917, "recall": 0.947, "map50": 0.963, "map5095": 0.824},
+        {"class": "bus", "model": "Post-C2f + Refine", "precision": 0.923, "recall": 0.943, "map50": 0.965, "map5095": 0.824},
+        {"class": "van", "model": "V2 pre-C2f", "precision": 0.697, "recall": 0.559, "map50": 0.646, "map5095": 0.531},
+        {"class": "van", "model": "Post-C2f", "precision": 0.681, "recall": 0.558, "map50": 0.640, "map5095": 0.527},
+        {"class": "van", "model": "Post-C2f + Refine", "precision": 0.685, "recall": 0.557, "map50": 0.645, "map5095": 0.533},
+        {"class": "freight_car", "model": "V2 pre-C2f", "precision": 0.651, "recall": 0.687, "map50": 0.700, "map5095": 0.564},
+        {"class": "freight_car", "model": "Post-C2f", "precision": 0.641, "recall": 0.705, "map50": 0.693, "map5095": 0.559},
+        {"class": "freight_car", "model": "Post-C2f + Refine", "precision": 0.646, "recall": 0.695, "map50": 0.699, "map5095": 0.564}
+      ],
+      "learned_components": [
+        {"sort_key": 1, "model": "V2 pre-C2f", "stage": "P3", "beta_rgb": 0.159935, "beta_ir": 0.159935, "rgb_spatial_std": 0.000005674, "ir_spatial_std": 0.000008184, "laf_cross_scale": -0.005398},
+        {"sort_key": 2, "model": "V2 pre-C2f", "stage": "P4", "beta_rgb": 0.159935, "beta_ir": 0.160080, "rgb_spatial_std": 0.000006040, "ir_spatial_std": 0.000004719, "laf_cross_scale": 0.000524},
+        {"sort_key": 3, "model": "V2 pre-C2f", "stage": "P5", "beta_rgb": 0.159791, "beta_ir": 0.159935, "rgb_spatial_std": 0.000003809, "ir_spatial_std": 0.000004285, "laf_cross_scale": 0.001359},
+        {"sort_key": 4, "model": "Post-C2f", "stage": "P3", "beta_rgb": 0.170644, "beta_ir": 0.113659, "rgb_spatial_std": 0.000006931, "ir_spatial_std": 0.000006982, "laf_cross_scale": -0.031525},
+        {"sort_key": 5, "model": "Post-C2f", "stage": "P4", "beta_rgb": 0.150940, "beta_ir": 0.183802, "rgb_spatial_std": 0.000006395, "ir_spatial_std": 0.000004546, "laf_cross_scale": -0.000487},
+        {"sort_key": 6, "model": "Post-C2f", "stage": "P5", "beta_rgb": 0.154816, "beta_ir": 0.153144, "rgb_spatial_std": 0.000001539, "ir_spatial_std": 0.000001641, "laf_cross_scale": -0.003040},
+        {"sort_key": 7, "model": "Post-C2f + Refine", "stage": "P3", "beta_rgb": 0.152314, "beta_ir": 0.121678, "rgb_spatial_std": 0.000006958, "ir_spatial_std": 0.000006352, "laf_cross_scale": -0.006588},
+        {"sort_key": 8, "model": "Post-C2f + Refine", "stage": "P4", "beta_rgb": 0.160803, "beta_ir": 0.171412, "rgb_spatial_std": 0.000004427, "ir_spatial_std": 0.000004724, "laf_cross_scale": 0.010155},
+        {"sort_key": 9, "model": "Post-C2f + Refine", "stage": "P5", "beta_rgb": 0.158641, "beta_ir": 0.158069, "rgb_spatial_std": 0.000001670, "ir_spatial_std": 0.000001283, "laf_cross_scale": -0.000241}
+      ],
+      "refine_gamma": [
+        {"sort_key": 1, "stage": "P3", "rgb_gamma": -0.431641, "ir_gamma": 0.576660, "interpretation": "RGB negative / IR positive"},
+        {"sort_key": 2, "stage": "P4", "rgb_gamma": -0.422363, "ir_gamma": 0.450684, "interpretation": "RGB negative / IR positive"},
+        {"sort_key": 3, "stage": "P5", "rgb_gamma": -0.668457, "ir_gamma": 0.322266, "interpretation": "RGB negative / IR positive"}
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "comparison_analysis",
+      "label": "DarkAct 三次实验训练与测试产物",
+      "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+      "query": {"engine": "sqlite", "language": "sql", "sql": "SELECT * FROM summary ORDER BY test_map5095 DESC;", "description": "三个实验汇总。", "executed_at": "2026-07-17T12:02:59+08:00", "tables_used": ["summary"]}
+    },
+    {
+      "id": "validation_analysis",
+      "label": "验证轨迹锚点",
+      "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+      "query": {"engine": "sqlite", "language": "sql", "sql": "SELECT model, epoch, map50, map5095 FROM validation_anchor ORDER BY model, epoch;", "description": "验证轨迹。", "executed_at": "2026-07-17T12:02:59+08:00", "tables_used": ["validation_anchor"]}
+    },
+    {
+      "id": "test_class_analysis",
+      "label": "Test 分类指标",
+      "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+      "query": {"engine": "sqlite", "language": "sql", "sql": "SELECT class, model, precision, recall, map50, map5095 FROM test_class ORDER BY class, model;", "description": "Test 分类指标。", "executed_at": "2026-07-17T12:02:59+08:00", "tables_used": ["test_class"]}
+    },
+    {
+      "id": "gate_weight_probe",
+      "label": "best.pt 关键权重与 StaticMAA gate 真实样本探针",
+      "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+      "query": {"engine": "sqlite", "language": "sql", "sql": "SELECT model, stage, beta_rgb, beta_ir, rgb_spatial_std, ir_spatial_std, laf_cross_scale FROM learned_components ORDER BY sort_key;", "description": "StaticMAA gate 与关键权重。", "executed_at": "2026-07-17T11:55:00+08:00", "tables_used": ["learned_components"]}
+    },
+    {
+      "id": "refine_gamma_analysis",
+      "label": "Refine gamma 参数",
+      "path": "analysis/darkact_postc2f_comparison/analysis.sqlite",
+      "query": {"engine": "sqlite", "language": "sql", "sql": "SELECT stage, rgb_gamma, ir_gamma, interpretation FROM refine_gamma ORDER BY sort_key;", "description": "Refine gamma。", "executed_at": "2026-07-17T11:55:00+08:00", "tables_used": ["refine_gamma"]}
+    },
+    {
+      "id": "architecture_yaml",
+      "label": "DarkAct 架构 YAML 与模块实现",
+      "path": "analysis/darkact_postc2f_comparison/source_notes.md"
+    }
+  ]
+}

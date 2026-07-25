@@ -1,0 +1,47 @@
+schema_version: 1
+id: DA-009
+family: DarkAct
+title: OBB 目标显著性 PaperLAF FP32 注意力安全版
+parent_id: DA-008
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 仅将目标显著性通道注意力的累加和 Softmax 改为 FP32，可防止 P3 在 AMP 下溢出为 NaN。
+change_from_parent: 仅将 StaticMAAContext2D 内部 matmul/scale/softmax/matmul 改为 FP32，保留 sqrt(active_channels) 缩放与其他结构不变。
+architecture:
+  summary: C2f/SPPF -> FP32-safe supervised target saliency -> full-C PaperLAF feedback
+  version: v2
+  stages: [P3, P4, P5]
+  heads: HNA
+  flow:
+    P3: C2f stage -> FP32-safe target saliency logits + OBB loss -> full-C PaperLAF feedback
+    P4: C2f stage -> FP32-safe target saliency logits + OBB loss -> full-C PaperLAF feedback
+    P5: C2f/SPPF stage -> FP32-safe target saliency logits + OBB loss -> full-C PaperLAF feedback
+files:
+  model_yaml: yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P345-FP32Safe-v2.yaml
+  train_entrypoint: train_dronevehicle_darkact_target_saliency_fp32safe.py
+  migration_script: tools/make_twostream_obb_weights_darkact_target_saliency_fp32safe.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_target_saliency_paperlaf_p345_fp32safe_v2.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf_v3.py
+    - ultralytics/nn/modules/darkact_target_saliency.py
+    - ultralytics/nn/modules/darkact_target_saliency_fp32safe.py
+    - ultralytics/models/yolo/obb/target_saliency_train.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn_v2
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn_v2
+reports: []
+notes:
+  - 直接从 pre-pth/yolov8s-obb.pt 迁移，不经由任何中间实验 checkpoint。
+  - 目标专用模块使用固定迁移随机种子 0 初始化，便于与 DA-010/DA-011 公平对照。
+  - 不修改 sqrt(active_channels) 也不增加 L2 normalization，本实验只验证 FP16 溢出。
+  - 必须使用专用 TargetSaliencyOBBTrainer 计算 OBB mask 显著性损失。

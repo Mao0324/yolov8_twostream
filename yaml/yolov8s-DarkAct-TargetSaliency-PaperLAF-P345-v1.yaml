@@ -1,0 +1,82 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 来源与改造说明：
+# 本文件以 yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v3.yaml 为对照，
+# 是新增的目标显著性分支，不修改旧类和旧 YAML。
+#
+# 每个尺度严格执行：
+#   C2f/SPPF -> F
+#   F -> StaticMAAContext2D -> 每模态一张单通道目标显著性 logit S
+#   OBB mask -> BCE + Dice 辅助监督 S
+#   F_Q = phi([sigmoid(S_rgb) * Norm(F_rgb); sigmoid(S_ir) * Norm(F_ir)])
+#
+# StaticMAAContext2D 直接从与 LAF 同尺度、同 stage 的 F 预测空间图，
+# 因此不再假设前置 MAA 输出与后续 C2f 特征在 C 通道上语义对齐。
+# TargetSaliencyPaperLAFMergeFeedback2D 保留 V3 的 full-C Key、双向 cross attention、
+# 公共 Value、二次 dynamic attention 和零初始化融合残差。
+
+#‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️
+#❗模型从第 7 轮开始真实发生了数值发散。全是nan，不用这个训练，转去/media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P345-FP32Safe-v2.yaml
+#‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️‼️
+nc: 5
+target_saliency_loss_gain: 0.05
+target_saliency_stage_weights: [1.0, 1.0, 1.0]
+target_saliency_mask_tolerance: 0.5
+
+scales:
+  # n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+scale: s
+
+backbone:
+  # RGB 分支到 P3/8。
+  - [-5, 1, Conv, [64, 3, 2]]                                  # 0 RGB-P1/2
+  - [-5, 1, Conv, [128, 3, 2]]                                 # 1 RGB-P2/4
+  - [-5, 3, C2f, [128, True]]                                  # 2
+  - [-5, 1, Conv, [256, 3, 2]]                                 # 3 RGB-P3/8
+
+  # IR 分支到 P3/8。
+  - [-6, 1, Conv, [64, 3, 2]]                                  # 4 IR-P1/2
+  - [-6, 1, Conv, [128, 3, 2]]                                 # 5 IR-P2/4
+  - [-6, 3, C2f_Faster, [128, True]]                           # 6
+  - [-6, 1, Conv, [256, 3, 2]]                                 # 7 IR-P3/8
+
+  # P3: stage F -> 单通道目标显著性 S -> target-saliency PaperLAF。
+  - [-5, 6, C2f, [256, True]]                                  # 8 F_rgb P3
+  - [-6, 6, C2f_Faster, [256, True]]                           # 9 F_ir P3
+  - [[8, 9], 1, StaticMAAContext2D, [256, 4, 1, [3, 5], 3]]   # 10 (S_rgb, S_ir) logits
+  - [[10, 8, 9], 1, TargetSaliencyPaperLAFMergeFeedback2D, [256, 1, 3]] # 11 P3
+
+  - [-5, 1, Conv, [512, 3, 2]]                                 # 12 RGB-P4/16
+  - [-6, 1, Conv, [512, 3, 2]]                                 # 13 IR-P4/16
+  - [-5, 6, C2f, [512, True]]                                  # 14 F_rgb P4
+  - [-6, 6, C2f_Faster, [512, True]]                           # 15 F_ir P4
+  - [[14, 15], 1, StaticMAAContext2D, [512, 4, 2, [3, 5], 3]] # 16 (S_rgb, S_ir) logits
+  - [[16, 14, 15], 1, TargetSaliencyPaperLAFMergeFeedback2D, [512, 2, 3]] # 17 P4
+
+  - [-5, 1, Conv, [1024, 3, 2]]                                # 18 RGB-P5/32
+  - [-6, 1, Conv, [1024, 3, 2]]                                # 19 IR-P5/32
+  - [-5, 3, C2f, [1024, True]]                                 # 20 RGB-P5
+  - [-5, 1, SPPF, [1024, 5]]                                  # 21 F_rgb P5
+  - [-6, 3, C2f_Faster, [1024, True]]                          # 22 IR-P5
+  - [-6, 1, SPPF, [1024, 5]]                                  # 23 F_ir P5
+  - [[21, 23], 1, StaticMAAContext2D, [1024, 4, 2, [3, 5], 3]] # 24 (S_rgb, S_ir) logits
+  - [[24, 21, 23], 1, TargetSaliencyPaperLAFMergeFeedback2D, [1024, 2, 3]] # 25 P5
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]               # 26
+  - [[-1, 17], 1, Concat, [1]]                                # 27 P5 up + P4 fused
+  - [-1, 3, C2f, [512]]                                       # 28
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]               # 29
+  - [[-1, 11], 1, Concat, [1]]                                # 30 P4 up + P3 fused
+  - [-1, 3, C2f, [256]]                                       # 31 P3/8
+  - [-1, 1, Conv, [256, 3, 2]]                                # 32
+  - [[-1, 28], 1, Concat, [1]]                                # 33
+  - [-1, 3, C2f, [512]]                                       # 34 P4/16
+  - [-1, 1, Conv, [512, 3, 2]]                                # 35
+  - [[-1, 25], 1, Concat, [1]]                                # 36
+  - [-1, 3, C2f, [1024]]                                      # 37 P5/32
+  - [[31, 34, 37], 1, OBB, [nc, 1]]                           # 38

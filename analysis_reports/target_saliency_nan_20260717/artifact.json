@@ -1,0 +1,460 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "TargetSaliency 第 7 轮 NaN：目标显著性注意力发生数值崩溃",
+    "description": "对 epoch 级 loss、checkpoint 有限性、验证指标缓存和目标显著性注意力实现的只读诊断。",
+    "generatedAt": "2026-07-17T20:43:46+08:00",
+    "sources": [
+      {
+        "id": "diagnostic_evidence",
+        "label": "TargetSaliency NaN diagnostic evidence",
+        "path": "analysis_reports/target_saliency_nan_20260717/source_notes.md",
+        "query": {
+          "engine": "local-files",
+          "language": "python+shell",
+          "description": "Inspect epoch metrics, scan checkpoint and optimizer tensors for non-finite values, compare peer DarkAct runs, and probe attention logits from the finite best checkpoint.",
+          "executed_at": "2026-07-17T20:39:00+08:00",
+          "filters": [
+            "TargetSaliency run through displayed epoch 18",
+            "best.pt EMA and optimizer state",
+            "last.pt EMA and optimizer state",
+            "one RGB/IR training pair at 640x640 for the attention probe"
+          ],
+          "metric_definitions": [
+            "finite loss fields = count of finite values among four train and four validation loss columns",
+            "model non-finite values = count of non-finite floating values in the checkpoint EMA state_dict",
+            "optimizer non-finite values = count of non-finite floating values in SGD optimizer state"
+          ],
+          "tables_used": [
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1/results.csv",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1/weights/best.pt",
+            "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1/weights/last.pt"
+          ]
+        }
+      },
+      {
+        "id": "run_results",
+        "label": "TargetSaliency training results snapshot",
+        "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1/results.csv"
+      },
+      {
+        "id": "epoch_health_sql",
+        "label": "Frozen epoch-health query",
+        "path": "analysis_reports/target_saliency_nan_20260717/source_data.sql",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "description": "Materializes the reviewed epoch-level finite-loss snapshot captured before source removal.",
+          "executed_at": "2026-07-17T20:39:00+08:00",
+          "sql": "WITH epoch_health(epoch, finite_loss_fields, train_saliency_loss, map50, metric_fresh) AS (VALUES (1,8,0.11768,0.43544,'fresh'),(2,8,0.09716,0.61324,'fresh'),(3,8,0.09590,0.66313,'fresh'),(4,8,0.08740,0.73373,'fresh'),(5,8,0.07390,0.71991,'fresh'),(6,8,0.06504,0.70473,'fresh'),(7,0,NULL,0.70473,'cached epoch 6'),(8,0,NULL,0.70473,'cached epoch 6'),(9,0,NULL,0.70473,'cached epoch 6'),(10,0,NULL,0.70473,'cached epoch 6'),(11,0,NULL,0.70473,'cached epoch 6'),(12,0,NULL,0.70473,'cached epoch 6'),(13,0,NULL,0.70473,'cached epoch 6'),(14,0,NULL,0.70473,'cached epoch 6'),(15,0,NULL,0.70473,'cached epoch 6'),(16,0,NULL,0.70473,'cached epoch 6'),(17,0,NULL,0.70473,'cached epoch 6'),(18,0,NULL,0.70473,'cached epoch 6')) SELECT * FROM epoch_health ORDER BY epoch",
+          "tables_used": ["frozen.epoch_health"]
+        }
+      },
+      {
+        "id": "checkpoint_health_sql",
+        "label": "Frozen checkpoint-health query",
+        "path": "analysis_reports/target_saliency_nan_20260717/source_data.sql",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "description": "Materializes the reviewed EMA and SGD momentum finite-value scan.",
+          "executed_at": "2026-07-17T20:39:00+08:00",
+          "sql": "WITH checkpoint_health(sort_order, checkpoint, displayed_epoch, ema_nonfinite, optimizer_nonfinite, verdict) AS (VALUES (1,'migration checkpoint','0',0,'n/a','finite; restart source'),(2,'best.pt','4',0,'0 / 24525304','finite; diagnosis only'),(3,'last.pt','17',24565176,'24525304 / 24525304','corrupt; never resume')) SELECT * FROM checkpoint_health ORDER BY sort_order",
+          "tables_used": ["frozen.checkpoint_health"]
+        }
+      },
+      {
+        "id": "attention_probe_sql",
+        "label": "Frozen attention-probe query",
+        "path": "analysis_reports/target_saliency_nan_20260717/source_data.sql",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "description": "Materializes the one-image FP32 attention probe from the finite best checkpoint.",
+          "executed_at": "2026-07-17T20:39:00+08:00",
+          "sql": "WITH attention_probe(sort_order, stage, modality, reduction_n, scaled_absmax, softmax_max, softmax_min) AS (VALUES (1,'P3','RGB',6400,88.1914,1.0,0.0),(2,'P3','IR',6400,56.1619,1.0,0.0),(3,'P4','RGB',1600,14.1984,0.996524,1.2176e-10),(4,'P4','IR',1600,44.1497,1.0,3.04562e-31),(5,'P5','RGB',400,0.438496,0.0117367,0.00491977),(6,'P5','IR',400,0.267642,0.0101338,0.00608136)) SELECT * FROM attention_probe ORDER BY sort_order",
+          "tables_used": ["frozen.attention_probe"]
+        }
+      },
+      {
+        "id": "target_attention_code",
+        "label": "Target-saliency attention implementation",
+        "path": "ultralytics/nn/modules/darkact_target_saliency.py"
+      },
+      {
+        "id": "paperlaf_attention_code",
+        "label": "PaperLAF FP32-protected attention implementation",
+        "path": "ultralytics/nn/modules/darkact_maalaf_v3.py"
+      },
+      {
+        "id": "target_loss_code",
+        "label": "Target-saliency BCE and Dice criterion",
+        "path": "ultralytics/models/yolo/obb/target_saliency_train.py"
+      },
+      {
+        "id": "validator_code",
+        "label": "Detection validator metric aggregation",
+        "path": "ultralytics/models/yolo/detect/val.py"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# TargetSaliency 第 7 轮 NaN：目标显著性注意力发生数值崩溃"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n**这不是 `results.csv` 写错，而是模型从显示第 7 轮开始真实数值发散。** `last.pt` 的 EMA 几乎全网已是 NaN，SGD 动量也全部 NaN，绝对不能 resume。\n\n最强根因是新增 `_StaticTargetSaliencyBranch` 在 AMP/FP16 下对 P3 的 6400 个空间位置直接做矩阵乘，且没有采用同仓库 PaperLAF 已有的 FP32 防溢出保护。安全 checkpoint 的实测 P3 Softmax 已经完全饱和，符合“训练数轮后突然溢出”的时间线。\n\n第 7 轮后的 P/R/mAP 是验证器复用的第 6 轮缓存值，不是模型仍保持精度。修复后应从原始迁移 checkpoint 全新训练，不要使用损坏的 `last.pt`。",
+        "sourceId": "diagnostic_evidence"
+      },
+      {
+        "id": "epoch_pattern_intro",
+        "type": "markdown",
+        "body": "## 第 7 轮出现从 8/8 有限到 0/8 有限的断崖\n\n显示第 1-6 轮，训练和验证的 box、cls、dfl、saliency 共八项 loss 全部有限；显示第 7-18 轮，八项同时为 NaN。最后一个有限的训练 saliency loss 是第 6 轮的 0.06504。多条彼此独立的 loss 在同一轮同时失效，说明上游共享特征或参数已经被非有限值污染，而不是单个 CSV 列错位。",
+        "sourceId": "run_results"
+      },
+      {
+        "id": "epoch_health_chart",
+        "type": "chart",
+        "chartId": "finite_loss_fields"
+      },
+      {
+        "id": "checkpoint_corruption_intro",
+        "type": "markdown",
+        "body": "## `best.pt` 仍安全，`last.pt` 已无法恢复\n\n`best.pt` 对应 checkpoint epoch 3（表中显示第 4 轮），EMA 和优化器状态全部有限。`last.pt` 对应 checkpoint epoch 16（显示第 17 轮），24,565,176 个 EMA 浮点值和全部 24,525,304 个 SGD 动量值为 NaN。继续训练不会自行恢复，resume 还会把 NaN 动量一并加载。",
+        "sourceId": "diagnostic_evidence"
+      },
+      {
+        "id": "checkpoint_health_table",
+        "type": "table",
+        "tableId": "checkpoint_health"
+      },
+      {
+        "id": "metric_cache",
+        "type": "markdown",
+        "body": "## 第 7 轮后的 mAP 是缓存值，不是有效验证结果\n\n从第 7 轮起，Precision/Recall/mAP50/mAP50-95 逐轮原样重复第 6 轮的 0.68289/0.68697/0.70473/0.56125。验证器只有在当前统计存在 true positive 时才重新处理 metrics；NaN 网络没有 TP 后，代码直接返回未清空的上一轮结果。因此这些数值必须作废。",
+        "sourceId": "validator_code"
+      },
+      {
+        "id": "root_cause",
+        "type": "markdown",
+        "body": "## 新显著性注意力遗漏 FP32 保护，是最高置信度根因\n\n危险计算是 `query[B,C',N] @ saliency[B,N,C']`。P3 为 `C'=32, N=6400`，但它仍处于全局 AMP autocast 中，并只除以 `sqrt(32)`。按点积归约长度比较，`sqrt(6400)/sqrt(32)=14.14`，所以 P3 logit 会被显著放大。\n\n同仓库 `PaperLAFMergeFeedback2D._channel_attention` 已明确注释 P3 `N=6400` 的 FP16 累加会在 Softmax 前溢出，并用 `autocast(False)+float()` 保护；新目标显著性注意力没有复制这层保护。辅助 BCE+Dice 本身已转 FP32并带有空目标、前景比例和分母保护，因此更不像首发点。"
+      },
+      {
+        "id": "attention_probe_intro",
+        "type": "markdown",
+        "body": "## 安全 checkpoint 在 P3/P4 已出现严重 Softmax 饱和\n\n用仍然有限的 `best.pt` 对一对 640×640 RGB/IR 训练图做 FP32 前向探针：P3 两模态 Softmax 都达到 max=1、min=0，P4 也接近完全饱和；P5 仍较平缓。这证明高分辨率 stage 在真正出现 NaN 之前已经处于不稳定工作区，但它不能替代对首次失败 batch 的直接抓取。",
+        "sourceId": "diagnostic_evidence"
+      },
+      {
+        "id": "attention_probe_table",
+        "type": "table",
+        "tableId": "attention_probe"
+      },
+      {
+        "id": "scope_definitions",
+        "type": "markdown",
+        "body": "## 诊断口径与对照范围\n\n分析对象是本次 checkpoint-direct、双卡 DDP、SGD、`lr0=0.01`、`amp=True` 的 TargetSaliency 运行。`epoch` 指 CSV 中从 1 开始的显示轮次；checkpoint 内部 epoch 从 0 开始。对照包括迁移起点以及现有 DarkAct V2、V3、NoStaticMAA 等完整训练；这些对照均未出现非有限 loss，说明问题集中在新增目标显著性路径，而不是预训练权重是否加载。",
+        "sourceId": "diagnostic_evidence"
+      },
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## 方法：同时验证指标、状态张量和算子实现\n\n诊断先逐列复现 NaN 起点，再分别扫描 `best.pt`/`last.pt` 的 EMA 与 optimizer 浮点张量；随后核对 validator 的缓存分支，并把目标注意力与 V3 的 FP32 安全实现逐行对照。最后从安全 checkpoint 运行一张双模态样本，记录三个 stage、两种模态的 attention logit 和 Softmax 范围。该流程能确认真实发散和最可疑算子，但没有保存逐 batch 梯度，因此不能声称已经抓到第一个产生 Inf 的具体 batch。",
+        "sourceId": "diagnostic_evidence"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 限制与不确定性\n\n- 没有第 6 轮 checkpoint 或 per-batch finite hook，无法把首次 Inf 100% 归因到某一个 matmul。\n- attention 探针只使用一对训练图，足以证明饱和风险，不代表整个数据集的分布。\n- 原实验目录在取证后被外部删除或移动，报告保存的是删除前的冻结快照，原 CSV/checkpoint 当前无法重新打开。\n- `amp=False` 若能稳定，只能进一步支持 FP16 溢出假设；它不是最终结构修复。",
+        "sourceId": "diagnostic_evidence"
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## 下一步应先修数值稳定性，再重新实验\n\n1. 将目标显著性 attention 的矩阵乘、缩放和 Softmax 放入 `autocast(enabled=False)`，显式转 FP32，输出再转回原 dtype。\n2. 重新审视缩放：使用与归约长度匹配的 `sqrt(N)`，或先对 Q/S 做 L2 normalization，避免 P3/P4 过早饱和。\n3. 在每个 attention、四项 loss、梯度范数和 optimizer step 前后增加 `isfinite` 断言，让下一次首次异常立即停机并记录 stage/batch。\n4. 先用 `amp=False` 跑 10-15 轮作为定位性对照，再用最终 FP32-attention 方案恢复 AMP。\n5. 从原始迁移 checkpoint 全新开始；不要 resume 已污染的 `last.pt`。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 仍需回答的问题\n\n- 仅加入 FP32 attention 后，P3 Softmax 是否仍长期 max≈1/min≈0？\n- 改成 `sqrt(N)` 或 Q/S 归一化后，saliency loss 与检测 mAP 是否同时稳定？\n- 目标显著性监督在稳定训练后是否真正改善了 S 的目标区域对比度，而不只是降低 BCE+Dice？"
+      }
+    ],
+    "charts": [
+      {
+        "id": "finite_loss_fields",
+        "title": "每轮有限损失字段数量",
+        "subtitle": "训练和验证共 8 个 loss 字段；第 7 轮起全部非有限",
+        "showDescription": true,
+        "intent": "trend",
+        "question": "训练从哪一轮开始不再产生有限 loss？",
+        "rationale": "18 个连续 epoch 足以呈现从完全有限到完全非有限的突变。",
+        "type": "line",
+        "dataset": "epoch_health",
+        "sourceId": "epoch_health_sql",
+        "encodings": {
+          "x": {
+            "field": "epoch",
+            "type": "ordinal",
+            "label": "显示 epoch"
+          },
+          "y": {
+            "field": "finite_loss_fields",
+            "type": "quantitative",
+            "label": "有限 loss 字段",
+            "unit": "of 8",
+            "format": "number"
+          },
+          "tooltip": [
+            {
+              "field": "train_saliency_loss",
+              "type": "quantitative",
+              "label": "train saliency loss",
+              "format": "number"
+            },
+            {
+              "field": "map50",
+              "type": "quantitative",
+              "label": "记录的 mAP50",
+              "format": "number"
+            },
+            {
+              "field": "metric_fresh",
+              "type": "text",
+              "label": "metric freshness"
+            }
+          ]
+        },
+        "valueFormat": "number",
+        "unit": "of 8",
+        "layout": "full",
+        "surface": {
+          "legend": "hidden"
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "checkpoint_health",
+        "title": "Checkpoint 有限性审计",
+        "subtitle": "删除前逐 tensor 扫描；EMA 与 SGD momentum 浮点元素",
+        "showDescription": true,
+        "dataset": "checkpoint_health",
+        "sourceId": "checkpoint_health_sql",
+        "defaultSort": {
+          "field": "order",
+          "direction": "asc"
+        },
+        "density": "spacious",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "order",
+            "label": "序号",
+            "format": "number"
+          },
+          {
+            "field": "checkpoint",
+            "label": "checkpoint",
+            "type": "text"
+          },
+          {
+            "field": "displayed_epoch",
+            "label": "显示 epoch",
+            "type": "text"
+          },
+          {
+            "field": "ema_nonfinite",
+            "label": "EMA 非有限值",
+            "format": "number"
+          },
+          {
+            "field": "optimizer_nonfinite",
+            "label": "optimizer 非有限值",
+            "type": "text"
+          },
+          {
+            "field": "verdict",
+            "label": "结论",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "attention_probe",
+        "title": "安全 best.pt 的 attention 饱和探针",
+        "subtitle": "单张 640×640 双模态样本，FP32 复算目标显著性 attention",
+        "showDescription": true,
+        "dataset": "attention_probe",
+        "sourceId": "attention_probe_sql",
+        "defaultSort": {
+          "field": "order",
+          "direction": "asc"
+        },
+        "density": "spacious",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "order",
+            "label": "序号",
+            "format": "number"
+          },
+          {
+            "field": "stage",
+            "label": "stage",
+            "type": "text"
+          },
+          {
+            "field": "modality",
+            "label": "模态",
+            "type": "text"
+          },
+          {
+            "field": "reduction_n",
+            "label": "归约 N",
+            "format": "number"
+          },
+          {
+            "field": "scaled_absmax",
+            "label": "scaled |logit| max",
+            "format": "number"
+          },
+          {
+            "field": "softmax_max",
+            "label": "Softmax max",
+            "format": "number"
+          },
+          {
+            "field": "softmax_min",
+            "label": "Softmax min",
+            "format": "number"
+          }
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-17T20:43:46+08:00",
+    "status": "partial",
+    "datasets": {
+      "epoch_health": [
+        {"epoch": 1, "finite_loss_fields": 8, "train_saliency_loss": 0.11768, "map50": 0.43544, "metric_fresh": "fresh"},
+        {"epoch": 2, "finite_loss_fields": 8, "train_saliency_loss": 0.09716, "map50": 0.61324, "metric_fresh": "fresh"},
+        {"epoch": 3, "finite_loss_fields": 8, "train_saliency_loss": 0.0959, "map50": 0.66313, "metric_fresh": "fresh"},
+        {"epoch": 4, "finite_loss_fields": 8, "train_saliency_loss": 0.0874, "map50": 0.73373, "metric_fresh": "fresh"},
+        {"epoch": 5, "finite_loss_fields": 8, "train_saliency_loss": 0.0739, "map50": 0.71991, "metric_fresh": "fresh"},
+        {"epoch": 6, "finite_loss_fields": 8, "train_saliency_loss": 0.06504, "map50": 0.70473, "metric_fresh": "fresh"},
+        {"epoch": 7, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 8, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 9, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 10, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 11, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 12, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 13, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 14, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 15, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 16, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 17, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"},
+        {"epoch": 18, "finite_loss_fields": 0, "train_saliency_loss": null, "map50": 0.70473, "metric_fresh": "cached epoch 6"}
+      ],
+      "checkpoint_health": [
+        {"order": 1, "checkpoint": "迁移起点 .pt", "displayed_epoch": "0", "ema_nonfinite": 0, "optimizer_nonfinite": "n/a", "verdict": "有限；正确重跑起点"},
+        {"order": 2, "checkpoint": "best.pt", "displayed_epoch": "4", "ema_nonfinite": 0, "optimizer_nonfinite": "0 / 24,525,304", "verdict": "有限；仅用于诊断/回退"},
+        {"order": 3, "checkpoint": "last.pt", "displayed_epoch": "17", "ema_nonfinite": 24565176, "optimizer_nonfinite": "24,525,304 / 24,525,304", "verdict": "损坏；禁止 resume"}
+      ],
+      "attention_probe": [
+        {"order": 1, "stage": "P3", "modality": "RGB", "reduction_n": 6400, "scaled_absmax": 88.1914, "softmax_max": 1.0, "softmax_min": 0.0},
+        {"order": 2, "stage": "P3", "modality": "IR", "reduction_n": 6400, "scaled_absmax": 56.1619, "softmax_max": 1.0, "softmax_min": 0.0},
+        {"order": 3, "stage": "P4", "modality": "RGB", "reduction_n": 1600, "scaled_absmax": 14.1984, "softmax_max": 0.996524, "softmax_min": 1.2176e-10},
+        {"order": 4, "stage": "P4", "modality": "IR", "reduction_n": 1600, "scaled_absmax": 44.1497, "softmax_max": 1.0, "softmax_min": 3.04562e-31},
+        {"order": 5, "stage": "P5", "modality": "RGB", "reduction_n": 400, "scaled_absmax": 0.438496, "softmax_max": 0.0117367, "softmax_min": 0.00491977},
+        {"order": 6, "stage": "P5", "modality": "IR", "reduction_n": 400, "scaled_absmax": 0.267642, "softmax_max": 0.0101338, "softmax_min": 0.00608136}
+      ]
+    },
+    "accessIssues": [
+      {
+        "id": "original_run_removed",
+        "scope": "source",
+        "sourceId": "run_results",
+        "dataset": "epoch_health",
+        "message": "原 TargetSaliency 运行目录在证据采集后被外部删除或移动；本报告使用删除前保存的冻结快照。"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "id": "diagnostic_evidence",
+      "label": "TargetSaliency NaN diagnostic evidence",
+      "path": "analysis_reports/target_saliency_nan_20260717/source_notes.md"
+    },
+    {
+      "id": "run_results",
+      "label": "TargetSaliency training results snapshot",
+      "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS_v1/results.csv"
+    },
+    {
+      "id": "epoch_health_sql",
+      "label": "Frozen epoch-health query",
+      "path": "analysis_reports/target_saliency_nan_20260717/source_data.sql",
+      "query": {
+        "engine": "duckdb",
+        "language": "sql",
+        "description": "Materializes the reviewed epoch-level finite-loss snapshot captured before source removal.",
+        "executed_at": "2026-07-17T20:39:00+08:00",
+        "sql": "WITH epoch_health(epoch, finite_loss_fields, train_saliency_loss, map50, metric_fresh) AS (VALUES (1,8,0.11768,0.43544,'fresh'),(2,8,0.09716,0.61324,'fresh'),(3,8,0.09590,0.66313,'fresh'),(4,8,0.08740,0.73373,'fresh'),(5,8,0.07390,0.71991,'fresh'),(6,8,0.06504,0.70473,'fresh'),(7,0,NULL,0.70473,'cached epoch 6'),(8,0,NULL,0.70473,'cached epoch 6'),(9,0,NULL,0.70473,'cached epoch 6'),(10,0,NULL,0.70473,'cached epoch 6'),(11,0,NULL,0.70473,'cached epoch 6'),(12,0,NULL,0.70473,'cached epoch 6'),(13,0,NULL,0.70473,'cached epoch 6'),(14,0,NULL,0.70473,'cached epoch 6'),(15,0,NULL,0.70473,'cached epoch 6'),(16,0,NULL,0.70473,'cached epoch 6'),(17,0,NULL,0.70473,'cached epoch 6'),(18,0,NULL,0.70473,'cached epoch 6')) SELECT * FROM epoch_health ORDER BY epoch",
+        "tables_used": ["frozen.epoch_health"]
+      }
+    },
+    {
+      "id": "checkpoint_health_sql",
+      "label": "Frozen checkpoint-health query",
+      "path": "analysis_reports/target_saliency_nan_20260717/source_data.sql",
+      "query": {
+        "engine": "duckdb",
+        "language": "sql",
+        "description": "Materializes the reviewed EMA and SGD momentum finite-value scan.",
+        "executed_at": "2026-07-17T20:39:00+08:00",
+        "sql": "WITH checkpoint_health(sort_order, checkpoint, displayed_epoch, ema_nonfinite, optimizer_nonfinite, verdict) AS (VALUES (1,'migration checkpoint','0',0,'n/a','finite; restart source'),(2,'best.pt','4',0,'0 / 24525304','finite; diagnosis only'),(3,'last.pt','17',24565176,'24525304 / 24525304','corrupt; never resume')) SELECT * FROM checkpoint_health ORDER BY sort_order",
+        "tables_used": ["frozen.checkpoint_health"]
+      }
+    },
+    {
+      "id": "attention_probe_sql",
+      "label": "Frozen attention-probe query",
+      "path": "analysis_reports/target_saliency_nan_20260717/source_data.sql",
+      "query": {
+        "engine": "duckdb",
+        "language": "sql",
+        "description": "Materializes the one-image FP32 attention probe from the finite best checkpoint.",
+        "executed_at": "2026-07-17T20:39:00+08:00",
+        "sql": "WITH attention_probe(sort_order, stage, modality, reduction_n, scaled_absmax, softmax_max, softmax_min) AS (VALUES (1,'P3','RGB',6400,88.1914,1.0,0.0),(2,'P3','IR',6400,56.1619,1.0,0.0),(3,'P4','RGB',1600,14.1984,0.996524,1.2176e-10),(4,'P4','IR',1600,44.1497,1.0,3.04562e-31),(5,'P5','RGB',400,0.438496,0.0117367,0.00491977),(6,'P5','IR',400,0.267642,0.0101338,0.00608136)) SELECT * FROM attention_probe ORDER BY sort_order",
+        "tables_used": ["frozen.attention_probe"]
+      }
+    },
+    {
+      "id": "target_attention_code",
+      "label": "Target-saliency attention implementation",
+      "path": "ultralytics/nn/modules/darkact_target_saliency.py"
+    },
+    {
+      "id": "paperlaf_attention_code",
+      "label": "PaperLAF FP32-protected attention implementation",
+      "path": "ultralytics/nn/modules/darkact_maalaf_v3.py"
+    },
+    {
+      "id": "target_loss_code",
+      "label": "Target-saliency BCE and Dice criterion",
+      "path": "ultralytics/models/yolo/obb/target_saliency_train.py"
+    },
+    {
+      "id": "validator_code",
+      "label": "Detection validator metric aggregation",
+      "path": "ultralytics/models/yolo/detect/val.py"
+    }
+  ]
+}

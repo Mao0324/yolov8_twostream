@@ -1,0 +1,87 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 来源与改造说明：
+# 本文件基于 yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v2.yaml 新建，
+# 原 V2 YAML 以及 StaticMAA2D、LAFMergeFeedback2D、ZeroInitResidualRefine2D
+# 等已有模块类均保持不变。
+#
+# 唯一结构改动：
+#   1. 显式读取 P3/P4/P5 的 LAFMergeFeedback2D 融合输出；
+#   2. 每个尺度在进入 FPN/PAN 前增加一个零初始化残差精炼块：
+#        F_fused -> 1x1(C -> C/4) -> 3x3(C/4 -> C) -> gamma * residual + F_fused
+#   3. gamma=0，使新增 Refine 在独立迁移时以严格恒等映射开始，不扰动 fused 输入；
+#   4. Refine 只处理 neck 使用的 fused 特征，不改变 LAF 对 RGB/IR 的反馈路径。
+#
+# Refine 放在 head 起点并显式引用融合层 11/17/25，以遵守当前双流路由语义，
+# 避免在 backbone 内被当作单模态分支执行。
+
+nc: 5
+scales:
+  # n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+scale: s
+
+backbone:
+  # RGB 分支：提取至 P3/8。
+  - [-5, 1, Conv, [64, 3, 2]]                              # 0 RGB-P1/2
+  - [-5, 1, Conv, [128, 3, 2]]                             # 1 RGB-P2/4
+  - [-5, 3, C2f, [128, True]]                              # 2
+  - [-5, 1, Conv, [256, 3, 2]]                             # 3 RGB-P3/8
+
+  # IR 分支：提取至 P3/8。
+  - [-6, 1, Conv, [64, 3, 2]]                              # 4 IR-P1/2
+  - [-6, 1, Conv, [128, 3, 2]]                             # 5
+  - [-6, 3, C2f_Faster, [128, True]]                       # 6
+  - [-6, 1, Conv, [256, 3, 2]]                             # 7 IR-P3/8
+
+  # P3 Static MAA：s 尺度实际 C=128，active C/4=32，dilation=1。
+  - [-3, 1, StaticMAA2D, [256, 4, 1, 0.01, [3, 5], 3]]    # 8
+  - [-5, 6, C2f, [256, True]]                              # 9 RGB-P3
+  - [-6, 6, C2f_Faster, [256, True]]                       # 10 IR-P3
+  - [[9, 10], 1, LAFMergeFeedback2D, [256, 2, 4, 1, 8]]   # 11 P3 fused/feedback
+
+  - [-5, 1, Conv, [512, 3, 2]]                             # 12 RGB-P4/16
+  - [-6, 1, Conv, [512, 3, 2]]                             # 13 IR-P4/16
+
+  # P4 Static MAA：s 尺度实际 C=256，active C/4=64，dilation=2。
+  - [-3, 1, StaticMAA2D, [512, 4, 2, 0.01, [3, 5], 3]]    # 14
+  - [-5, 6, C2f, [512, True]]                              # 15 RGB-P4
+  - [-6, 6, C2f_Faster, [512, True]]                       # 16 IR-P4
+  - [[15, 16], 1, LAFMergeFeedback2D, [512, 4, 4, 2, 8]]  # 17 P4 fused/feedback
+
+  - [-5, 1, Conv, [1024, 3, 2]]                            # 18 RGB-P5/32
+  - [-6, 1, Conv, [1024, 3, 2]]                            # 19 IR-P5/32
+
+  # P5 Static MAA：s 尺度实际 C=512，active C/4=128，dilation=2。
+  - [-3, 1, StaticMAA2D, [1024, 4, 2, 0.01, [3, 5], 3]]   # 20
+  - [-5, 3, C2f, [1024, True]]                             # 21 RGB-P5
+  - [-5, 1, SPPF, [1024, 5]]                              # 22
+  - [-6, 3, C2f_Faster, [1024, True]]                      # 23 IR-P5
+  - [-6, 1, SPPF, [1024, 5]]                              # 24
+  - [[22, 24], 1, LAFMergeFeedback2D, [1024, 8, 4, 2, 8]] # 25 P5 fused/feedback
+
+head:
+  # 融合后同尺度精炼：s 尺度实际隐藏通道分别为 32/64/128。
+  - [11, 1, ZeroInitResidualRefine2D, [256, 0.25]]         # 26 P3 fused refine
+  - [17, 1, ZeroInitResidualRefine2D, [512, 0.25]]         # 27 P4 fused refine
+  - [25, 1, ZeroInitResidualRefine2D, [1024, 0.25]]        # 28 P5 fused refine
+
+  # FPN 自顶向下：仅使用精炼后的 P3/P4/P5 lateral 特征。
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]            # 29
+  - [[-1, 27], 1, Concat, [1]]                             # 30 P5 up + refined P4
+  - [-1, 3, C2f, [512]]                                   # 31
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]            # 32
+  - [[-1, 26], 1, Concat, [1]]                             # 33 P4 up + refined P3
+  - [-1, 3, C2f, [256]]                                   # 34 P3/8
+
+  # PAN 自底向上。
+  - [-1, 1, Conv, [256, 3, 2]]                             # 35
+  - [[-1, 31], 1, Concat, [1]]                             # 36
+  - [-1, 3, C2f, [512]]                                   # 37 P4/16
+  - [-1, 1, Conv, [512, 3, 2]]                             # 38
+  - [[-1, 28], 1, Concat, [1]]                             # 39 + refined P5
+  - [-1, 3, C2f, [1024]]                                  # 40 P5/32
+  - [[34, 37, 40], 1, OBB, [nc, 1]]                       # 41
