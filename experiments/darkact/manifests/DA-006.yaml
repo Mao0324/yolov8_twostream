@@ -1,0 +1,44 @@
+schema_version: 1
+id: DA-006
+family: DarkAct
+title: LAF 融合后特征精炼版
+parent_id: DA-002
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 对 LAF 融合结果做零初始化残差精炼，可以改善送入 FPN/PAN 的共享特征。
+change_from_parent: 在各尺度 LAF 之后、进入 FPN/PAN 之前增加融合特征精炼。
+architecture:
+  summary: StaticMAA2D -> C2f/SPPF -> LAF feedback -> fused ZeroInitRefine
+  version: v1
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: StaticMAA2D -> C2f -> LAF feedback -> fused Refine -> neck
+    P4: StaticMAA2D -> C2f -> LAF feedback -> fused Refine -> neck
+    P5: StaticMAA2D -> C2f/SPPF -> LAF feedback -> fused Refine -> neck
+files:
+  model_yaml: yaml/yolov8s-DarkAct-MAA2D-LAFMerge-Refine-P345-R4-v1.yaml
+  train_entrypoint: train_dronevehicle_darkact_maalaf_postlaf_refine.py
+  migration_script: tools/make_twostream_obb_weights_darkact_postlaf_refine.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_staticmaa_laffeedback_refine_p345_e025_v1.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+    - ultralytics/nn/modules/darkact_maalaf_v2.py
+    - ultralytics/nn/modules/zero_init_refine.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - ultralytics/nn/modules/block.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v1
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v1
+reports: []
+notes:
+  - 该历史运行仍可能在宿主机继续训练，状态由 results.csv 的进度和更新时间自动判断。

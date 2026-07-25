@@ -1,0 +1,44 @@
+schema_version: 1
+id: DA-003
+family: DarkAct
+title: Full-C 论文式 PaperLAF 版
+parent_id: DA-002
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 完整通道的论文式 LAF 注意力能够比 C/4 通道近似提供更充分的跨模态交互。
+change_from_parent: 将 partial-channel LAF 替换为完整通道 PaperLAFMergeFeedback2D。
+architecture:
+  summary: StaticMAA2D + stage features -> full-C PaperLAFMergeFeedback2D
+  version: v3
+  stages: [P3, P4, P5]
+  heads: HNA
+  flow:
+    P3: StaticMAA2D context + C2f stage features -> full-C PaperLAF feedback
+    P4: StaticMAA2D context + C2f stage features -> full-C PaperLAF feedback
+    P5: StaticMAA2D context + C2f/SPPF stage features -> full-C PaperLAF feedback
+files:
+  model_yaml: yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v3.yaml
+  train_entrypoint: train_dronevehicle_darkact_maalaf_v3.py
+  migration_script: tools/make_twostream_obb_weights_darkact_v3.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_staticmaa_paperlaf_fullc_p345_v3.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+    - ultralytics/nn/modules/darkact_maalaf_v2.py
+    - ultralytics/nn/modules/darkact_maalaf_v3.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - ultralytics/nn/modules/block.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3
+reports:
+  - analysis_reports/darkact_architecture_comparison_20260716
+notes: []

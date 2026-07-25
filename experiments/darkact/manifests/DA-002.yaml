@@ -1,0 +1,44 @@
+schema_version: 1
+id: DA-002
+family: DarkAct
+title: StaticMAA2D 与 LAF 反馈版
+parent_id: DA-001
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 论文式静态显著性和跨 stage 反馈比初始 MAA/LAF 迁移更适合单帧双流检测。
+change_from_parent: 用 StaticMAA2D 替代 MAA2D，并将 LAF 修正反馈到后续 backbone。
+architecture:
+  summary: StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D
+  version: v2
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: StaticMAA2D -> C2f/C2f_Faster -> LAFMergeFeedback2D
+    P4: StaticMAA2D -> C2f/C2f_Faster -> LAFMergeFeedback2D
+    P5: StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D
+files:
+  model_yaml: yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v2.yaml
+  train_entrypoint: train_dronevehicle_darkact_maalaf.py
+  migration_script: tools/make_twostream_obb_weights_darkact_v2.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_staticmaa_laffeedback_p345_h2-4-8_r4_v2.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+    - ultralytics/nn/modules/darkact_maalaf_v2.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - ultralytics/nn/modules/block.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2
+reports:
+  - analysis_reports/darkact_architecture_comparison_20260716
+  - analysis/darkact_postc2f_comparison
+notes: []
