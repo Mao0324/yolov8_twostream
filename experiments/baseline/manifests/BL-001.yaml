@@ -1,0 +1,44 @@
+schema_version: 1
+id: BL-001
+family: Baseline
+title: YOLOv8s RGB/IR 双流 ADD 基线
+parent_id: null
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 以非对称 RGB C2f 与 IR C2f_Faster 双流骨干及逐尺度 ADD 融合作为后续融合模块的统一对照基线。
+change_from_parent: 首个登记的 RGB/IR 双流 OBB 基线实验。
+architecture:
+  summary: RGB C2f + IR C2f_Faster -> P3/P4/P5 ADD
+  version: v1
+  stages: [P3, P4, P5]
+  heads: HNA
+  flow:
+    P3: RGB C2f + IR C2f_Faster -> ADD
+    P4: RGB C2f + IR C2f_Faster -> ADD
+    P5: RGB SPPF + IR SPPF -> ADD
+files:
+  model_yaml: yaml/baseline.yaml
+  train_entrypoint: train_dronevehicle_baseline.py
+  migration_script: null
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_baseline.pt
+  module_files:
+    - ultralytics/nn/modules/block.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs_baseline
+    name: train
+legacy:
+  run_dir: runs_baseline/train
+reports:
+  - analysis_reports/assa_vs_baseline_20260714
+  - analysis_reports/darkact_maalaf_vs_baseline_20260715
+notes:
+  - 原始 train 目录由模型 YAML 启动；正确加载迁移 checkpoint 的重跑保存在 runs_baseline/train2。
+  - PT-R001 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。
