@@ -1,0 +1,45 @@
+schema_version: 1
+id: DA-001
+family: DarkAct
+title: MAA2D 与 LAFMerge2D 初始迁移版
+parent_id: null
+lifecycle:
+  status: auto
+  recovery_confidence: recovered
+hypothesis: 将 DarkAct 的显著性增强和局部自适应融合迁移到单帧 RGB/IR OBB 检测。
+change_from_parent: 首个 DarkAct 单帧 MAA2D 与 partial-channel LAF 迁移。
+architecture:
+  summary: MAA2D -> C2f/SPPF -> LAFMerge2D
+  version: v1
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: MAA2D -> C2f/C2f_Faster -> LAFMerge2D
+    P4: MAA2D -> C2f/C2f_Faster -> LAFMerge2D
+    P5: MAA2D -> C2f/SPPF -> LAFMerge2D
+files:
+  model_yaml: yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4.yaml
+  train_entrypoint: null
+  migration_script: null
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_maa2d_lafmerge_p345_h2-4-8_r4.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - ultralytics/nn/modules/block.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1
+reports:
+  - analysis_reports/darkact_maalaf_vs_baseline_20260715
+  - analysis_reports/darkact_architecture_comparison_20260716
+notes:
+  - 历史 args.yaml 明确指向 V1 YAML，但当前仓库已没有对应训练入口和迁移脚本。
+  - 新的通用训练入口可从现有迁移 checkpoint 重新启动该架构。
