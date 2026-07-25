@@ -1,4 +1,5 @@
 #训练
+# 对应模型 YAML：yaml/PC2f_MPF_yolov8n.yaml
 from ultralytics import YOLO
 import ultralytics.nn.tasks
 model = YOLO('/home/mjy/ultralytics/yaml/PC2f_MPF_yolov8n.yaml')

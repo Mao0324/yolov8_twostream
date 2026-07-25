@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Migrate single-stream YOLOv8s-OBB weights to the baseline RGB/IR model.
+"""Migrate YOLOv8s-OBB weights to the ADD P3/P4/P5 BottleneckRefine RGB/IR model.
 
-The migration keeps the target model's initialized fusion parameters, copies
-the single-stream backbone into the RGB branch, copies compatible weights into
-the IR branch, and copies the shared neck/OBB head. Shape-mismatched
-classification outputs are intentionally skipped when source and target class
-counts differ.
+The migration keeps the three newly added Bottleneck refinement blocks at
+their initialized values, copies the single-stream backbone into the RGB
+branch, copies compatible weights into the IR branch, and copies the shared
+neck/OBB head. Shape-mismatched classification outputs are intentionally
+skipped when source and target class counts differ.
 
 Usage:
     python tools/make_twostream_obb_weights.py
@@ -31,11 +31,11 @@ from ultralytics import YOLO
 
 
 DEFAULT_SOURCE = ROOT / "pre-pth/yolov8s-obb.pt"
-DEFAULT_TARGET_YAML = ROOT / "yaml/baseline.yaml"
-DEFAULT_OUTPUT = ROOT / "pre-pth/yolov8s-obb_twostream_baseline.pt"
+DEFAULT_TARGET_YAML = ROOT / "yaml/yolov8s-baseline-ADD-P345-BottleneckRefine.yaml"
+DEFAULT_OUTPUT = ROOT / "pre-pth/yolov8s-obb_twostream_baseline_add_p345_bottleneck_refine.pt"
 
 # Source YOLOv8s-OBB layer -> target RGB/shared layer. These indices are tied
-# to yaml/baseline.yaml and validated before any checkpoint is saved.
+# to the ADD P3/P4/P5 BottleneckRefine YAML and validated before checkpoint save.
 SINGLE_TO_RGB_SHARED = {
     0: 0,
     1: 1,
@@ -47,13 +47,13 @@ SINGLE_TO_RGB_SHARED = {
     7: 15,
     8: 19,
     9: 20,
-    12: 28,
-    15: 31,
-    16: 32,
-    18: 34,
-    19: 35,
-    21: 37,
-    22: 38,
+    12: 31,
+    15: 34,
+    16: 35,
+    18: 37,
+    19: 38,
+    21: 40,
+    22: 41,
 }
 
 # Source backbone layer -> target IR layer. C2f -> C2f_Faster transfers are
@@ -99,9 +99,12 @@ EXPECTED_TARGET_LAYERS = {
     19: "C2f",
     21: "C2f_Faster",
     23: "ADD",
-    24: "ADD",
+    24: "Bottleneck",
     25: "ADD",
-    38: "OBB",
+    26: "Bottleneck",
+    27: "ADD",
+    28: "Bottleneck",
+    41: "OBB",
 }
 
 StateDict = MutableMapping[str, torch.Tensor]
@@ -182,7 +185,7 @@ def _assert_copied_values(
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE, help="Single-stream YOLOv8s-OBB checkpoint")
-    parser.add_argument("--target-yaml", type=Path, default=DEFAULT_TARGET_YAML, help="Baseline target YAML")
+    parser.add_argument("--target-yaml", type=Path, default=DEFAULT_TARGET_YAML, help="Two-stream target YAML")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Output two-stream checkpoint")
     return parser.parse_args()
 
@@ -208,7 +211,7 @@ def main() -> int:
     print(f"[INFO] target: {target_yaml}")
     target_yolo = YOLO(str(target_yaml), task="obb")
     target_model = target_yolo.model.float()
-    _validate_architecture(target_model, EXPECTED_TARGET_LAYERS, "target", expected_layers=39)
+    _validate_architecture(target_model, EXPECTED_TARGET_LAYERS, "target", expected_layers=42)
 
     source_state = source_model.state_dict()
     target_state = target_model.state_dict()

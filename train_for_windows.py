@@ -1,4 +1,5 @@
 #训练
+# 对应模型 YAML：yaml/PC2f_MPF_yolov8n.yaml
 from multiprocessing import freeze_support
 from ultralytics import YOLO
 
