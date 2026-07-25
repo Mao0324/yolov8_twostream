@@ -1,0 +1,18 @@
+weights: /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/DroneVehicle_OBB_FusionTransfer/ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v1/weights/best.pt
+data: /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/data/dronevehicle.yaml
+split: test
+imgsz: 640
+batch: 16
+device: 0
+
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95)
+                   all       8980     159614      0.795      0.782      0.819      0.676
+                   car       8980     137146       0.95      0.966      0.985      0.836
+                 truck       8980       8657      0.771      0.785      0.822      0.651
+                   bus       8980       4467       0.92      0.939      0.961      0.817
+                   van       8980       4282      0.686      0.544      0.633       0.52
+           freight_car       8980       5062      0.646      0.676      0.696      0.558
+
+Speed: 0.4ms preprocess, 4.1ms inference, 0.0ms loss, 3.4ms postprocess per image
+前向传播 FPS: 243.55
+Results saved to /media/biiteam/新加卷/biiteam/MCONG/Yolov8_TwoStream/DroneVehicle_OBB_FusionTransfer/ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v1/test_result

@@ -1,0 +1,78 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 结构来源：
+#   本 YAML 以 yaml/yolov8s-ASSAFusion.yaml 为母版修改。
+#   保留母版的 RGB/IR 双流骨干、39 层索引、P3/P4/P5 进入 neck 的 ADD 位置、
+#   YOLOv8s-OBB neck/head，以及 OBB 头输入 [31, 34, 37]。
+#
+# 相对母版的修改：
+#   1. 仅在 P4（第 15 层，scale=s 时 C=256）保留跨模态 ASSA 交互，heads=4。
+#   2. P4 的逐像素动态 3x3 深度卷积改为静态 DWConv 3x3。
+#   3. 删除 P4 ASSA 后的整个 Gated FFN，只保留转置跨模态注意力和残差输出。
+#   4. P3（第 10 层）和 P5（第 22 层）使用零参数 RIFusion 作为双流恒等传递，
+#      不做注意力交互，进入 neck 时仍按原结构 ADD。
+#
+# 对应实验：
+#   ASSANet_ASSAFusion_P4_H4_StaticDW-NoFFN_v1
+#   目的是消融“仅 P4 + 静态局部卷积 + 无 FFN”的精度/效率表现。
+
+nc: 5
+scales:
+  #n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+scale: s
+
+backbone:
+  # Stem to P3/8.
+  - [-1, 1, Conv, [64, 3, 2]]                         # 0 RGB-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]                        # 1 RGB-P2/4
+  - [-1, 3, C2f, [128, True]]                         # 2
+  - [-1, 1, Conv, [256, 3, 2]]                        # 3 RGB-P3/8
+  - [-4, 1, Conv, [64, 3, 2]]                         # 4 IR-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]                        # 5 IR-P2/4
+  - [-1, 3, C2f_Faster, [128, True]]                  # 6
+  - [-1, 1, Conv, [256, 3, 2]]                        # 7 IR-P3/8
+
+  # P3 remains two independent streams; RIFusion is an identity pair carrier.
+  - [-1, 6, C2f_Faster, [256, True]]                  # 8 IR-P3
+  - [-4, 6, C2f, [256, True]]                         # 9 RGB-P3
+  - [-3, 1, RIFusion, [128]]                          # 10 P3 identity
+  - [-1, 1, Conv, [512, 3, 2]]                        # 11 RGB-P4/16
+  - [-1, 6, C2f, [512, True]]                         # 12 RGB-P4
+
+  # The only cross-modal interaction: P4, 4 heads, static DW 3x3, no FFN.
+  - [-4, 1, Conv, [512, 3, 2]]                        # 13 IR-P4/16
+  - [-1, 6, C2f_Faster, [512, True]]                  # 14 IR-P4
+  - [-3, 1, ASSAFusionStaticNoFFN, [512, 4, 3]]       # 15 P4, C=256 for scale s
+  - [-1, 1, Conv, [1024, 3, 2]]                       # 16 IR-P5/32
+  - [-1, 3, C2f_Faster, [1024, True]]                 # 17 IR-P5
+  - [-1, 1, SPPF, [1024, 5]]                          # 18
+
+  # P5 also remains independent before the shared neck.
+  - [-4, 1, Conv, [1024, 3, 2]]                       # 19 RGB-P5/32
+  - [-1, 3, C2f, [1024, True]]                        # 20 RGB-P5
+  - [-1, 1, SPPF, [1024, 5]]                          # 21
+  - [-3, 1, RIFusion, [512]]                          # 22 P5 identity
+
+  # Merge the modality pair at each neck input.
+  - [10, 1, ADD, [1]]                                 # 23 P3
+  - [15, 1, ADD, [1]]                                 # 24 P4
+  - [22, 1, ADD, [1]]                                 # 25 P5
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]       # 26
+  - [[-1, 24], 1, Concat, [1]]                        # 27
+  - [-1, 3, C2f, [512]]                               # 28
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]       # 29
+  - [[-1, 23], 1, Concat, [1]]                        # 30
+  - [-1, 3, C2f, [256]]                               # 31 P3/8
+  - [-1, 1, Conv, [256, 3, 2]]                        # 32
+  - [[-1, 28], 1, Concat, [1]]                        # 33
+  - [-1, 3, C2f, [512]]                               # 34 P4/16
+  - [-1, 1, Conv, [512, 3, 2]]                        # 35
+  - [[-1, 25], 1, Concat, [1]]                        # 36
+  - [-1, 3, C2f, [1024]]                              # 37 P5/32
+  - [[31, 34, 37], 1, OBB, [nc, 1]]                   # 38

@@ -1,0 +1,202 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "ASSAFusion 与 baseline 的精度-效率诊断",
+    "description": "DroneVehicle OBB 上的实验对比、复杂度归因与轻量改进顺序。",
+    "generatedAt": "2026-07-14T12:00:00+08:00",
+    "cards": [],
+    "charts": [
+      {
+        "id": "class_map50_delta",
+        "title": "各类别测试集 mAP50 变化",
+        "subtitle": "ASSAFusion 相对 baseline，单位为百分点；提升集中在 truck、van 和 freight_car。",
+        "type": "bar",
+        "dataset": "class_delta",
+        "sourceId": "class_comparison_query",
+        "valueFormat": "number",
+        "encodings": {
+          "x": {"field": "class", "type": "nominal", "label": "类别"},
+          "y": {"field": "delta_map50_pp", "type": "quantitative", "label": "mAP50 变化（百分点）"},
+          "tooltip": [
+            {"field": "baseline_map50", "type": "quantitative", "label": "Baseline mAP50", "format": "number"},
+            {"field": "assa_map50", "type": "quantitative", "label": "ASSAFusion mAP50", "format": "number"},
+            {"field": "delta_map5095_pp", "type": "quantitative", "label": "mAP50-95 变化（pp）", "format": "number"}
+          ]
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "model_comparison_table",
+        "title": "整体精度与复杂度",
+        "subtitle": "同一数据集、100 epochs、imgsz 640；延迟对比使用 batch 16 测试记录。",
+        "dataset": "model_comparison",
+        "sourceId": "model_comparison_query",
+        "columns": [
+          {"field": "model", "label": "模型", "type": "text"},
+          {"field": "test_map50", "label": "Test mAP50", "format": "number"},
+          {"field": "test_map5095", "label": "Test mAP50-95", "format": "number"},
+          {"field": "precision", "label": "Precision", "format": "number"},
+          {"field": "recall", "label": "Recall", "format": "number"},
+          {"field": "params_m", "label": "参数量 (M)", "format": "number"},
+          {"field": "gflops", "label": "GFLOPs", "format": "number"},
+          {"field": "inference_ms", "label": "推理 ms/图", "format": "number"}
+        ]
+      },
+      {
+        "id": "candidate_table",
+        "title": "值得优先验证的轻量候选",
+        "subtitle": "参数量是基于当前模块的算术投影，不是已完成的训练结果。",
+        "dataset": "candidate_params",
+        "sourceId": "candidate_projection_query",
+        "columns": [
+          {"field": "candidate", "label": "候选", "type": "text"},
+          {"field": "params_m", "label": "预计参数量 (M)", "format": "number"},
+          {"field": "delta_pct", "label": "相对 baseline", "format": "number", "unit": "%"},
+          {"field": "priority", "label": "优先级", "type": "text"}
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "comparison_inputs",
+        "label": "ASSAFusion vs baseline 可复核分析输入",
+        "path": "analysis_reports/assa_vs_baseline_20260714/analysis_inputs.md"
+      },
+      {
+        "id": "model_comparison_query",
+        "label": "整体精度与复杂度复算表"
+      },
+      {
+        "id": "class_comparison_query",
+        "label": "测试集类别级指标复算表"
+      },
+      {
+        "id": "candidate_projection_query",
+        "label": "轻量候选参数量算术投影"
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# ASSAFusion 与 baseline 的精度-效率诊断"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "sourceId": "comparison_inputs",
+        "body": "## 技术结论\n\n当前三尺度 ASSAFusion 在测试集上将 mAP50 从 **0.812** 提高到 **0.820**，mAP50-95 从 **0.670** 提高到 **0.679**，但参数量增加 **44.5%**、GFLOPs 增加 **33.6%**，batch 16 的单图推理时间从 **3.9 ms** 增至 **7.8 ms**。\n\n这不是无效融合：验证集和测试集都稳定提升，且 recall 提高 **1.6 个百分点**。但它是明显的低性价比方案。最合理的下一版不是继续堆叠注意力，而是保留已证明有用的跨模态注意力，先删掉低利用率 FFN，并把动态 K3 换成静态 DW K3 或共享单路径校正。"
+      },
+      {
+        "id": "comparison_heading",
+        "type": "markdown",
+        "body": "## 提升存在，但成本增长远大于精度增长\n\n下表把精度、参数、静态计算量和真实延迟放在同一口径下。静态 GFLOPs 只增加约三分之一，但延迟翻倍，说明动态核的多个小算子与 Python 循环是部署瓶颈，不能只看 FLOPs。"
+      },
+      {"id": "model_comparison", "type": "table", "tableId": "model_comparison_table"},
+      {
+        "id": "class_heading",
+        "type": "markdown",
+        "sourceId": "comparison_inputs",
+        "body": "## mAP50 的天花板在类别端，不在模块容量\n\n`car` 的 mAP50 已是 **0.985**，`bus` 也达到 **0.959-0.962**，继续增大融合模块很难从这两类换取大幅改善。当前增益主要来自 `truck`、`van` 和 `freight_car`，因此要让平均 mAP50 再上一个台阶，应把训练信号与融合容量集中到这三类，而不是继续提高 P5 的通道容量。"
+      },
+      {"id": "class_chart", "type": "chart", "chartId": "class_map50_delta"},
+      {
+        "id": "mechanism_heading",
+        "type": "markdown",
+        "sourceId": "comparison_inputs",
+        "body": "## FFN 消耗了大部分新增参数，但学到的残差缩放很小\n\n三个 FFN 共占用 **4.19M** 参数，占 ASSAFusion 全部新增参数的 **64.0%**。训练后注意力残差缩放从 0.1 增长到约 **1.11-1.57**，FFN 缩放却下降到约 **0.037-0.042**。这是强烈的消融信号：先删 FFN，再决定是否删尺度。\n\n另一个瓶颈是动态 K3：每个模态、每个尺度需要 9 个深度权重生成卷积和 9 条偏移累加路径。它使真实延迟增幅明显超过 FLOPs 增幅。"
+      },
+      {
+        "id": "recommendation_heading",
+        "type": "markdown",
+        "body": "## 建议以 P4-only NoFFN StaticDW 为主线，用免费的训练改进拉高精度\n\n1. **第一优先：P4-only + NoFFN + Static DW K3。** P4 是分辨率与语义最平衡的融合点；该方案预计只比 baseline 多约 0.40M 参数（+2.7%），并直接消除动态核的 9 路循环。\n\n2. **第二优先：P3+P4 + NoFFN + Static DW K3。** 如果 P4-only 对小目标或 `van/freight_car` 不够，加回轻量 P3；参数仍只预计比 baseline 高约 3.4%。P5 暂不加，因为它一层就占当前新增参数的约 75%。\n\n3. **进一步减冗余：单个共享校正分支。** 现在 RGB→IR 和 IR→RGB 各有一套 QKV/输出投影，但最后仍会 ADD。可改成一个对称共享的校正量 `delta=f(rgb,ir)`，再以受控残差加回，可再近似减半融合路径。\n\n4. **不增加推理计算的精度杠杆。** 从 baseline `best.pt` 精确迁移共享层，新融合残差以 0 或 0.01 近似恒等初始化；训练时做配对模态 dropout；对 `truck/van/freight_car` 使用类别均衡采样或 OBB-aware copy-paste；并将 `close_mosaic` 设为 10-15，让最后阶段回到真实图像分布。这些改动都不增加部署参数和 FLOPs。"
+      },
+      {"id": "candidates", "type": "table", "tableId": "candidate_table"},
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## 比较口径与验证方法\n\n两组训练的数据、epochs、batch、imgsz、优化器、seed 和主要超参数一致。验证指标从两份 `results.csv` 重算最佳 epoch 与末 10 epoch 稳定性；测试指标取各自 `test_result/test.txt`；参数量和 GFLOPs 使用当前两个 `best.pt` 在同一份仓库代码中重算。类别级指标只保留测试报告的三位小数精度。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 限制、不确定性与稳健性\n\n当前每个架构只有一个 seed，+0.8 个百分点的 mAP50 差异可能包含随机波动；建议只对最有希望的轻量方案跑 3 个 seeds，报告均值和标准差。动态 K3 替换为静态 DW K3 后的精度无法由当前 checkpoint 推断；上述候选参数量是结构投影，不是成果声明。延迟还应在同一 GPU、batch、FP16/预热条件下单独基准测试。"
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## 最小实验矩阵\n\n建议先做 4 组单变量实验：\n\n1. baseline + 训练优化（类平衡、modality dropout、close_mosaic=10）；\n2. P4-only + NoFFN + StaticDW，同样的训练优化；\n3. P3+P4 + NoFFN + StaticDW，其余不变；\n4. 仅对第 2 或第 3 中胜出者跑 3 seeds。\n\n决策门槛可设为：相对 baseline 参数增幅不超过 5%，GFLOPs 增幅不超过 8%，同条件延迟增幅不超过 15%，且 3-seed 平均 mAP50 至少提高 1.0 个百分点。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 还需回答的关键问题\n\n- P4-only 能否保留当前对 `truck/van/freight_car` 的改善？\n- 删除 FFN 后精度是否持平，从而验证小 FFN scale 确实对应小贡献？\n- StaticDW 与动态 K3 的精度差值是否小于它们的延迟差值？\n- 类平衡采样单独对三个困难类能带来多少 mAP50 收益？"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-14T12:00:00+08:00",
+    "status": "ready",
+    "datasets": {
+      "model_comparison": [
+        {"model": "baseline", "test_map50": 0.812, "test_map5095": 0.670, "precision": 0.789, "recall": 0.782, "params_m": 14.735, "gflops": 37.04, "inference_ms": 3.9, "best_val_map50": 0.8515, "best_val_map5095": 0.70117},
+        {"model": "ASSAFusion P3/P4/P5", "test_map50": 0.820, "test_map5095": 0.679, "precision": 0.785, "recall": 0.798, "params_m": 21.290, "gflops": 49.50, "inference_ms": 7.8, "best_val_map50": 0.8597, "best_val_map5095": 0.71129}
+      ],
+      "class_delta": [
+        {"class": "car", "baseline_map50": 0.985, "assa_map50": 0.985, "delta_map50_pp": 0.0, "baseline_map5095": 0.836, "assa_map5095": 0.838, "delta_map5095_pp": 0.2, "test_instances": 137146},
+        {"class": "truck", "baseline_map50": 0.817, "assa_map50": 0.832, "delta_map50_pp": 1.5, "baseline_map5095": 0.646, "assa_map5095": 0.662, "delta_map5095_pp": 1.6, "test_instances": 8657},
+        {"class": "bus", "baseline_map50": 0.959, "assa_map50": 0.962, "delta_map50_pp": 0.3, "baseline_map5095": 0.815, "assa_map5095": 0.818, "delta_map5095_pp": 0.3, "test_instances": 4467},
+        {"class": "van", "baseline_map50": 0.621, "assa_map50": 0.633, "delta_map50_pp": 1.2, "baseline_map5095": 0.509, "assa_map5095": 0.522, "delta_map5095_pp": 1.3, "test_instances": 4282},
+        {"class": "freight_car", "baseline_map50": 0.678, "assa_map50": 0.689, "delta_map50_pp": 1.1, "baseline_map5095": 0.542, "assa_map5095": 0.554, "delta_map5095_pp": 1.2, "test_instances": 5062}
+      ],
+      "candidate_params": [
+        {"candidate": "P4 only, NoFFN, StaticDW K3", "params_m": 15.138, "delta_pct": 2.7, "priority": "1"},
+        {"candidate": "P3+P4, NoFFN, StaticDW K3", "params_m": 15.242, "delta_pct": 3.4, "priority": "2"},
+        {"candidate": "P4 only, NoFFN, Dynamic K3", "params_m": 15.212, "delta_pct": 3.2, "priority": "对照"},
+        {"candidate": "P3+P4+P5, NoFFN, Dynamic K3", "params_m": 17.097, "delta_pct": 16.0, "priority": "不建议主线"}
+      ]
+    },
+    "accessIssues": []
+  },
+  "sources": [
+    {
+      "id": "comparison_inputs",
+      "label": "ASSAFusion vs baseline 可复核分析输入",
+      "path": "analysis_reports/assa_vs_baseline_20260714/analysis_inputs.md"
+    },
+    {
+      "id": "model_comparison_query",
+      "label": "整体精度与复杂度复算表",
+      "query": {
+        "engine": "duckdb",
+        "sql": "SELECT * FROM (VALUES ('baseline', 0.812, 0.670, 0.789, 0.782, 14.735, 37.04, 3.9, 0.8515, 0.70117), ('ASSAFusion P3/P4/P5', 0.820, 0.679, 0.785, 0.798, 21.290, 49.50, 7.8, 0.8597, 0.71129)) AS t(model, test_map50, test_map5095, precision, recall, params_m, gflops, inference_ms, best_val_map50, best_val_map5095)",
+        "description": "将两组已复核的训练、测试和模型复杂度结果整理为同口径表。",
+        "tables_used": ["runs_baseline/train/results.csv", "runs_baseline/train/test_result/test.txt", "DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1/results.csv", "DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1/test_result/test.txt"]
+      }
+    },
+    {
+      "id": "class_comparison_query",
+      "label": "测试集类别级指标复算表",
+      "query": {
+        "engine": "duckdb",
+        "sql": "SELECT * FROM (VALUES ('car',0.985,0.985,0.0,0.836,0.838,0.2,137146),('truck',0.817,0.832,1.5,0.646,0.662,1.6,8657),('bus',0.959,0.962,0.3,0.815,0.818,0.3,4467),('van',0.621,0.633,1.2,0.509,0.522,1.3,4282),('freight_car',0.678,0.689,1.1,0.542,0.554,1.2,5062)) AS t(class, baseline_map50, assa_map50, delta_map50_pp, baseline_map5095, assa_map5095, delta_map5095_pp, test_instances)",
+        "description": "从两份测试报告对齐五个类别并计算 ASSAFusion 相对 baseline 的百分点差值。",
+        "tables_used": ["runs_baseline/train/test_result/test.txt", "DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1/test_result/test.txt"]
+      }
+    },
+    {
+      "id": "candidate_projection_query",
+      "label": "轻量候选参数量算术投影",
+      "query": {
+        "engine": "duckdb",
+        "sql": "SELECT * FROM (VALUES ('P4 only, NoFFN, StaticDW K3',15.138,2.7,'1'),('P3+P4, NoFFN, StaticDW K3',15.242,3.4,'2'),('P4 only, NoFFN, Dynamic K3',15.212,3.2,'control'),('P3+P4+P5, NoFFN, Dynamic K3',17.097,16.0,'not-primary')) AS t(candidate, params_m, delta_pct, priority)",
+        "description": "根据当前 ASSAFusion 子模块参数分解计算未训练候选的参数量投影。",
+        "tables_used": ["ultralytics/nn/modules/assa_fusion.py", "yaml/yolov8s-ASSAFusion.yaml"]
+      }
+    }
+  ]
+}

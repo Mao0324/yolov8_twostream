@@ -1,0 +1,81 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 结构来源：
+#   本 YAML 以 yaml/yolov8s-ASSAFusion.yaml 为母版修改。
+#   保留母版的 RGB/IR 双流骨干、39 层索引、P3/P4/P5 进入 neck 的 ADD 位置、
+#   YOLOv8s-OBB neck/head，以及 OBB 头输入 [31, 34, 37]。
+#
+# 相对母版的修改：
+#   1. 只在 P3（第 10 层）和 P4（第 15 层）使用 PartialChannelASSAFusion，
+#      heads 分别为 2/4；P5（第 22 层）不使用注意力。
+#   2. 每个模态只取 C/4 通道参与跨模态注意力：P3 为 32/128，P4 为 64/256；
+#      其余 3C/4 通道不进入复杂计算，通过原始特征残差路径直接保留。
+#   3. 局部投影使用静态 DWConv 3x3，删除原 ASSAFusion 的逐像素动态卷积。
+#   4. 在压缩后的 C/4 通道上执行双向转置跨模态注意力，再用 1x1 Conv
+#      投影回完整 C 通道并残差相加。
+#   5. 删除 P3/P4 的整个 Gated FFN。
+#   6. P5 使用零参数 RIFusion 作为双流恒等传递，进入 neck 时保持原始 RGB+IR ADD。
+#
+# 对应实验：
+#   ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v1
+#   目的是在几乎不增加 baseline 参数量/计算量的条件下，验证 P3+P4 部分通道融合。
+
+nc: 5
+scales:
+  #n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+scale: s
+
+backbone:
+  # Stem to P3/8.
+  - [-1, 1, Conv, [64, 3, 2]]                         # 0 RGB-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]                        # 1 RGB-P2/4
+  - [-1, 3, C2f, [128, True]]                         # 2
+  - [-1, 1, Conv, [256, 3, 2]]                        # 3 RGB-P3/8
+  - [-4, 1, Conv, [64, 3, 2]]                         # 4 IR-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]                        # 5 IR-P2/4
+  - [-1, 3, C2f_Faster, [128, True]]                  # 6
+  - [-1, 1, Conv, [256, 3, 2]]                        # 7 IR-P3/8
+
+  # P3: C=128, active C/4=32, 2 heads, static DW 3x3, no FFN.
+  - [-1, 6, C2f_Faster, [256, True]]                  # 8 IR-P3
+  - [-4, 6, C2f, [256, True]]                         # 9 RGB-P3
+  - [-3, 1, PartialChannelASSAFusion, [256, 2, 4, 3]] # 10 P3
+  - [-1, 1, Conv, [512, 3, 2]]                        # 11 RGB-P4/16
+  - [-1, 6, C2f, [512, True]]                         # 12 RGB-P4
+
+  # P4: C=256, active C/4=64, 4 heads, static DW 3x3, no FFN.
+  - [-4, 1, Conv, [512, 3, 2]]                        # 13 IR-P4/16
+  - [-1, 6, C2f_Faster, [512, True]]                  # 14 IR-P4
+  - [-3, 1, PartialChannelASSAFusion, [512, 4, 4, 3]] # 15 P4
+  - [-1, 1, Conv, [1024, 3, 2]]                       # 16 IR-P5/32
+  - [-1, 3, C2f_Faster, [1024, True]]                 # 17 IR-P5
+  - [-1, 1, SPPF, [1024, 5]]                          # 18
+
+  # P5 has no attention; preserve the original two streams before ADD.
+  - [-4, 1, Conv, [1024, 3, 2]]                       # 19 RGB-P5/32
+  - [-1, 3, C2f, [1024, True]]                        # 20 RGB-P5
+  - [-1, 1, SPPF, [1024, 5]]                          # 21
+  - [-3, 1, RIFusion, [512]]                          # 22 P5 identity
+
+  - [10, 1, ADD, [1]]                                 # 23 P3
+  - [15, 1, ADD, [1]]                                 # 24 P4
+  - [22, 1, ADD, [1]]                                 # 25 P5 original dual-stream ADD
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]       # 26
+  - [[-1, 24], 1, Concat, [1]]                        # 27
+  - [-1, 3, C2f, [512]]                               # 28
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]       # 29
+  - [[-1, 23], 1, Concat, [1]]                        # 30
+  - [-1, 3, C2f, [256]]                               # 31 P3/8
+  - [-1, 1, Conv, [256, 3, 2]]                        # 32
+  - [[-1, 28], 1, Concat, [1]]                        # 33
+  - [-1, 3, C2f, [512]]                               # 34 P4/16
+  - [-1, 1, Conv, [512, 3, 2]]                        # 35
+  - [[-1, 25], 1, Concat, [1]]                        # 36
+  - [-1, 3, C2f, [1024]]                              # 37 P5/32
+  - [[31, 34, 37], 1, OBB, [nc, 1]]                   # 38

@@ -1,5 +1,5 @@
-# 训练（DroneVehicle）
-# 对应模型 YAML：yaml/yolov8s-ASSAFusion-P4-StaticDW-NoFFN.yaml
+# 训练（DroneVehicle ASSAFusion P3/P4/P5，checkpoint-direct DDP 重跑）
+# 对应模型 YAML：yaml/yolov8s-ASSAFusion.yaml
 import inspect
 import os
 
@@ -27,18 +27,16 @@ def _torch_load_trusted_checkpoint(*args, **kwargs):
 
 torch.load = _torch_load_trusted_checkpoint
 
-# 直接从迁移 checkpoint 启动，确保双卡 DDP 子进程真正加载预训练权重。
-CHECKPOINT = str(repo_path("pre-pth/yolov8s-obb_twostream_assafusion_p4_staticdw_noffn.pt"))
-EXPERIMENT_NAME = "ASSANet_ASSAFusion_P4_H4_StaticDW-NoFFN_v1"
-QUEUE = resolve_queue_runtime(CHECKPOINT, default_device="4,5")
+CHECKPOINT = str(repo_path("pre-pth/yolov8s-obb_twostream.pt"))
+EXPERIMENT_NAME = "ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1"
+QUEUE = resolve_queue_runtime(CHECKPOINT, default_device="0,7")
 monitor = create_monitor(EXPERIMENT_NAME)
-model = YOLO(QUEUE.checkpoint, task='obb')
+model = YOLO(QUEUE.checkpoint, task="obb")
 
-# 训练正常完成后自动更新 experiments/PRETRAINED_RERUNS.md。
 results = monitor.run(
     tracked_train,
     model,
-    "PT-R003",
+    "PT-R002",
     QUEUE.checkpoint,
     trainer=MonitoredOBBTrainer,
     data=str(repo_path("data/dronevehicle.yaml")),
@@ -50,6 +48,6 @@ results = monitor.run(
     project="DroneVehicle_OBB_FusionTransfer",
     name=EXPERIMENT_NAME,
     exist_ok=False,
-    task='obb',
+    task="obb",
     resume=QUEUE.resume or False,
 )
