@@ -1,0 +1,71 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 实验 ID：DA-012
+# 父实验：DA-007（LAF-only，无 StaticMAA）
+#
+# 唯一结构改动：
+#   - 只对 LAF 融合后的 P3、P4 lateral 特征做零初始化残差精炼；
+#   - P5 仍直接使用 DA-007 的 LAF fused 特征，避免在语义粗、分辨率低的层
+#     增加无效容量；
+#   - Refine 为 F + gamma * Conv3x3(Conv1x1(F))，gamma=0，因此迁移起点
+#     与 DA-007 完全一致，新增分支从严格恒等映射开始。
+#
+# Refine 放在 head 起点并显式引用融合层 10/15。这样只处理 fused lateral，
+# 不会改变 LAFMergeFeedback2D 对 RGB/IR backbone 的反馈路径。
+
+nc: 5
+scales:
+  s: [0.33, 0.50, 1024]
+scale: s
+
+backbone:
+  # RGB/IR 双分支提取至 P3/8。
+  - [-5, 1, Conv, [64, 3, 2]]                              # 0 RGB-P1/2
+  - [-5, 1, Conv, [128, 3, 2]]                             # 1 RGB-P2/4
+  - [-5, 3, C2f, [128, True]]                              # 2
+  - [-5, 1, Conv, [256, 3, 2]]                             # 3 RGB-P3/8
+  - [-6, 1, Conv, [64, 3, 2]]                              # 4 IR-P1/2
+  - [-6, 1, Conv, [128, 3, 2]]                             # 5 IR-P2/4
+  - [-6, 3, C2f_Faster, [128, True]]                       # 6
+  - [-6, 1, Conv, [256, 3, 2]]                             # 7 IR-P3/8
+
+  # P3 LAF-only：输出 fused 给 neck，同时把融合修正反馈至两条模态流。
+  - [-5, 6, C2f, [256, True]]                              # 8 RGB-P3
+  - [-6, 6, C2f_Faster, [256, True]]                       # 9 IR-P3
+  - [[8, 9], 1, LAFMergeFeedback2D, [256, 2, 4, 1, 8]]    # 10 P3 fused/feedback
+
+  - [-5, 1, Conv, [512, 3, 2]]                             # 11 RGB-P4/16
+  - [-6, 1, Conv, [512, 3, 2]]                             # 12 IR-P4/16
+  - [-5, 6, C2f, [512, True]]                              # 13 RGB-P4
+  - [-6, 6, C2f_Faster, [512, True]]                       # 14 IR-P4
+  - [[13, 14], 1, LAFMergeFeedback2D, [512, 4, 4, 2, 8]]  # 15 P4 fused/feedback
+
+  - [-5, 1, Conv, [1024, 3, 2]]                            # 16 RGB-P5/32
+  - [-6, 1, Conv, [1024, 3, 2]]                            # 17 IR-P5/32
+  - [-5, 3, C2f, [1024, True]]                             # 18 RGB-P5
+  - [-5, 1, SPPF, [1024, 5]]                              # 19
+  - [-6, 3, C2f_Faster, [1024, True]]                      # 20 IR-P5
+  - [-6, 1, SPPF, [1024, 5]]                              # 21
+  - [[19, 21], 1, LAFMergeFeedback2D, [1024, 8, 4, 2, 8]] # 22 P5 fused/feedback
+
+head:
+  # 仅精炼 P3/P4 fused lateral；s 尺度实际隐藏通道为 32/64。
+  - [10, 1, ZeroInitResidualRefine2D, [256, 0.25]]         # 23 refined P3
+  - [15, 1, ZeroInitResidualRefine2D, [512, 0.25]]         # 24 refined P4
+
+  # FPN：P5 保持 DA-007 原样，P4/P3 使用精炼后的 lateral。
+  - [22, 1, nn.Upsample, [None, 2, "nearest"]]             # 25
+  - [[-1, 24], 1, Concat, [1]]                             # 26 P5 up + refined P4
+  - [-1, 3, C2f, [512]]                                    # 27
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]             # 28
+  - [[-1, 23], 1, Concat, [1]]                             # 29 P4 up + refined P3
+  - [-1, 3, C2f, [256]]                                    # 30 P3/8
+
+  # PAN。
+  - [-1, 1, Conv, [256, 3, 2]]                             # 31
+  - [[-1, 27], 1, Concat, [1]]                             # 32
+  - [-1, 3, C2f, [512]]                                    # 33 P4/16
+  - [-1, 1, Conv, [512, 3, 2]]                             # 34
+  - [[-1, 22], 1, Concat, [1]]                             # 35 + raw P5 fused
+  - [-1, 3, C2f, [1024]]                                   # 36 P5/32
+  - [[30, 33, 36], 1, OBB, [nc, 1]]                       # 37

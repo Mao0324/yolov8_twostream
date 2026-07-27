@@ -1,0 +1,512 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DarkAct 双流 OBB 架构对比与优化建议",
+    "description": "基于 DroneVehicle 测试集结果、训练初始化口径、DarkAct 论文与当前实现的技术评估。",
+    "generatedAt": "2026-07-25T18:03:22+08:00",
+    "cards": [],
+    "charts": [
+      {
+        "id": "accuracy_speed_tradeoff",
+        "title": "当前 DarkAct 实验的精度与前向吞吐",
+        "subtitle": "存档结果中只有 DA-006 与 DA-007 位于精度—速度 Pareto 前沿。",
+        "type": "scatter",
+        "dataset": "current_runs",
+        "sourceId": "darkact_results",
+        "encodings": {
+          "x": {
+            "field": "forward_fps",
+            "type": "quantitative",
+            "label": "前向 FPS"
+          },
+          "y": {
+            "field": "map50_95",
+            "type": "quantitative",
+            "label": "Test mAP50-95"
+          },
+          "label": {
+            "field": "model",
+            "type": "text",
+            "label": "实验"
+          },
+          "tooltip": [
+            {
+              "field": "model",
+              "type": "text",
+              "label": "实验"
+            },
+            {
+              "field": "map50",
+              "type": "quantitative",
+              "label": "mAP50"
+            },
+            {
+              "field": "rare_map50_95",
+              "type": "quantitative",
+              "label": "非 car 四类均值"
+            },
+            {
+              "field": "checkpoint_mib",
+              "type": "quantitative",
+              "label": "Checkpoint MiB"
+            },
+            {
+              "field": "pareto",
+              "type": "text",
+              "label": "Pareto 状态"
+            }
+          ]
+        },
+        "xAxisTitle": "Stored forward FPS",
+        "yAxisTitle": "Test mAP50-95",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "current_results",
+        "title": "当前 checkpoint 启动实验的测试结果",
+        "subtitle": "10 个当前结果；DA-005 为 self-run checkpoint，其余 9 个为迁移预训练 checkpoint。",
+        "dataset": "current_runs",
+        "sourceId": "darkact_results",
+        "defaultSort": {
+          "field": "map50_95",
+          "direction": "desc"
+        },
+        "density": "comfortable",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "model",
+            "label": "实验",
+            "type": "text"
+          },
+          {
+            "field": "map50_95",
+            "label": "mAP50-95",
+            "format": "number"
+          },
+          {
+            "field": "map50",
+            "label": "mAP50",
+            "format": "number"
+          },
+          {
+            "field": "rare_map50_95",
+            "label": "非 car 四类均值",
+            "format": "number"
+          },
+          {
+            "field": "forward_fps",
+            "label": "前向 FPS",
+            "format": "number"
+          },
+          {
+            "field": "inference_ms",
+            "label": "推理 ms",
+            "format": "number"
+          },
+          {
+            "field": "checkpoint_mib",
+            "label": "Checkpoint MiB",
+            "format": "number"
+          },
+          {
+            "field": "pareto",
+            "label": "Pareto",
+            "type": "text"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "darkact_results",
+        "label": "DarkAct experiment test outputs",
+        "path": "reports/darkact_architecture_comparison/current_checkpoint_results.csv",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "description": "Parsed every DarkAct*/test_result/test.txt and joined each run's args.yaml and results.csv using analyze_darkact_results.py; this query reads the reviewed output.",
+          "sql": "SELECT * FROM read_csv_auto('reports/darkact_architecture_comparison/current_checkpoint_results.csv', header = true)",
+          "tables_used": [
+            "reports/darkact_architecture_comparison/current_checkpoint_results.csv"
+          ],
+          "filters": [
+            "Test split only",
+            "imgsz=640",
+            "Current table excludes YAML-direct runs",
+            "Strict initialization comparisons use migrated pretrained checkpoints only"
+          ],
+          "metric_definitions": [
+            "mAP50-95 is the all-class OBB mean average precision reported by the test evaluator across IoU 0.50:0.95.",
+            "Forward FPS is copied from each stored test.txt and equals the reciprocal of reported inference time.",
+            "Rare-class mAP50-95 is the unweighted mean across truck, bus, van, and freight_car.",
+            "Pareto frontier means no other current run has both equal-or-higher mAP50-95 and equal-or-higher stored forward FPS, with one strictly higher."
+          ]
+        }
+      },
+      {
+        "id": "darkact_paper",
+        "label": "DarkAct CVPR 2026 paper",
+        "path": "Tan_DarkAct_A_RGB-Thermal_Dataset_and_Fusion_Framework_for_Multimodal_Low-Light_CVPR_2026_paper.pdf",
+        "query": {
+          "engine": "local-document",
+          "description": "Reviewed Sections 4 and 5.4 for the original temporal MAA, LAF equations, and DarkAct-Net ablation results."
+        }
+      },
+      {
+        "id": "darkact_implementation",
+        "label": "Single-image DarkAct adaptation implementation",
+        "path": "ultralytics/nn/modules/darkact_maalaf_v2.py",
+        "query": {
+          "engine": "local-code",
+          "language": "python",
+          "description": "Reviewed StaticMAA2D, LAFMergeFeedback2D, full-channel PaperLAF, target-saliency attention, and auxiliary OBB mask loss implementations."
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# DarkAct 双流 OBB 架构对比与优化建议"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "sourceId": "darkact_results",
+        "body": "## 当前应保留两条主线，而不是只留一个“最高分模型”\n\n- **精度主线：DA-006（StaticMAA + partial LAF + 融合后 Refine）**。Test mAP50-95 为 **0.708**，前向 **117.76 FPS**；它与 DA-004 并列最高，但存档速度更快，且非 car 四类均值略高。\n- **效率主线：DA-007（LAF-only）**。Test mAP50-95 为 **0.705**，前向 **257.96 FPS**；相对 DA-006 只低 **0.003**，存档吞吐约为其 **2.19 倍**。\n- **结论置信度：有条件可用（Share with caveats）**。精度排序基于单 seed；速度来自不同 GPU 编号的历史测试文件，适合判断量级，不足以当作严格硬件基准。"
+      },
+      {
+        "id": "tradeoff_finding",
+        "type": "markdown",
+        "sourceId": "darkact_results",
+        "body": "## 精度—速度前沿只剩 DA-006 与 DA-007\n\n横轴越右表示存档前向吞吐越高，纵轴越上表示 mAP50-95 越高。DA-004 虽达到 0.708，但在现有速度记录上被 DA-006 支配；Full-C PaperLAF、目标显著性与初始 MAA2D 路线都没有形成新的 Pareto 点。"
+      },
+      {
+        "id": "tradeoff_chart",
+        "type": "chart",
+        "chartId": "accuracy_speed_tradeoff",
+        "layout": "full"
+      },
+      {
+        "id": "detail_interpretation",
+        "type": "markdown",
+        "sourceId": "darkact_results",
+        "body": "## 高分差异主要集中在少数类，整体提升仍很小\n\nDA-004 的 `freight_car` mAP50-95 最高（0.598），DA-005 的 `truck` 最高（0.697），DA-002 的 `bus` 最高（0.842），而 DA-006 在 `van` 上并列最高（0.569）。因此若业务特别重视货车/货运车，可保留类定向候选；否则 DA-006 的整体平衡更好。"
+      },
+      {
+        "id": "result_table",
+        "type": "table",
+        "tableId": "current_results",
+        "layout": "full"
+      },
+      {
+        "id": "scope",
+        "type": "markdown",
+        "sourceId": "darkact_results",
+        "body": "## 比较口径：同一测试集，但初始化必须分层\n\n所有结果均为 DroneVehicle OBB `test`：8,980 张图、159,614 个实例、640 输入，类别为 car、truck、bus、van、freight_car。当前共有 15 份 `test.txt`：其中 9 个是迁移预训练 checkpoint 启动，1 个是 self-run checkpoint，5 个旧实验是 YAML-direct。四组可严格配对的迁移预训练实验相对 YAML-direct 平均提高 **0.0265 mAP50-95**，明显大于当前架构间 **0.007** 的总跨度，所以旧、新结果不能混排。"
+      },
+      {
+        "id": "method",
+        "type": "markdown",
+        "body": "## 方法：统一解析、分层比较与 Pareto 检查\n\n分析脚本逐一解析 `test.txt` 的总体/分类指标和速度，联接 `args.yaml` 的模型来源、`results.csv` 的最佳验证 epoch，并记录 checkpoint 大小。排名先按初始化来源分层，再比较 mAP50-95、mAP50、非 car 四类均值与前向 FPS；Pareto 判定要求不存在另一模型同时具备不低的精度和不低的吞吐。"
+      },
+      {
+        "id": "paper_gap",
+        "type": "markdown",
+        "sourceId": "darkact_paper",
+        "body": "## 论文中的 MAA 优势不能直接外推到当前单帧 OBB\n\n论文 MAA 使用相邻视频帧差分构造 temporal motion saliency；完整 DarkAct-Net Top-1 为 74.4%，去掉 MAA 后为 71.2%。当前 DroneVehicle 是配对单帧检测，只能以局部静态对比近似运动显著性。因此当前 LAF-only 接近最高分并不与论文矛盾，而是说明被迁移掉的时间维度正是 MAA 的核心信息。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 限制与稳健性检查\n\n- 所有当前实验都是 seed 0，尚无跨 seed 方差；0.001–0.003 的差值不能视为已确认优势。\n- 测速文件使用 GPU 0、6、7，当前环境无法读取历史 GPU 型号；速度只作相对筛选。\n- DA-005 的 `args.yaml` 从同一运行目录 `last.pt` 启动，不属于严格同初始化对照。\n- DA-007 的目录名为 `_v12`，但内部 `args.yaml` 的 name/save_dir 为 `_v13`；其测试权重路径仍指向 `_v12`，建议重测并修正实验登记。"
+      },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "body": "## 后续优化优先级\n\n1. **先复现 Pareto 两点。** 对 DA-006、DA-007 各跑 3 个 seed，固定同一 GPU、batch、warmup 与测速脚本，报告 mean±std；DA-004 仅在 freight_car 是关键类时加入。\n2. **做最高 ROI 的缺失消融：DA-007 + fused Refine，完全不加 StaticMAA。** 这能直接判断 DA-006 的 0.003 是否来自融合后精炼，并有机会保留 LAF-only 的大部分速度。\n3. **若继续 MAA，改成可抑制的零中心门控。** 当前 StaticMAA 使用正 `softplus(beta)` 与 `sigmoid(gate)`，只能放大特征；可试 `1 + beta·tanh(logit)` 或 `1 + beta·(2·sigmoid(logit)-1)`，保持 beta 零初始化，从而既增强目标也抑制噪声背景。\n4. **暂停 Full-C PaperLAF 与现有目标显著性分支的扩展。** 它们约 47.6–47.9 MiB，测试只到 0.704–0.705；若重启显著性路线，先改为 P3-only 的 rotated centerness/soft mask，并降低固定矩形填充目标带来的背景与边界噪声。\n5. **把优化资源转向弱类。** van 和 freight_car 明显低于 car/bus；优先尝试同步 RGB/IR 的类均衡采样、配对 OBB Copy-Paste，以及按类别报告 AP 与混淆，而不是继续增加全通道注意力。\n6. **调整迁移训练策略。** 当前是 SGD、3 epoch warmup、非 cosine；可对新融合/Refine 参数使用更高学习率、backbone 使用 0.1× 学习率，或做 AdamW+cosine 小规模对照。多数当前模型最佳验证点出现在 44–62 epoch，也应将 60–80 epoch 作为节省算力的候选。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 还需要回答的三个问题\n\n- 最终目标更偏向最高 mAP、实时吞吐，还是 freight_car/van 的类定向能力？\n- 统一 GPU 上的端到端延迟、显存峰值、参数量和 FLOPs 是否与存档 FPS 排序一致？\n- 是否能按昼/夜、距离、遮挡与 RGB–IR 配准误差切分测试集，验证 LAF 的“光照自适应”是否真实发生？"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-25T18:03:22+08:00",
+    "status": "ready",
+    "datasets": {
+      "current_runs": [
+        {
+          "model": "DA-006 Fused refine",
+          "experiment_id": "DA-006",
+          "architecture": "StaticMAA before stage + partial LAF + fused refine",
+          "map50_95": 0.708,
+          "map50": 0.84,
+          "rare_map50_95": 0.6735,
+          "forward_fps": 117.76,
+          "inference_ms": 8.5,
+          "checkpoint_mib": 34.31,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Pareto frontier"
+        },
+        {
+          "model": "DA-004 Post-C2f MAA",
+          "experiment_id": "DA-004",
+          "architecture": "Post-C2f StaticMAA + partial LAF feedback",
+          "map50_95": 0.708,
+          "map50": 0.841,
+          "rare_map50_95": 0.67325,
+          "forward_fps": 95.76,
+          "inference_ms": 10.4,
+          "checkpoint_mib": 32.64,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-005 Per-modal refine",
+          "experiment_id": "DA-005",
+          "architecture": "Post-C2f StaticMAA + per-modal refine + partial LAF",
+          "map50_95": 0.707,
+          "map50": 0.838,
+          "rare_map50_95": 0.6725,
+          "forward_fps": 94.72,
+          "inference_ms": 10.6,
+          "checkpoint_mib": 35.97,
+          "initialization_cohort": "self_run_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-002 StaticMAA+LAF",
+          "experiment_id": "DA-002",
+          "architecture": "StaticMAA before stage + partial LAF feedback",
+          "map50_95": 0.706,
+          "map50": 0.838,
+          "rare_map50_95": 0.672,
+          "forward_fps": 106.23,
+          "inference_ms": 9.4,
+          "checkpoint_mib": 32.64,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-007 LAF-only",
+          "experiment_id": "DA-007",
+          "architecture": "LAF-only: partial-channel LAF feedback",
+          "map50_95": 0.705,
+          "map50": 0.838,
+          "rare_map50_95": 0.66975,
+          "forward_fps": 257.96,
+          "inference_ms": 3.9,
+          "checkpoint_mib": 30.71,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Pareto frontier"
+        },
+        {
+          "model": "DA-010 Target sqrt(HW)",
+          "experiment_id": "DA-010",
+          "architecture": "OBB-supervised target saliency + full-C PaperLAF (sqrt(HW) scaling)",
+          "map50_95": 0.705,
+          "map50": 0.838,
+          "rare_map50_95": 0.67075,
+          "forward_fps": 189.16,
+          "inference_ms": 5.3,
+          "checkpoint_mib": 47.61,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-011 Target L2+temp",
+          "experiment_id": "DA-011",
+          "architecture": "OBB-supervised target saliency + full-C PaperLAF (L2 + learnable temperature)",
+          "map50_95": 0.705,
+          "map50": 0.837,
+          "rare_map50_95": 0.6705,
+          "forward_fps": 187.65,
+          "inference_ms": 5.3,
+          "checkpoint_mib": 47.61,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-003 Full-C PaperLAF",
+          "experiment_id": "DA-003",
+          "architecture": "StaticMAA + full-C PaperLAF feedback",
+          "map50_95": 0.705,
+          "map50": 0.837,
+          "rare_map50_95": 0.6705,
+          "forward_fps": 183.12,
+          "inference_ms": 5.5,
+          "checkpoint_mib": 47.92,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-009 Target FP32",
+          "experiment_id": "DA-009",
+          "architecture": "OBB-supervised target saliency + full-C PaperLAF (FP32 attention)",
+          "map50_95": 0.704,
+          "map50": 0.837,
+          "rare_map50_95": 0.669,
+          "forward_fps": 134.96,
+          "inference_ms": 7.4,
+          "checkpoint_mib": 47.61,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        },
+        {
+          "model": "DA-001 MAA2D+LAF",
+          "experiment_id": "DA-001",
+          "architecture": "Initial static-saliency MAA2D + partial LAF",
+          "map50_95": 0.701,
+          "map50": 0.834,
+          "rare_map50_95": 0.66575,
+          "forward_fps": 244.44,
+          "inference_ms": 4.1,
+          "checkpoint_mib": 30.72,
+          "initialization_cohort": "migrated_pretrained_checkpoint",
+          "pareto": "Dominated"
+        }
+      ],
+      "strict_comparable_runs": [
+        {
+          "model": "DA-007 LAF-only",
+          "map50_95": 0.705,
+          "forward_fps": 257.96
+        },
+        {
+          "model": "DA-001 MAA2D+LAF",
+          "map50_95": 0.701,
+          "forward_fps": 244.44
+        },
+        {
+          "model": "DA-003 Full-C PaperLAF",
+          "map50_95": 0.705,
+          "forward_fps": 183.12
+        },
+        {
+          "model": "DA-006 Fused refine",
+          "map50_95": 0.708,
+          "forward_fps": 117.76
+        },
+        {
+          "model": "DA-002 StaticMAA+LAF",
+          "map50_95": 0.706,
+          "forward_fps": 106.23
+        },
+        {
+          "model": "DA-004 Post-C2f MAA",
+          "map50_95": 0.708,
+          "forward_fps": 95.76
+        },
+        {
+          "model": "DA-011 Target L2+temp",
+          "map50_95": 0.705,
+          "forward_fps": 187.65
+        },
+        {
+          "model": "DA-010 Target sqrt(HW)",
+          "map50_95": 0.705,
+          "forward_fps": 189.16
+        },
+        {
+          "model": "DA-009 Target FP32",
+          "map50_95": 0.704,
+          "forward_fps": 134.96
+        }
+      ],
+      "initialization_deltas": [
+        {
+          "experiment_id": "DA-001",
+          "old_run": "DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1",
+          "current_run": "DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v12",
+          "old_test_map50_95": 0.673,
+          "current_test_map50_95": 0.701,
+          "delta_map50_95": 0.027999999999999914
+        },
+        {
+          "experiment_id": "DA-003",
+          "old_run": "DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3",
+          "current_run": "DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v32",
+          "old_test_map50_95": 0.675,
+          "current_test_map50_95": 0.705,
+          "delta_map50_95": 0.029999999999999916
+        },
+        {
+          "experiment_id": "DA-002",
+          "old_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2",
+          "current_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v22",
+          "old_test_map50_95": 0.683,
+          "current_test_map50_95": 0.706,
+          "delta_map50_95": 0.02299999999999991
+        },
+        {
+          "experiment_id": "DA-004",
+          "old_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v1",
+          "current_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+          "old_test_map50_95": 0.683,
+          "current_test_map50_95": 0.708,
+          "delta_map50_95": 0.02499999999999991
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "darkact_results",
+      "label": "DarkAct experiment test outputs",
+      "path": "reports/darkact_architecture_comparison/current_checkpoint_results.csv",
+      "query": {
+        "engine": "duckdb",
+        "language": "sql",
+        "description": "Parsed every DarkAct*/test_result/test.txt and joined each run's args.yaml and results.csv using analyze_darkact_results.py; this query reads the reviewed output.",
+        "sql": "SELECT * FROM read_csv_auto('reports/darkact_architecture_comparison/current_checkpoint_results.csv', header = true)",
+        "tables_used": [
+          "reports/darkact_architecture_comparison/current_checkpoint_results.csv"
+        ],
+        "filters": [
+          "Test split only",
+          "imgsz=640",
+          "Current table excludes YAML-direct runs",
+          "Strict initialization comparisons use migrated pretrained checkpoints only"
+        ],
+        "metric_definitions": [
+          "mAP50-95 is the all-class OBB mean average precision reported by the test evaluator across IoU 0.50:0.95.",
+          "Forward FPS is copied from each stored test.txt and equals the reciprocal of reported inference time.",
+          "Rare-class mAP50-95 is the unweighted mean across truck, bus, van, and freight_car.",
+          "Pareto frontier means no other current run has both equal-or-higher mAP50-95 and equal-or-higher stored forward FPS, with one strictly higher."
+        ]
+      }
+    },
+    {
+      "id": "darkact_paper",
+      "label": "DarkAct CVPR 2026 paper",
+      "path": "Tan_DarkAct_A_RGB-Thermal_Dataset_and_Fusion_Framework_for_Multimodal_Low-Light_CVPR_2026_paper.pdf",
+      "query": {
+        "engine": "local-document",
+        "description": "Reviewed Sections 4 and 5.4 for the original temporal MAA, LAF equations, and DarkAct-Net ablation results."
+      }
+    },
+    {
+      "id": "darkact_implementation",
+      "label": "Single-image DarkAct adaptation implementation",
+      "path": "ultralytics/nn/modules/darkact_maalaf_v2.py",
+      "query": {
+        "engine": "local-code",
+        "language": "python",
+        "description": "Reviewed StaticMAA2D, LAFMergeFeedback2D, full-channel PaperLAF, target-saliency attention, and auxiliary OBB mask loss implementations."
+      }
+    }
+  ],
+  "package_info": {
+    "analysisScript": "reports/darkact_architecture_comparison/analyze_darkact_results.py",
+    "summary": "reports/darkact_architecture_comparison/summary.json"
+  }
+}

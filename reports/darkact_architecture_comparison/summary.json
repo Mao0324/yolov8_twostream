@@ -1,0 +1,125 @@
+{
+  "generated_from": {
+    "test_glob": "DroneVehicle_OBB_FusionTransfer/DarkAct*/test_result/test.txt",
+    "paper": "Tan_DarkAct_A_RGB-Thermal_Dataset_and_Fusion_Framework_for_Multimodal_Low-Light_CVPR_2026_paper.pdf"
+  },
+  "test_population": {
+    "images": 8980,
+    "instances": 159614,
+    "classes": [
+      "car",
+      "truck",
+      "bus",
+      "van",
+      "freight_car"
+    ]
+  },
+  "counts": {
+    "all_test_files": 15,
+    "current_checkpoint_runs": 10,
+    "strict_comparable_pretrained_runs": 9,
+    "self_run_checkpoint_runs": 1,
+    "yaml_direct_runs": 5
+  },
+  "best_accuracy": [
+    {
+      "run_name": "DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+      "experiment_id": "DA-006",
+      "map50_95": 0.708,
+      "map50": 0.84,
+      "forward_fps": 117.76
+    },
+    {
+      "run_name": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+      "experiment_id": "DA-004",
+      "map50_95": 0.708,
+      "map50": 0.841,
+      "forward_fps": 95.76
+    }
+  ],
+  "pareto_frontier": [
+    {
+      "run_name": "DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+      "experiment_id": "DA-006",
+      "map50_95": 0.708,
+      "forward_fps": 117.76
+    },
+    {
+      "run_name": "DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v12",
+      "experiment_id": "DA-007",
+      "map50_95": 0.705,
+      "forward_fps": 257.96
+    }
+  ],
+  "class_best": {
+    "car": {
+      "map50_95": 0.845,
+      "runs": [
+        "DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+        "DarkAct_StaticMAA2DRefineLAFMergeFeedback_P345_H2-4-8_PostC2f-RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+        "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v22"
+      ]
+    },
+    "truck": {
+      "map50_95": 0.697,
+      "runs": [
+        "DarkAct_StaticMAA2DRefineLAFMergeFeedback_P345_H2-4-8_PostC2f-RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12"
+      ]
+    },
+    "bus": {
+      "map50_95": 0.842,
+      "runs": [
+        "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v22"
+      ]
+    },
+    "van": {
+      "map50_95": 0.569,
+      "runs": [
+        "DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+        "DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v32"
+      ]
+    },
+    "freight_car": {
+      "map50_95": 0.598,
+      "runs": [
+        "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12"
+      ]
+    }
+  },
+  "initialization_deltas": [
+    {
+      "experiment_id": "DA-001",
+      "old_run": "DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1",
+      "current_run": "DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v12",
+      "old_test_map50_95": 0.673,
+      "current_test_map50_95": 0.701,
+      "delta_map50_95": 0.027999999999999914
+    },
+    {
+      "experiment_id": "DA-003",
+      "old_run": "DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3",
+      "current_run": "DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v32",
+      "old_test_map50_95": 0.675,
+      "current_test_map50_95": 0.705,
+      "delta_map50_95": 0.029999999999999916
+    },
+    {
+      "experiment_id": "DA-002",
+      "old_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2",
+      "current_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v22",
+      "old_test_map50_95": 0.683,
+      "current_test_map50_95": 0.706,
+      "delta_map50_95": 0.02299999999999991
+    },
+    {
+      "experiment_id": "DA-004",
+      "old_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v1",
+      "current_run": "DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12",
+      "old_test_map50_95": 0.683,
+      "current_test_map50_95": 0.708,
+      "delta_map50_95": 0.02499999999999991
+    }
+  ],
+  "initialization_delta_mean": 0.026499999999999913,
+  "comparable_accuracy_range": 0.007000000000000006
+}

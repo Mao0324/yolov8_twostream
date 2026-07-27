@@ -1,0 +1,51 @@
+schema_version: 1
+id: DA-014
+family: DarkAct
+title: P3/P4 旋转 Soft-Centerness 目标显著性版
+parent_id: DA-010
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 旋转软中心监督可减少硬 OBB 填充的背景污染和边界量化噪声，P3/P4-only 与 gain warmup 可降低辅助任务对检测主任务的干扰。
+change_from_parent: 保持 sqrt(HW) 模块和融合结构不变；将硬 OBB mask 换为旋转 soft-centerness，仅监督 P3/P4，权重为 1.0/0.5，gain 在 10 epoch 内升至 0.025，并记录 gate 统计。
+architecture:
+  summary: P3/P4 soft-centerness supervision -> FP32 sqrt(HW) saliency -> full-C PaperLAF feedback
+  version: v5
+  stages: [P3, P4, P5]
+  heads: HNA
+  flow:
+    P3: C2f stage -> sqrt(HW) saliency + soft-centerness loss(weight 1.0) -> PaperLAF feedback
+    P4: C2f stage -> sqrt(HW) saliency + soft-centerness loss(weight 0.5) -> PaperLAF feedback
+    P5: C2f/SPPF stage -> sqrt(HW) saliency(no auxiliary loss) -> PaperLAF feedback
+files:
+  model_yaml: yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P34-SoftCenterness-Warmup-v5.yaml
+  train_entrypoint: train_dronevehicle_darkact_target_saliency_soft_centerness.py
+  migration_script: tools/make_twostream_obb_weights_darkact_target_saliency_soft_centerness.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_target_saliency_soft_centerness_p34_warmup_v5.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf_v3.py
+    - ultralytics/nn/modules/darkact_target_saliency.py
+    - ultralytics/nn/modules/darkact_target_saliency_stable_attention.py
+    - ultralytics/models/yolo/obb/target_saliency_train.py
+    - tools/darkact_target_saliency_variant_migration.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - monitor/monitored_target_saliency_trainer.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.target_saliency_train:SoftCenternessTargetSaliencyOBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5
+legacy:
+  run_dir: null
+reports:
+  - experiments/darkact/TARGET_SALIENCY_DIAGNOSIS.md
+notes:
+  - P5 显著性 logits 仍参与融合，但不会进入辅助显著性损失。
+  - gain 在 epoch 0 为 0，之后线性增加，并在 epoch 10 达到 0.025。
+  - results.csv 追加 P3/P4 gate mean/std、logit 正负比例、前景/背景均值及差值。
+  - DDP 训练时 gate 统计来自 rank 0 的数据分片，不参与反向传播。

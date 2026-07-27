@@ -1,0 +1,76 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+#
+# 实验 ID：DA-014
+# 父实验：DA-010（FP32 sqrt(HW) target saliency）
+#
+# 本实验保持 DA-010 的 P3/P4/P5 模块与 full-C PaperLAF 融合结构不变，
+# 只修改目标显著性监督策略：
+#   1. 硬填充 OBB mask -> 旋转 soft-centerness 高斯热图；
+#   2. 辅助显著性损失只监督 P3/P4，P5 logits 仍参与融合但不计算辅助损失；
+#   3. P3/P4 权重为 [1.0, 0.5]；
+#   4. loss gain 从 0 线性 warmup，到第 10 epoch 达到 0.025；
+#   5. Trainer 每轮向 results.csv 写入 P3/P4 gate mean/std、logit 正负比例、
+#      前景/背景均值及差值，用于识别常数门控退化。
+
+nc: 5
+
+# Soft-centerness 监督配置。
+target_saliency_loss_gain: 0.025
+target_saliency_gain_warmup_epochs: 10
+target_saliency_supervised_stages: [P3, P4]
+target_saliency_stage_weights: [1.0, 0.5]
+# sigma 使用旋转框半宽/半高归一化坐标；越小越强调实例中心。
+target_saliency_soft_sigma: 0.5
+
+scales:
+  s: [0.33, 0.50, 1024]
+scale: s
+
+backbone:
+  - [-5, 1, Conv, [64, 3, 2]]
+  - [-5, 1, Conv, [128, 3, 2]]
+  - [-5, 3, C2f, [128, True]]
+  - [-5, 1, Conv, [256, 3, 2]]
+  - [-6, 1, Conv, [64, 3, 2]]
+  - [-6, 1, Conv, [128, 3, 2]]
+  - [-6, 3, C2f_Faster, [128, True]]
+  - [-6, 1, Conv, [256, 3, 2]]
+
+  # P3：sqrt(HW) FP32 attention，参与融合并以 weight=1.0 接受 soft supervision。
+  - [-5, 6, C2f, [256, True]]
+  - [-6, 6, C2f_Faster, [256, True]]
+  - [[8, 9], 1, StaticMAAContext2DSqrtHW, [256, 4, 1, [3, 5], 3]]
+  - [[10, 8, 9], 1, TargetSaliencyPaperLAFMergeFeedback2D, [256, 1, 3]]
+
+  # P4：参与融合并以 weight=0.5 接受 soft supervision。
+  - [-5, 1, Conv, [512, 3, 2]]
+  - [-6, 1, Conv, [512, 3, 2]]
+  - [-5, 6, C2f, [512, True]]
+  - [-6, 6, C2f_Faster, [512, True]]
+  - [[14, 15], 1, StaticMAAContext2DSqrtHW, [512, 4, 2, [3, 5], 3]]
+  - [[16, 14, 15], 1, TargetSaliencyPaperLAFMergeFeedback2D, [512, 2, 3]]
+
+  # P5：保留 DA-010 的显著性条件融合，但不施加辅助显著性损失。
+  - [-5, 1, Conv, [1024, 3, 2]]
+  - [-6, 1, Conv, [1024, 3, 2]]
+  - [-5, 3, C2f, [1024, True]]
+  - [-5, 1, SPPF, [1024, 5]]
+  - [-6, 3, C2f_Faster, [1024, True]]
+  - [-6, 1, SPPF, [1024, 5]]
+  - [[21, 23], 1, StaticMAAContext2DSqrtHW, [1024, 4, 2, [3, 5], 3]]
+  - [[24, 21, 23], 1, TargetSaliencyPaperLAFMergeFeedback2D, [1024, 2, 3]]
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 17], 1, Concat, [1]]
+  - [-1, 3, C2f, [512]]
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 11], 1, Concat, [1]]
+  - [-1, 3, C2f, [256]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 28], 1, Concat, [1]]
+  - [-1, 3, C2f, [512]]
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 25], 1, Concat, [1]]
+  - [-1, 3, C2f, [1024]]
+  - [[31, 34, 37], 1, OBB, [nc, 1]]
