@@ -35,6 +35,7 @@ ALLOWED_LAUNCH_MODES = {"checkpoint"}
 ALLOWED_RECOVERY_CONFIDENCE = {"confirmed", "recovered", "inferred"}
 SUPPORTED_TRAINER_CLASSES = {
     "ultralytics.models.yolo.obb.train:OBBTrainer",
+    "ultralytics.models.yolo.obb.target_saliency_train:SoftCenternessTargetSaliencyOBBTrainer",
     "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer",
 }
 RUNNING_MTIME_SECONDS = 30 * 60

@@ -31,7 +31,10 @@ def _bootstrap_monitor_imports() -> None:
 _bootstrap_monitor_imports()
 
 from monitored_obb_trainer import MonitoredOBBTrainer  # noqa: E402
-from monitored_target_saliency_trainer import MonitoredTargetSaliencyOBBTrainer  # noqa: E402
+from monitored_target_saliency_trainer import (  # noqa: E402
+    MonitoredSoftCenternessTargetSaliencyOBBTrainer,
+    MonitoredTargetSaliencyOBBTrainer,
+)
 from yolo_monitor import RemoteMonitorTrainerMixin, YoloExperimentMonitor  # noqa: E402
 
 
@@ -44,6 +47,7 @@ def create_monitor(experiment_name: str) -> YoloExperimentMonitor:
 
 __all__ = (
     "MonitoredOBBTrainer",
+    "MonitoredSoftCenternessTargetSaliencyOBBTrainer",
     "MonitoredTargetSaliencyOBBTrainer",
     "RemoteMonitorTrainerMixin",
     "YoloExperimentMonitor",

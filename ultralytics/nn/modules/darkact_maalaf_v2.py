@@ -95,7 +95,8 @@ class _StaticPaperMAABranch(nn.Module):
         )
         return self.query_mapping(self.query_mlp(descriptor))
 
-    def forward(self, x):
+    def forward_logits(self, x):
+        """Return the unconstrained gate logits before sigmoid/tanh mapping."""
         normalized = self.norm(x)
         saliency = self._static_saliency(normalized)
         query = self._spatial_tolerant_query(x)
@@ -106,10 +107,12 @@ class _StaticPaperMAABranch(nn.Module):
         attention = torch.matmul(query, saliency_flat.transpose(-2, -1)) / math.sqrt(self.active_channels)
         attention = torch.softmax(attention, dim=-1)
         attended = torch.matmul(attention, saliency_flat).reshape(b, self.active_channels, h, w)
+        return self.project_out(attended)
 
+    def forward(self, x):
         # A sigmoid gate converts the paper-style channel-attention result into
         # a strictly non-negative enhancement mask for the selected 1A design.
-        return torch.sigmoid(self.project_out(attended))
+        return torch.sigmoid(self.forward_logits(x))
 
 
 class StaticMAA2D(nn.Module):
@@ -161,6 +164,70 @@ class StaticMAA2D(nn.Module):
         return torch.cat(outputs, dim=1)
 
 
+class ZeroCenteredStaticMAA2D(nn.Module):
+    """Static MAA with a bounded, zero-centered bidirectional gate.
+
+    The two modalities still use independent paper-style static MAA branches,
+    but the old ``1 + beta * sigmoid(logit)`` enhancement-only multiplier is
+    replaced by ``1 + beta * tanh(logit)``. ``beta`` is positive and bounded by
+    ``beta_max``, so a positive logit enhances a feature while a negative logit
+    suppresses it without allowing a sign flip when ``beta_max <= 1``.
+
+    Each output projection is initialized to zero. The migrated model therefore
+    starts as an exact identity even when ``beta_init`` is non-zero, while the
+    projection remains trainable from the first optimization step.
+    """
+
+    def __init__(
+        self,
+        channels,
+        partial_ratio=4,
+        dilation=1,
+        beta_init=0.1,
+        beta_max=0.5,
+        contrast_kernels=(3, 5),
+        query_kernel=3,
+    ):
+        super().__init__()
+        if channels <= 0:
+            raise ValueError("channels must be positive")
+        if not 0 < beta_init < beta_max <= 1:
+            raise ValueError("expected 0 < beta_init < beta_max <= 1")
+        self.channels = channels
+        self.beta_max = float(beta_max)
+        self.branches = nn.ModuleList(
+            [
+                _StaticPaperMAABranch(channels, partial_ratio, dilation, contrast_kernels, query_kernel),
+                _StaticPaperMAABranch(channels, partial_ratio, dilation, contrast_kernels, query_kernel),
+            ]
+        )
+        for branch in self.branches:
+            nn.init.zeros_(branch.project_out.weight)
+
+        beta_fraction = float(beta_init) / self.beta_max
+        raw_beta = math.log(beta_fraction / (1.0 - beta_fraction))
+        self.raw_beta = nn.Parameter(torch.full((2, 1, 1, 1), raw_beta))
+
+    @property
+    def beta(self):
+        """Return one positive bounded modulation amplitude per modality."""
+        return self.beta_max * torch.sigmoid(self.raw_beta)
+
+    def forward(self, x):
+        if x.ndim != 4 or x.shape[1] != self.channels * 2:
+            raise ValueError(
+                "ZeroCenteredStaticMAA2D expects [B, {}, H, W], got {}".format(
+                    self.channels * 2, tuple(x.shape)
+                )
+            )
+        rgb, ir = x.chunk(2, dim=1)
+        outputs = []
+        for index, feature in enumerate((rgb, ir)):
+            gate = torch.tanh(self.branches[index].forward_logits(feature))
+            outputs.append(feature * (1.0 + self.beta[index] * gate))
+        return torch.cat(outputs, dim=1)
+
+
 class LAFMergeFeedback2D(nn.Module):
     """LAF merge whose learned correction is fed back into both backbones.
 
@@ -184,4 +251,4 @@ class LAFMergeFeedback2D(nn.Module):
         return rgb + correction, ir + correction, fused
 
 
-__all__ = ("StaticMAA2D", "LAFMergeFeedback2D")
+__all__ = ("StaticMAA2D", "ZeroCenteredStaticMAA2D", "LAFMergeFeedback2D")

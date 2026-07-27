@@ -85,6 +85,7 @@ from ultralytics.nn.modules import (
     MAA2D,
     LAFMerge2D,
     StaticMAA2D,
+    ZeroCenteredStaticMAA2D,
     LAFMergeFeedback2D,
     PaperLAFMergeFeedback2D,
     StaticMAAContext2D,
@@ -1128,7 +1129,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m in {ASSAFusion, PartialChannelASSAFusion, ASSAFusionStaticNoFFN}:
             c2 = make_divisible(min(args[0], max_channels) * width, 8)
             args = [c2, *args[1:]]
-        elif m in {MAA2D, StaticMAA2D}:
+        elif m in {MAA2D, StaticMAA2D, ZeroCenteredStaticMAA2D}:
             c2 = make_divisible(min(args[0], max_channels) * width, 8)
             args = [c2, *args[1:]]
         elif m in {

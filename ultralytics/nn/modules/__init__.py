@@ -81,7 +81,7 @@ from .assa_fusion import ASSAFusion
 from .assa_partial_channel_fusion import PartialChannelASSAFusion
 from .assa_fusion_static_noffn import ASSAFusionStaticNoFFN
 from .darkact_maalaf import LAFMerge2D, MAA2D
-from .darkact_maalaf_v2 import LAFMergeFeedback2D, StaticMAA2D
+from .darkact_maalaf_v2 import LAFMergeFeedback2D, StaticMAA2D, ZeroCenteredStaticMAA2D
 from .darkact_maalaf_v3 import PaperLAFMergeFeedback2D
 from .darkact_target_saliency import StaticMAAContext2D, TargetSaliencyPaperLAFMergeFeedback2D
 from .darkact_target_saliency_fp32safe import StaticMAAContext2DFP32Safe
@@ -185,6 +185,7 @@ __all__ = (
     "MAA2D",
     "LAFMerge2D",
     "StaticMAA2D",
+    "ZeroCenteredStaticMAA2D",
     "LAFMergeFeedback2D",
     "PaperLAFMergeFeedback2D",
     "StaticMAAContext2D",
