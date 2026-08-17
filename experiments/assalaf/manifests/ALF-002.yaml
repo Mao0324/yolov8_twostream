@@ -1,0 +1,44 @@
+schema_version: 1
+id: ALF-002
+family: ASSALAF
+title: 仅 P3 ASSA 替换 LAF cross 分支
+parent_id: DA-012
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 仅在定位最敏感的 P3 使用 ASSA cross，P4/P5 保留 DA-012，可降低跨尺度过度交互并恢复 van/truck 表现。
+change_from_parent: 仅 P3 移除 LAF 原 PartialCrossModalValue 并以 PartialChannelASSAFusion 替换；P4/P5 完整保持 DA-012。
+architecture:
+  summary: P3 LAF(global/local gates + ASSA cross) feedback; P4/P5 original LAF; fused Refine P3/P4
+  version: v1
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: C2f -> LAF reliability gates + ASSA cross replacement -> feedback -> fused Refine
+    P4: C2f -> original DA-012 LAF feedback -> fused Refine
+    P5: C2f/SPPF -> original DA-012 LAF feedback
+files:
+  model_yaml: yaml/yolov8s-ASSAReplaceLAFCross-P3-RefineP34-v1.yaml
+  train_entrypoint: train_dronevehicle_assareplace_lafcross_p3.py
+  migration_script: tools/make_assareplace_laf_checkpoints.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_assareplace_lafcross_p3_refinep34_v1.pt
+  module_files:
+    - ultralytics/nn/modules/assa_laf_fusion.py
+    - ultralytics/nn/modules/assa_partial_channel_fusion.py
+    - ultralytics/nn/modules/darkact_maalaf.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: ASSALAF_ReplaceLAFCross_P3_RefineP34_H2_R4-StaticDW3-NoFFN_v1
+legacy:
+  run_dir: DroneVehicle_OBB_FusionTransfer/ASSALAF_ReplaceLAFCross_P3_RefineP34_H2_R4-StaticDW3-NoFFN_v1
+reports: []
+notes:
+  - 迁移后与 DA-012 的前向最大绝对误差为 0.0。
+  - P4/P5 的完整 LAF 参数与结构均原样继承。

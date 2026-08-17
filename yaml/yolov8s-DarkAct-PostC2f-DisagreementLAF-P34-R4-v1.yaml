@@ -1,0 +1,58 @@
+# DA-015: DA-004 + zero-init disagreement residual at P3/P4 only.
+#
+# P3/P4 keep the complete parent LAF weighted sum and cross residual, then add:
+#   gamma * Project([RGB, IR, |RGB-IR|, RGB*IR])
+# where Project is 1x1(4C->C/4), DWConv3x3, SiLU, 1x1(C/4->C).
+# gamma=0 makes the migrated model exactly equivalent to DA-004 initially.
+# P5 remains the original LAFMergeFeedback2D.
+
+nc: 5
+scales:
+  s: [0.33, 0.50, 1024]
+scale: s
+
+backbone:
+  - [-5, 1, Conv, [64, 3, 2]]
+  - [-5, 1, Conv, [128, 3, 2]]
+  - [-5, 3, C2f, [128, True]]
+  - [-5, 1, Conv, [256, 3, 2]]
+  - [-6, 1, Conv, [64, 3, 2]]
+  - [-6, 1, Conv, [128, 3, 2]]
+  - [-6, 3, C2f_Faster, [128, True]]
+  - [-6, 1, Conv, [256, 3, 2]]
+
+  - [-5, 6, C2f, [256, True]]
+  - [-6, 6, C2f_Faster, [256, True]]
+  - [-3, 1, StaticMAA2D, [256, 4, 1, 0.01, [3, 5], 3]]
+  - [10, 1, DisagreementLAFMergeFeedback2D, [256, 2, 4, 1, 8, 4]]
+
+  - [-5, 1, Conv, [512, 3, 2]]
+  - [-6, 1, Conv, [512, 3, 2]]
+  - [-5, 6, C2f, [512, True]]
+  - [-6, 6, C2f_Faster, [512, True]]
+  - [-3, 1, StaticMAA2D, [512, 4, 2, 0.01, [3, 5], 3]]
+  - [16, 1, DisagreementLAFMergeFeedback2D, [512, 4, 4, 2, 8, 4]]
+
+  - [-5, 1, Conv, [1024, 3, 2]]
+  - [-6, 1, Conv, [1024, 3, 2]]
+  - [-5, 3, C2f, [1024, True]]
+  - [-5, 1, SPPF, [1024, 5]]
+  - [-6, 3, C2f_Faster, [1024, True]]
+  - [-6, 1, SPPF, [1024, 5]]
+  - [-3, 1, StaticMAA2D, [1024, 4, 2, 0.01, [3, 5], 3]]
+  - [24, 1, LAFMergeFeedback2D, [1024, 8, 4, 2, 8]]
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 17], 1, Concat, [1]]
+  - [-1, 3, C2f, [512]]
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [[-1, 11], 1, Concat, [1]]
+  - [-1, 3, C2f, [256]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 28], 1, Concat, [1]]
+  - [-1, 3, C2f, [512]]
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 25], 1, Concat, [1]]
+  - [-1, 3, C2f, [1024]]
+  - [[31, 34, 37], 1, OBB, [nc, 1]]

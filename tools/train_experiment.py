@@ -27,6 +27,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED_TRAINERS = {
     "ultralytics.models.yolo.obb.train:OBBTrainer",
+    "ultralytics.models.yolo.obb.target_saliency_train:SoftCenternessTargetSaliencyOBBTrainer",
     "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer",
 }
 PROTECTED_TRAIN_KEYS = {

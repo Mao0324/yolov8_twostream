@@ -1,0 +1,174 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "ASSA-LAF 组合实验退化诊断",
+    "description": "DroneVehicle OBB 上 ASSALAF-R001 相对 DA-012、DA-007 与 Baseline 的同口径诊断。",
+    "generatedAt": "2026-08-10T10:00:00+08:00",
+    "cards": [],
+    "charts": [
+      {
+        "id": "model_map_comparison",
+        "title": "模型 Test mAP50-95 对比",
+        "subtitle": "同一 DroneVehicle test、8,980 张图、159,614 个实例、imgsz=640。",
+        "type": "bar",
+        "dataset": "model_results",
+        "sourceId": "experiment_outputs",
+        "encodings": {
+          "x": {"field": "model", "type": "categorical", "label": "模型"},
+          "y": {"field": "map50_95", "type": "quantitative", "label": "Test mAP50-95"},
+          "tooltip": [
+            {"field": "map50", "type": "quantitative", "label": "mAP50"},
+            {"field": "best_val_map50_95", "type": "quantitative", "label": "最佳 Val mAP50-95"}
+          ]
+        },
+        "xAxisTitle": "模型",
+        "yAxisTitle": "Test mAP50-95",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "class_deltas",
+        "title": "ASSA-LAF 相对 DA-012 的分类别变化",
+        "subtitle": "正值代表 ASSA-LAF 更高；单位为绝对 mAP50-95。",
+        "dataset": "class_results",
+        "sourceId": "experiment_outputs",
+        "defaultSort": {"field": "delta", "direction": "asc"},
+        "density": "comfortable",
+        "layout": "full",
+        "columns": [
+          {"field": "class", "label": "类别", "type": "text"},
+          {"field": "assalaf", "label": "ASSA-LAF", "format": "number"},
+          {"field": "da012", "label": "DA-012", "format": "number"},
+          {"field": "delta", "label": "变化", "format": "number", "movement": true}
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "experiment_outputs",
+        "label": "DroneVehicle OBB experiment outputs",
+        "path": "DroneVehicle_OBB_FusionTransfer",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "description": "Read each run's test_result/test.txt and results.csv; inspected migrated and trained checkpoint module tensors.",
+          "sql": "SELECT * FROM (VALUES ('Baseline', 0.670, 0.812, NULL), ('DA-007', 0.705, 0.838, 0.73317), ('DA-012', 0.707, 0.837, 0.738), ('ASSA-LAF', 0.706, 0.836, 0.73518)) AS model_results(model, map50_95, map50, best_val_map50_95)",
+          "tables_used": [
+            "ASSALAF_AlignFuseFeedbackRefine_P34_H2-4_R4-StaticDW3-NoFFN_v1/test_result/test.txt",
+            "ASSALAF_AlignFuseFeedbackRefine_P34_H2-4_R4-StaticDW3-NoFFN_v1/results.csv",
+            "DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1/test_result/test.txt",
+            "DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1/results.csv"
+          ],
+          "filters": ["split=test", "imgsz=640", "all classes", "best.pt"],
+          "metric_definitions": [
+            "Test mAP50-95 is the all-class OBB mean average precision over IoU 0.50:0.95.",
+            "Best validation mAP50-95 is the maximum metrics/mAP50-95(B) across 100 epochs.",
+            "Class delta equals ASSA-LAF class mAP50-95 minus DA-012 class mAP50-95."
+          ]
+        }
+      },
+      {
+        "id": "fusion_code",
+        "label": "ASSA and LAF implementation",
+        "path": "ultralytics/nn/modules",
+        "query": {
+          "engine": "local-code",
+          "language": "python",
+          "description": "Reviewed PartialChannelASSAFusion, LAFMerge2D and ASSALAFMergeFeedback2D data paths and attention equations."
+        }
+      }
+    ],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# ASSA-LAF 组合实验退化诊断"},
+      {
+        "id": "summary",
+        "type": "markdown",
+        "sourceId": "experiment_outputs",
+        "body": "## 技术结论：组合没有崩溃，但没有超过父模型\n\n- ASSA-LAF 的 Test mAP50-95 为 **0.706**，较直接父模型 DA-012 的 **0.707** 低 **0.001**；最佳验证 mAP50-95 同时低 **0.00282**，因此没有证据支持保留新增 ASSA。\n- 它仍比 Baseline 的 **0.670** 高 **0.036**，所以问题不是训练失败，而是组合模块的边际贡献为负。\n- 当前证据最支持“功能重复”：ASSA 和 LAF 都在 P3/P4 执行部分通道跨模态相关性混合，串联后没有形成独立的新信息路径。"
+      },
+      {
+        "id": "aggregate_finding",
+        "type": "markdown",
+        "sourceId": "experiment_outputs",
+        "body": "## 总体下降虽小，但验证集与测试集方向一致\n\n新模型的验证峰值出现在第 76 epoch（0.73518），DA-012 在第 71 epoch 达到 0.738。两套结果都训练满 100 epoch，且新模型由与 DA-012 完全等价的零初始化函数起点开始；因此差异不能归因于未收敛或迁移时破坏预训练输出。"
+      },
+      {"id": "aggregate_chart", "type": "chart", "chartId": "model_map_comparison", "layout": "full"},
+      {
+        "id": "class_finding",
+        "type": "markdown",
+        "sourceId": "experiment_outputs",
+        "body": "## 退化集中在 van 与 truck\n\n相对 DA-012，van 下降 **0.008**，truck 下降 **0.004**；car 下降 0.001。bus 提升 0.001、freight_car 提升 0.004，无法抵消前述下降。这说明额外对齐更可能改变了少数类的模态平衡，而不是带来稳定的全类别增益。"
+      },
+      {"id": "class_table", "type": "table", "tableId": "class_deltas", "layout": "full"},
+      {
+        "id": "scope",
+        "type": "markdown",
+        "sourceId": "experiment_outputs",
+        "body": "## 比较口径与指标定义\n\n测试口径均为 DroneVehicle OBB test：8,980 张图、159,614 个实例、5 类、imgsz=640、best.pt。核心指标是所有类别在 IoU 0.50:0.95 上的平均 AP。Baseline 仅作为效果下界；结构判断以同训练配置、同迁移策略的 DA-012 为直接基线。"
+      },
+      {
+        "id": "mechanism",
+        "type": "markdown",
+        "sourceId": "fusion_code",
+        "body": "## 机制检查：Align 与 Fuse 实际重复了跨模态混合\n\n`PartialChannelASSAFusion` 在 C/4 通道上计算跨模态通道相关矩阵并回写两条流；随后 `LAFMerge2D` 又在 C/4 通道上执行 cross-modal value interaction，同时叠加全局与局部门控。新增 ASSA 不是单纯的几何对齐器，而是第二套跨模态特征重写，因此与 LAF 的 cross 分支竞争。训练后 P3 两个方向的 ASSA scale 分化到约 0.163 与 0.684，也显示其形成了明显不对称的模态注入。"
+      },
+      {
+        "id": "method",
+        "type": "markdown",
+        "body": "## 诊断方法\n\n复核 test.txt 的总体与分类指标，扫描 results.csv 的 100-epoch 验证曲线，并比较迁移 checkpoint 与 best.pt 中 P3/P4 ASSA 的 scale、temperature、输出投影及 QKV 参数范数。迁移模型前向与 DA-012 的最大差为 0.0，排除了初始化函数不一致。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 限制与稳健性\n\n所有架构均只有单 seed，0.001 的测试差距本身可能落在训练方差内；但验证峰值下降 0.00282、类别退化集中以及机制重复方向一致，足以判定当前组合没有已验证收益。历史 FPS 来自不同 GPU 编号，不用于严格速度因果判断。"
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## 下一步：不要继续调串联强度，改为互斥融合\n\n1. 停止当前 ASSA→LAF 串联主线，保留 DA-012 作为精度基线。\n2. 下一实验应让 ASSA **替换** LAF 的 cross 分支，仅保留 LAF 的全局/局部可靠性门控与 feedback；这样 ASSA 负责跨模态交互，LAF 只负责可靠性加权和融合。\n3. 先只在 P3 做替换，P4/P5 保持 DA-012，以最小消融验证 van/truck 是否恢复。\n4. 至少运行 3 个 seed；若平均 mAP50-95 未超过 DA-012，停止 ASSA-DarkAct 合并路线。"
+      },
+      {
+        "id": "questions",
+        "type": "markdown",
+        "body": "## 尚待回答的问题\n\n- ASSANet 各实验的同口径 test.txt 当前未保存在可发现位置，尚不能量化其最佳模块相对 DA-012 的独立收益。\n- P3 的方向不对称是对少数类有害的原因，还是正常模态偏好，需要通过门控/scale 分类别统计或互斥消融确认。"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "generatedAt": "2026-08-10T10:00:00+08:00",
+    "datasets": {
+      "model_results": [
+        {"model": "Baseline", "map50_95": 0.670, "map50": 0.812, "best_val_map50_95": null},
+        {"model": "DA-007", "map50_95": 0.705, "map50": 0.838, "best_val_map50_95": 0.73317},
+        {"model": "DA-012", "map50_95": 0.707, "map50": 0.837, "best_val_map50_95": 0.738},
+        {"model": "ASSA-LAF", "map50_95": 0.706, "map50": 0.836, "best_val_map50_95": 0.73518}
+      ],
+      "class_results": [
+        {"class": "car", "assalaf": 0.844, "da012": 0.845, "delta": -0.001},
+        {"class": "truck", "assalaf": 0.688, "da012": 0.692, "delta": -0.004},
+        {"class": "bus", "assalaf": 0.842, "da012": 0.841, "delta": 0.001},
+        {"class": "van", "assalaf": 0.566, "da012": 0.574, "delta": -0.008},
+        {"class": "freight_car", "assalaf": 0.590, "da012": 0.586, "delta": 0.004}
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "experiment_outputs",
+      "label": "DroneVehicle OBB experiment outputs",
+      "path": "DroneVehicle_OBB_FusionTransfer",
+      "query": {"engine": "duckdb", "language": "sql", "description": "Stored test and validation outputs for the compared runs.", "sql": "SELECT * FROM (VALUES ('Baseline', 0.670, 0.812, NULL), ('DA-007', 0.705, 0.838, 0.73317), ('DA-012', 0.707, 0.837, 0.738), ('ASSA-LAF', 0.706, 0.836, 0.73518)) AS model_results(model, map50_95, map50, best_val_map50_95)"}
+    },
+    {
+      "id": "fusion_code",
+      "label": "ASSA and LAF implementation",
+      "path": "ultralytics/nn/modules",
+      "query": {"engine": "local-code", "language": "python", "description": "Reviewed fusion implementation source."}
+    }
+  ]
+}
