@@ -99,6 +99,7 @@ from .darkact_target_saliency_stable_attention import (
     StaticMAAContext2DSqrtHW,
 )
 from .ft_fusion import FTCrossMerge
+from .cfgp_fusion import CFGPCrossAttentionFusion
 from .zero_init_refine import ZeroInitResidualRefine2D
 from .conv import (
     CBAM,
@@ -208,5 +209,6 @@ __all__ = (
     "StaticMAAContext2DL2Temp",
     "TargetSaliencyPaperLAFMergeFeedback2D",
     "FTCrossMerge",
+    "CFGPCrossAttentionFusion",
     "ZeroInitResidualRefine2D",
 )

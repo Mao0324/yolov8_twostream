@@ -85,6 +85,21 @@ def repo_relative(path: Path) -> str:
         return str(path.resolve())
 
 
+def same_repo_relative_path(expected: Path, candidate: Path) -> bool:
+    """Match relocated/worktree paths by their repository-relative suffix."""
+
+    expected = expected.resolve()
+    candidate = candidate.resolve()
+    if expected == candidate:
+        return True
+    try:
+        relative = expected.relative_to(ROOT.resolve())
+    except ValueError:
+        return False
+    relative_parts = relative.parts
+    return len(candidate.parts) >= len(relative_parts) and candidate.parts[-len(relative_parts) :] == relative_parts
+
+
 def discover_manifest_paths() -> List[Path]:
     return sorted(EXPERIMENTS_ROOT.glob(MANIFEST_PATTERN))
 
@@ -340,7 +355,7 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
                     if isinstance(args_model, str) and args_model.endswith(('.yaml', '.yml')):
                         expected_model = repo_path(files.get("model_yaml"))
                         actual_model = repo_path(args_model)
-                        if expected_model and actual_model and expected_model != actual_model:
+                        if expected_model and actual_model and not same_repo_relative_path(expected_model, actual_model):
                             errors.append(
                                 f"{experiment_id}: model_yaml differs from legacy args.yaml: "
                                 f"{files.get('model_yaml')} != {args_model}"

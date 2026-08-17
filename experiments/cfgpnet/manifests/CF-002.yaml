@@ -1,0 +1,44 @@
+schema_version: 1
+id: CF-002
+family: CFGPNet
+title: P3/P4 CrossCEA + 轻量 ASAF，P5 保留 ADD
+parent_id: CF-001
+lifecycle:
+  status: created
+  recovery_confidence: confirmed
+hypothesis: DroneVehicle 小目标更依赖 P3/P4，保留 P5 的简单 ADD 可减少高层语义过度门控并降低新增计算。
+change_from_parent: P3/P4 与 CF-001 相同，P5 恢复 baseline ADD。
+architecture:
+  summary: CrossCEA reliability exchange + max-selected lightweight ASAF on P3/P4; ADD on P5
+  version: v1
+  stages: [P3, P4]
+  heads: grouped-axis-4-8
+  flow:
+    P3: CrossCEA(groups=4) -> candidate max selection
+    P4: CrossCEA(groups=8) -> candidate max selection
+    P5: baseline ADD
+files:
+  model_yaml: yaml/cfgpnet_crosscea_asaf_p34.yaml
+  train_entrypoint: train_dronevehicle_cfgpnet.py
+  migration_script: tools/make_cfgpnet_checkpoints.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_cfgp_crosscea_asaf_p34.pt
+  module_files:
+    - ultralytics/nn/modules/cfgp_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - tools/train_experiment.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_CFGPNet
+    name: CFGP_CF002_CrossCEA_ASAF_P34_v1
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 与 CF-001 构成融合尺度消融，优先判断新增 P5 交互是否有效。
+  - residual_scale=0，迁移后初始函数严格等价于 baseline ADD。

@@ -2,9 +2,9 @@
 
 > 本文件由 `python tools/experiment_registry.py render` 自动生成，请修改 Manifest，不要直接编辑本文件。
 
-生成时间：2026-08-10T10:02:55+08:00
+生成时间：2026-08-18T00:41:33+08:00
 
-当前登记 23 个实验：created=1，interrupted=4，planned=3，tested=13，trained=2。
+当前登记 26 个实验：created=4，interrupted=4，planned=3，tested=13，trained=2。
 
 | ID | 论文族 | 状态 | 父实验 | 相对父实验的唯一改动 | 架构摘要 | Epoch | Test mAP50-95 | 尝试次数 | 文件链路 |
 |---|---|---|---|---|---|---:|---:|---:|---|
@@ -15,6 +15,9 @@
 | ASSA-003 | ASSANet | interrupted | ASSA-001 | P3/P4 改为 C/4 部分通道、StaticDW K3、无 FFN 的 ASSAFusion，移除 P5 注意力。 | P3/P4 PartialChannelASSAFusion(R4, StaticDW K3, NoFFN) | 0/100 | — | 1 | [Manifest](assanet/manifests/ASSA-003.yaml) · [YAML](../yaml/yolov8s-PartialChannelASSAFusion-P34-R4-StaticDW-NoFFN.yaml) · [旧 Train](../train_dronevehicle2.py) · [当前 Run](../DroneVehicle_OBB_FusionTransfer/ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v1) |
 | BL-001 | Baseline | tested | — | 首个登记的 RGB/IR 双流 OBB 基线实验。 | RGB C2f + IR C2f_Faster -> P3/P4/P5 ADD | 100/100 | 0.670 | 1 | [Manifest](baseline/manifests/BL-001.yaml) · [YAML](../yaml/baseline.yaml) · [旧 Train](../train_dronevehicle_baseline.py) · [当前 Run](../runs_baseline/train) |
 | BL-002 | Baseline | interrupted | BL-001 | 在 P3、P4、P5 的 ADD 输出后分别增加一个 e=0.5、卷积核 1x1/3x3 的 Bottleneck 精炼块。 | RGB/IR -> P3/P4/P5 ADD -> BottleneckRefine | 0/100 | — | 1 | [Manifest](baseline/manifests/BL-002.yaml) · [YAML](../yaml/yolov8s-baseline-ADD-P345-BottleneckRefine.yaml) · [旧 Train](../train_dronevehicle_baseline_add_bottleneck_refine.py) · [当前 Run](../DroneVehicle_OBB_FusionTransfer/YOLOv8_BottleneckRefine_P345_HNA_E0p5-K1-3_v1) |
+| CF-001 | CFGPNet | created | BL-001 | 仅将 baseline 的 P3/P4/P5 ADD 替换为零初始化 CFGPCrossAttentionFusion；backbone、neck、OBB head 与训练配置不变。 | CrossCEA reliability exchange + max-selected lightweight ASAF on P3/P4/P5 | 0/100 | — | 0 | [Manifest](cfgpnet/manifests/CF-001.yaml) · [YAML](../yaml/cfgpnet_crosscea_asaf_p345.yaml) · [旧 Train](../train_dronevehicle_cfgpnet.py) · — |
+| CF-002 | CFGPNet | created | CF-001 | P3/P4 与 CF-001 相同，P5 恢复 baseline ADD。 | CrossCEA reliability exchange + max-selected lightweight ASAF on P3/P4; ADD on P5 | 0/100 | — | 0 | [Manifest](cfgpnet/manifests/CF-002.yaml) · [YAML](../yaml/cfgpnet_crosscea_asaf_p34.yaml) · [旧 Train](../train_dronevehicle_cfgpnet.py) · — |
+| CF-003 | CFGPNet | created | CF-001 | 保持 P3/P4/P5 CrossCEA，但移除候选选择与模态 MLP，仅对交互后的双流特征求和。 | CrossCEA reliability exchange only on P3/P4/P5 | 0/100 | — | 0 | [Manifest](cfgpnet/manifests/CF-003.yaml) · [YAML](../yaml/cfgpnet_crosscea_only_p345.yaml) · [旧 Train](../train_dronevehicle_cfgpnet.py) · — |
 | DA-001 | DarkAct | tested | — | 首个 DarkAct 单帧 MAA2D 与 partial-channel LAF 迁移。 | MAA2D -> C2f/SPPF -> LAFMerge2D | 100/100 | 0.673 | 1 | [Manifest](darkact/manifests/DA-001.yaml) · [YAML](../yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4.yaml) · — · [当前 Run](../DroneVehicle_OBB_FusionTransfer/DarkAct_MAA2DLAFMerge_P345_H2-4-8_StaticSaliency-R4-DW3D1-2-2_v1) |
 | DA-002 | DarkAct | tested | DA-001 | 用 StaticMAA2D 替代 MAA2D，并将 LAF 修正反馈到后续 backbone。 | StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D | 100/100 | 0.683 | 1 | [Manifest](darkact/manifests/DA-002.yaml) · [YAML](../yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v2.yaml) · [旧 Train](../train_dronevehicle_darkact_maalaf.py) · [当前 Run](../DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_MSK3-5-R4-PosBeta-DW3D1-2-2_v2) |
 | DA-003 | DarkAct | tested | DA-002 | 将 partial-channel LAF 替换为完整通道 PaperLAFMergeFeedback2D。 | StaticMAA2D + stage features -> full-C PaperLAFMergeFeedback2D | 100/100 | 0.675 | 1 | [Manifest](darkact/manifests/DA-003.yaml) · [YAML](../yaml/yolov8s-DarkAct-MAA2D-LAFMerge-P345-R4-v3.yaml) · [旧 Train](../train_dronevehicle_darkact_maalaf_v3.py) · [当前 Run](../DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3) |
