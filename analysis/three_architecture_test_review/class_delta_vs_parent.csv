@@ -1,0 +1,16 @@
+architecture,class,delta_map50_95
+KLD05,car,-0.004
+KLD05,truck,-0.004
+KLD05,bus,0.000
+KLD05,van,0.009
+KLD05,freight_car,-0.009
+DA-015,car,0.000
+DA-015,truck,0.002
+DA-015,bus,0.000
+DA-015,van,0.003
+DA-015,freight_car,-0.004
+DA-016,car,0.000
+DA-016,truck,-0.004
+DA-016,bus,0.000
+DA-016,van,0.016
+DA-016,freight_car,0.002

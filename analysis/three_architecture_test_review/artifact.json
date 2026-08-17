@@ -1,0 +1,155 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "title": "三个新增双流架构的测试集去留评估",
+    "description": "基于 DroneVehicle OBB test split 的母体选择与舍弃建议。",
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# 三个新增双流架构的测试集去留评估"
+      },
+      {
+        "id": "technical-summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n**不建议把三个新增架构中的任何一个直接升级为下一轮主母体。** KLD05 的 test mAP50-95 比其 DA-004 母体低 0.002；DA-015 只与 DA-004 持平且类别收益互相抵消；DA-016 相比 DA-007 有约 0.003 的方向性增益，但没有超过现有约 0.708 的前沿，且三位小数日志不足以证明它优于更简单的 DA-012。\n\n建议：KLD05 与 DA-015 停止主线扩展；DA-016 只保留一次受控简化/消融机会。正式主母体优先选结构更简单、已有前沿成绩的 DA-012；若必须保留 StaticMAA 路线，则用 DA-004 v12，而不是 KLD05 或 DA-015。"
+      },
+      {
+        "id": "overall-heading",
+        "type": "markdown",
+        "body": "## 三个新架构都没有建立新的测试集前沿\n\n三次测试使用相同的 DroneVehicle test split（8,980 张、159,614 个实例）、640 输入尺寸与同一类别集合。总体分数最多只是追平已存在结果，没有出现足以抵消复杂度和单种子不确定性的净提升。"
+      },
+      {
+        "id": "overall-table",
+        "type": "table",
+        "tableId": "overall-results"
+      },
+      {
+        "id": "class-heading",
+        "type": "markdown",
+        "body": "## 类别收益是交换，不是全面改善\n\nDA-016 的主要亮点集中在 van（相对 DA-007 约 +0.016 mAP50-95）和 freight_car（约 +0.002），但 truck 同时下降约 0.004；DA-015 则以 freight_car 下降约 0.004 换取 truck/van 的小幅改善。KLD05 对 van 有益，却同时损失 car、truck 和 freight_car。这样的结构不适合直接作为通用母体。"
+      },
+      {
+        "id": "class-chart",
+        "type": "chart",
+        "chartId": "class-delta-chart"
+      },
+      {
+        "id": "decisions",
+        "type": "markdown",
+        "body": "## 分架构决策\n\n### KLD05：建议舍弃为母体\n\n它与 DA-004 的 mAP50 同为 0.841，但 mAP50-95 从 0.708 降至 0.706，说明更严格 IoU 下的定位质量没有获益。类别上 car、truck、freight_car 均退化。更重要的是目录名为 v1，而 args、测试权重记录与 save_dir 指向 v12，且记录的绝对权重路径当前不存在，复现链不完整。\n\n### DA-015：建议舍弃为母体，保留代码即可\n\n总体 mAP50-95 与 DA-004 持平于 0.708，mAP50 反而低 0.001。truck/van 的小收益伴随 freight_car 退化，没有形成全面或高价值长尾改善。增加显式差异残差后没有提高前沿，不值得继续叠模块。\n\n### DA-016：不升主母体，只给一次限额消融\n\n相对 DA-007，mAP50 与 mAP50-95 均约 +0.003，并将 van 提高约 0.016；这是三者中唯一值得继续验证的方向。但它只追平现有前沿，truck 下降，且四路 projector + 权重预测器明显比 DA-012 的单一 fused refine 更复杂。若下一步不能用简化分支或第二种子复现，建议停止。"
+      },
+      {
+        "id": "scope-method",
+        "type": "markdown",
+        "body": "## 比较口径与方法\n\n主比较使用各运行目录 `test_result/test.txt` 中的 best.pt 测试结果；test split 固定为 8,980 张图、159,614 个实例，imgsz=640。DA-015 与 KLD05 对比其直接母体 DA-004 v12；DA-016 对比其清单声明的直接母体 DA-007 v12，并额外与当前简单前沿 DA-012 做决策比较。\n\n训练配置均为 100 epoch、batch 64、SGD、seed 0、deterministic。best checkpoint 由验证集选择，因此 test 只用于最终横向判断。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 不确定性与稳健性限制\n\n- 每个架构只有一个 seed；没有重复训练方差或 bootstrap 置信区间。\n- test 日志只保留三位小数，0.707/0.708 附近的排序不可视为显著差异。\n- FPS 来自不同运行时状态，不能作为严格硬件基准；只作弱参考。\n- KLD05 的目录与 v12 记录不一致，权重身份需要通过哈希或重新测试确认。\n- 没有按 RGB/IR 条件、昼夜、遮挡和尺度切片，尚不能验证“分歧建模”是否真的在目标场景生效。"
+      },
+      {
+        "id": "next-steps",
+        "type": "markdown",
+        "body": "## 建议的下一步\n\n1. 主线以 DA-012 为母体；若必须保留 StaticMAA，则使用 DA-004 v12。\n2. 不再扩展 KLD05 与 DA-015；仅归档其实现和结果。\n3. 对 DA-016 做一次最小消融：保留 shared + disagreement 两支，去掉 RGB/IR-specific 两支，并限制只跑 P3/P4。\n4. 只有当简化 DA-016 在第二 seed 上同时满足 test mAP50-95 ≥ 0.710、truck 不低于 0.692、van 不低于 0.574，才升级为候选母体；否则停止该路线。\n5. 在任何继续实验前，重新导出至少六位小数的 test 指标，并保存权重 SHA256、git commit 与完整评估参数。"
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "body": "## 后续最值得回答的问题\n\nDA-016 的 van 收益是否集中于夜间、低照度或 RGB/IR 冲突样本？如果不是，它的语义分解解释很可能只是容量效应。要回答这一点，需要按场景条件和目标尺度重新切分 test 统计，或至少输出每图预测用于配对 bootstrap。"
+      }
+    ],
+    "tables": [
+      {
+        "id": "overall-results",
+        "title": "新增架构相对直接母体的测试集结果",
+        "description": "mAP 数值来自各自 test_result/test.txt；差值按日志中三位小数计算。",
+        "dataset": "decision_data",
+        "columns": [
+          {"field": "architecture", "label": "架构", "type": "string"},
+          {"field": "parent", "label": "直接母体", "type": "string"},
+          {"field": "test_map50", "label": "test mAP50", "type": "number", "format": ".3f"},
+          {"field": "test_map50_95", "label": "test mAP50-95", "type": "number", "format": ".3f"},
+          {"field": "delta_map50", "label": "相对母体 ΔmAP50", "type": "number", "format": "+.3f", "semantic": "movement"},
+          {"field": "delta_map50_95", "label": "相对母体 ΔmAP50-95", "type": "number", "format": "+.3f", "semantic": "movement"},
+          {"field": "decision", "label": "建议", "type": "string"}
+        ],
+        "defaultSort": {"field": "test_map50_95", "direction": "desc"},
+        "sourceId": "decision-source"
+      }
+    ],
+    "charts": [
+      {
+        "id": "class-delta-chart",
+        "title": "各类别相对直接母体的 mAP50-95 变化",
+        "description": "正值为改善，负值为退化；差值受三位小数日志精度限制。",
+        "dataset": "class_delta",
+        "type": "bar",
+        "intent": "comparison",
+        "question": "三个新增架构在哪些类别上相对直接母体改善或退化？",
+        "rationale": "分组柱状图能直接显示各架构在五个类别上的收益交换，而不是只看总体均值。",
+        "encodings": {
+          "x": {"field": "class", "type": "nominal", "label": "类别"},
+          "y": {"field": "delta_map50_95", "type": "quantitative", "label": "Δ mAP50-95"},
+          "color": {"field": "architecture", "type": "nominal", "label": "架构"}
+        },
+        "palette": {"kind": "categorical", "root": "blue"},
+        "legend": {"show": true, "position": "bottom"},
+        "referenceLines": [{"axis": "y", "value": 0, "label": "母体"}],
+        "sourceId": "class-source"
+      }
+    ],
+    "sources": [
+      {
+        "id": "decision-source",
+        "name": "架构决策汇总数据",
+        "type": "file",
+        "path": "decision_data.csv",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "从评估日志整理三个新架构及其直接母体的 test 指标。",
+          "sql": "SELECT * FROM decision_data ORDER BY test_map50_95 DESC;",
+          "tables_used": ["decision_data.csv"],
+          "filters": ["split=test", "imgsz=640", "weights=best.pt"],
+          "metric_definitions": {"test_map50_95": "五类 OBB AP 在 IoU 0.50:0.95 上的宏平均。", "delta_map50_95": "新增架构 test mAP50-95 减去其直接母体的 test mAP50-95。"}
+        }
+      },
+      {
+        "id": "class-source",
+        "name": "类别相对母体差值",
+        "type": "file",
+        "path": "class_delta_vs_parent.csv",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "按架构和类别计算新增架构相对直接母体的 test mAP50-95 差值。",
+          "sql": "SELECT architecture, class, delta_map50_95 FROM class_delta_vs_parent ORDER BY class, architecture;",
+          "tables_used": ["class_delta_vs_parent.csv"],
+          "filters": ["split=test", "imgsz=640", "weights=best.pt"],
+          "metric_definitions": {"delta_map50_95": "新增架构对应类别的 test mAP50-95 减去直接母体同类别的 test mAP50-95。"}
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "generated_at": "2026-08-06T00:00:00+08:00",
+    "datasets": {
+      "decision_data": [
+        {"architecture":"KLD05","parent":"DA-004","test_map50":0.841,"test_map50_95":0.706,"delta_map50":0.000,"delta_map50_95":-0.002,"decision":"舍弃为母体"},
+        {"architecture":"DA-015","parent":"DA-004","test_map50":0.840,"test_map50_95":0.708,"delta_map50":-0.001,"delta_map50_95":0.000,"decision":"舍弃为母体"},
+        {"architecture":"DA-016","parent":"DA-007","test_map50":0.841,"test_map50_95":0.708,"delta_map50":0.003,"delta_map50_95":0.003,"decision":"仅一次限额消融"}
+      ],
+      "class_delta": [
+        {"architecture":"KLD05","class":"car","delta_map50_95":-0.004},{"architecture":"KLD05","class":"truck","delta_map50_95":-0.004},{"architecture":"KLD05","class":"bus","delta_map50_95":0.000},{"architecture":"KLD05","class":"van","delta_map50_95":0.009},{"architecture":"KLD05","class":"freight_car","delta_map50_95":-0.009},
+        {"architecture":"DA-015","class":"car","delta_map50_95":0.000},{"architecture":"DA-015","class":"truck","delta_map50_95":0.002},{"architecture":"DA-015","class":"bus","delta_map50_95":0.000},{"architecture":"DA-015","class":"van","delta_map50_95":0.003},{"architecture":"DA-015","class":"freight_car","delta_map50_95":-0.004},
+        {"architecture":"DA-016","class":"car","delta_map50_95":0.000},{"architecture":"DA-016","class":"truck","delta_map50_95":-0.004},{"architecture":"DA-016","class":"bus","delta_map50_95":0.000},{"architecture":"DA-016","class":"van","delta_map50_95":0.016},{"architecture":"DA-016","class":"freight_car","delta_map50_95":0.002}
+      ]
+    }
+  },
+  "sources": []
+}

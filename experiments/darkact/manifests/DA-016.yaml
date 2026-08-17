@@ -1,0 +1,48 @@
+schema_version: 1
+id: DA-016
+family: DarkAct
+title: P3/P4 四权重语义分歧 LAF 残差版
+parent_id: DA-007
+lifecycle:
+  status: created
+  recovery_confidence: confirmed
+hypothesis: 将融合从显著性增强转向共享、模态专有和冲突语义的显式分解，可改善外观相近车辆类别的跨模态判别。
+change_from_parent: 仅将 P3/P4 的普通 LAF 替换为零初始化四权重语义分歧残差 LAF；P5、Neck、检测头、训练与增强策略完全不变。
+architecture:
+  summary: semantic-disagreement LAF(P3/P4); original LAF(P5); no StaticMAA
+  version: v1
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: LAF + zero-init weighted(shared - RGB-specific - IR-specific - disagreement)
+    P4: LAF + zero-init weighted(shared - RGB-specific - IR-specific - disagreement)
+    P5: original LAFMergeFeedback2D
+files:
+  model_yaml: yaml/yolov8s-DarkAct-SemanticDisagreementLAF-P34-R4-NoStaticMAA-v1.yaml
+  train_entrypoint: train_dronevehicle_darkact_semantic_disagreement_laf_p34.py
+  migration_script: tools/make_darkact_da016_checkpoint.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_da016_semantic_disagreement_laf_p34.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+    - ultralytics/nn/modules/darkact_maalaf_v2.py
+    - ultralytics/nn/modules/darkact_disagreement_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - tools/queue_runtime.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_DA016_SemanticDisagreementLAF_P34_H2-4-8_R4-NoStaticMAA_v1
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 公平母体为 DA-007；完全不使用 StaticMAA 或目标显著性监督。
+  - 初始化严格从 pre-pth/yolov8s-obb.pt 迁移，不继承任何已训练 DarkAct 权重。
+  - residual_gain=0，迁移完成时 P3/P4 新分支不改变原始 LAF 输出。
+  - 训练入口保持统一的 batch=64、epochs=100、imgsz=640、workers=8 及默认训练增强。

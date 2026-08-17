@@ -37,7 +37,7 @@ training:
     project: runs/DroneVehicle_OBB_FusionTransfer
     name: DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1
 legacy:
-  run_dir: null
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1
 reports: []
 notes:
   - Refine 的 gamma=0，迁移后首个前向与 DA-007 的 fused lateral 完全一致。

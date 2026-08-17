@@ -1,0 +1,599 @@
+{
+  "labels_dir": "/media/biiteam/新加卷1/biiteam/MCONG/datasets/DroneVehicle_twostream_3/labels/test",
+  "label_files": 8980,
+  "objects": 159614,
+  "classes": [
+    "car",
+    "truck",
+    "bus",
+    "van",
+    "freight_car"
+  ],
+  "thresholds": {
+    "area_normalized": [
+      0.001,
+      0.005
+    ],
+    "aspect_ratio": [
+      2.0,
+      4.0
+    ],
+    "orientation_degrees_folded": [
+      15.0,
+      30.0,
+      60.0
+    ],
+    "overlap_proxy_max_gt_polygon_iou": [
+      0.01,
+      0.1
+    ],
+    "density_neighbor_radius_normalized": 0.1,
+    "density_neighbor_count": [
+      1,
+      4
+    ]
+  },
+  "caveat": "overlap_proxy and density are derived GT proxies; DroneVehicle has no explicit occlusion annotation",
+  "rows": [
+    {
+      "class": "bus",
+      "dimension": "angle",
+      "bucket": "0-15",
+      "count": 946,
+      "class_share": 0.21177524065368256
+    },
+    {
+      "class": "bus",
+      "dimension": "angle",
+      "bucket": "15-30",
+      "count": 415,
+      "class_share": 0.09290351466308484
+    },
+    {
+      "class": "bus",
+      "dimension": "angle",
+      "bucket": "30-60",
+      "count": 951,
+      "class_share": 0.21289456010745467
+    },
+    {
+      "class": "bus",
+      "dimension": "angle",
+      "bucket": "60-90",
+      "count": 2155,
+      "class_share": 0.4824266845757779
+    },
+    {
+      "class": "bus",
+      "dimension": "area",
+      "bucket": "large",
+      "count": 4306,
+      "class_share": 0.9639579135885382
+    },
+    {
+      "class": "bus",
+      "dimension": "area",
+      "bucket": "medium",
+      "count": 160,
+      "class_share": 0.03581822252070741
+    },
+    {
+      "class": "bus",
+      "dimension": "area",
+      "bucket": "small",
+      "count": 1,
+      "class_share": 0.00022386389075442132
+    },
+    {
+      "class": "bus",
+      "dimension": "aspect_ratio",
+      "bucket": "compact_<2",
+      "count": 204,
+      "class_share": 0.04566823371390195
+    },
+    {
+      "class": "bus",
+      "dimension": "aspect_ratio",
+      "bucket": "elongated_2-4",
+      "count": 3019,
+      "class_share": 0.675845086187598
+    },
+    {
+      "class": "bus",
+      "dimension": "aspect_ratio",
+      "bucket": "very_elongated_>=4",
+      "count": 1244,
+      "class_share": 0.27848668009850014
+    },
+    {
+      "class": "bus",
+      "dimension": "density",
+      "bucket": "dense_>=4",
+      "count": 56,
+      "class_share": 0.012536377882247594
+    },
+    {
+      "class": "bus",
+      "dimension": "density",
+      "bucket": "moderate_1-3",
+      "count": 2521,
+      "class_share": 0.5643608685918962
+    },
+    {
+      "class": "bus",
+      "dimension": "density",
+      "bucket": "sparse_0",
+      "count": 1890,
+      "class_share": 0.4231027535258563
+    },
+    {
+      "class": "bus",
+      "dimension": "overlap_proxy",
+      "bucket": "isolated_<0.01",
+      "count": 3889,
+      "class_share": 0.8706066711439445
+    },
+    {
+      "class": "bus",
+      "dimension": "overlap_proxy",
+      "bucket": "overlap_>=0.10",
+      "count": 80,
+      "class_share": 0.017909111260353706
+    },
+    {
+      "class": "bus",
+      "dimension": "overlap_proxy",
+      "bucket": "touching_0.01-0.10",
+      "count": 498,
+      "class_share": 0.11148421759570182
+    },
+    {
+      "class": "car",
+      "dimension": "angle",
+      "bucket": "0-15",
+      "count": 40317,
+      "class_share": 0.2939713881556881
+    },
+    {
+      "class": "car",
+      "dimension": "angle",
+      "bucket": "15-30",
+      "count": 11949,
+      "class_share": 0.08712612835955842
+    },
+    {
+      "class": "car",
+      "dimension": "angle",
+      "bucket": "30-60",
+      "count": 26187,
+      "class_share": 0.19094249923439255
+    },
+    {
+      "class": "car",
+      "dimension": "angle",
+      "bucket": "60-90",
+      "count": 58693,
+      "class_share": 0.4279599842503609
+    },
+    {
+      "class": "car",
+      "dimension": "area",
+      "bucket": "large",
+      "count": 31561,
+      "class_share": 0.23012701792250595
+    },
+    {
+      "class": "car",
+      "dimension": "area",
+      "bucket": "medium",
+      "count": 104092,
+      "class_share": 0.7589867732197804
+    },
+    {
+      "class": "car",
+      "dimension": "area",
+      "bucket": "small",
+      "count": 1493,
+      "class_share": 0.010886208857713678
+    },
+    {
+      "class": "car",
+      "dimension": "aspect_ratio",
+      "bucket": "compact_<2",
+      "count": 44146,
+      "class_share": 0.3218905400084581
+    },
+    {
+      "class": "car",
+      "dimension": "aspect_ratio",
+      "bucket": "elongated_2-4",
+      "count": 92595,
+      "class_share": 0.6751564026657723
+    },
+    {
+      "class": "car",
+      "dimension": "aspect_ratio",
+      "bucket": "very_elongated_>=4",
+      "count": 405,
+      "class_share": 0.0029530573257696177
+    },
+    {
+      "class": "car",
+      "dimension": "density",
+      "bucket": "dense_>=4",
+      "count": 13241,
+      "class_share": 0.09654674580374199
+    },
+    {
+      "class": "car",
+      "dimension": "density",
+      "bucket": "moderate_1-3",
+      "count": 85858,
+      "class_share": 0.6260335700640194
+    },
+    {
+      "class": "car",
+      "dimension": "density",
+      "bucket": "sparse_0",
+      "count": 38047,
+      "class_share": 0.2774196841322386
+    },
+    {
+      "class": "car",
+      "dimension": "overlap_proxy",
+      "bucket": "isolated_<0.01",
+      "count": 129771,
+      "class_share": 0.9462251906727137
+    },
+    {
+      "class": "car",
+      "dimension": "overlap_proxy",
+      "bucket": "overlap_>=0.10",
+      "count": 899,
+      "class_share": 0.006555058113251571
+    },
+    {
+      "class": "car",
+      "dimension": "overlap_proxy",
+      "bucket": "touching_0.01-0.10",
+      "count": 6476,
+      "class_share": 0.047219751214034676
+    },
+    {
+      "class": "freight_car",
+      "dimension": "angle",
+      "bucket": "0-15",
+      "count": 1171,
+      "class_share": 0.2313314895298301
+    },
+    {
+      "class": "freight_car",
+      "dimension": "angle",
+      "bucket": "15-30",
+      "count": 549,
+      "class_share": 0.10845515606479653
+    },
+    {
+      "class": "freight_car",
+      "dimension": "angle",
+      "bucket": "30-60",
+      "count": 991,
+      "class_share": 0.19577242196760175
+    },
+    {
+      "class": "freight_car",
+      "dimension": "angle",
+      "bucket": "60-90",
+      "count": 2351,
+      "class_share": 0.4644409324377716
+    },
+    {
+      "class": "freight_car",
+      "dimension": "area",
+      "bucket": "large",
+      "count": 3847,
+      "class_share": 0.7599762939549585
+    },
+    {
+      "class": "freight_car",
+      "dimension": "area",
+      "bucket": "medium",
+      "count": 1198,
+      "class_share": 0.23666534966416436
+    },
+    {
+      "class": "freight_car",
+      "dimension": "area",
+      "bucket": "small",
+      "count": 17,
+      "class_share": 0.0033583563808771235
+    },
+    {
+      "class": "freight_car",
+      "dimension": "aspect_ratio",
+      "bucket": "compact_<2",
+      "count": 739,
+      "class_share": 0.14598972738048202
+    },
+    {
+      "class": "freight_car",
+      "dimension": "aspect_ratio",
+      "bucket": "elongated_2-4",
+      "count": 3072,
+      "class_share": 0.6068747530620309
+    },
+    {
+      "class": "freight_car",
+      "dimension": "aspect_ratio",
+      "bucket": "very_elongated_>=4",
+      "count": 1251,
+      "class_share": 0.24713551955748717
+    },
+    {
+      "class": "freight_car",
+      "dimension": "density",
+      "bucket": "dense_>=4",
+      "count": 373,
+      "class_share": 0.07368629000395101
+    },
+    {
+      "class": "freight_car",
+      "dimension": "density",
+      "bucket": "moderate_1-3",
+      "count": 2659,
+      "class_share": 0.5252864480442513
+    },
+    {
+      "class": "freight_car",
+      "dimension": "density",
+      "bucket": "sparse_0",
+      "count": 2030,
+      "class_share": 0.4010272619517977
+    },
+    {
+      "class": "freight_car",
+      "dimension": "overlap_proxy",
+      "bucket": "isolated_<0.01",
+      "count": 4409,
+      "class_share": 0.8709996048992493
+    },
+    {
+      "class": "freight_car",
+      "dimension": "overlap_proxy",
+      "bucket": "overlap_>=0.10",
+      "count": 181,
+      "class_share": 0.03575661793757408
+    },
+    {
+      "class": "freight_car",
+      "dimension": "overlap_proxy",
+      "bucket": "touching_0.01-0.10",
+      "count": 472,
+      "class_share": 0.09324377716317661
+    },
+    {
+      "class": "truck",
+      "dimension": "angle",
+      "bucket": "0-15",
+      "count": 2334,
+      "class_share": 0.2696084093796927
+    },
+    {
+      "class": "truck",
+      "dimension": "angle",
+      "bucket": "15-30",
+      "count": 1082,
+      "class_share": 0.12498556081783528
+    },
+    {
+      "class": "truck",
+      "dimension": "angle",
+      "bucket": "30-60",
+      "count": 1829,
+      "class_share": 0.2112741134342151
+    },
+    {
+      "class": "truck",
+      "dimension": "angle",
+      "bucket": "60-90",
+      "count": 3412,
+      "class_share": 0.3941319163682569
+    },
+    {
+      "class": "truck",
+      "dimension": "area",
+      "bucket": "large",
+      "count": 6589,
+      "class_share": 0.761118170266836
+    },
+    {
+      "class": "truck",
+      "dimension": "area",
+      "bucket": "medium",
+      "count": 2067,
+      "class_share": 0.23876631627584613
+    },
+    {
+      "class": "truck",
+      "dimension": "area",
+      "bucket": "small",
+      "count": 1,
+      "class_share": 0.00011551345731777752
+    },
+    {
+      "class": "truck",
+      "dimension": "aspect_ratio",
+      "bucket": "compact_<2",
+      "count": 925,
+      "class_share": 0.10684994801894421
+    },
+    {
+      "class": "truck",
+      "dimension": "aspect_ratio",
+      "bucket": "elongated_2-4",
+      "count": 5460,
+      "class_share": 0.6307034769550652
+    },
+    {
+      "class": "truck",
+      "dimension": "aspect_ratio",
+      "bucket": "very_elongated_>=4",
+      "count": 2272,
+      "class_share": 0.2624465750259905
+    },
+    {
+      "class": "truck",
+      "dimension": "density",
+      "bucket": "dense_>=4",
+      "count": 519,
+      "class_share": 0.059951484347926534
+    },
+    {
+      "class": "truck",
+      "dimension": "density",
+      "bucket": "moderate_1-3",
+      "count": 4700,
+      "class_share": 0.5429132493935543
+    },
+    {
+      "class": "truck",
+      "dimension": "density",
+      "bucket": "sparse_0",
+      "count": 3438,
+      "class_share": 0.39713526625851914
+    },
+    {
+      "class": "truck",
+      "dimension": "overlap_proxy",
+      "bucket": "isolated_<0.01",
+      "count": 7294,
+      "class_share": 0.8425551576758692
+    },
+    {
+      "class": "truck",
+      "dimension": "overlap_proxy",
+      "bucket": "overlap_>=0.10",
+      "count": 213,
+      "class_share": 0.02460436640868661
+    },
+    {
+      "class": "truck",
+      "dimension": "overlap_proxy",
+      "bucket": "touching_0.01-0.10",
+      "count": 1150,
+      "class_share": 0.13284047591544415
+    },
+    {
+      "class": "van",
+      "dimension": "angle",
+      "bucket": "0-15",
+      "count": 1506,
+      "class_share": 0.3517048108360579
+    },
+    {
+      "class": "van",
+      "dimension": "angle",
+      "bucket": "15-30",
+      "count": 449,
+      "class_share": 0.10485754320411023
+    },
+    {
+      "class": "van",
+      "dimension": "angle",
+      "bucket": "30-60",
+      "count": 909,
+      "class_share": 0.2122839794488557
+    },
+    {
+      "class": "van",
+      "dimension": "angle",
+      "bucket": "60-90",
+      "count": 1418,
+      "class_share": 0.33115366651097616
+    },
+    {
+      "class": "van",
+      "dimension": "area",
+      "bucket": "large",
+      "count": 1969,
+      "class_share": 0.4598318542737039
+    },
+    {
+      "class": "van",
+      "dimension": "area",
+      "bucket": "medium",
+      "count": 2287,
+      "class_share": 0.5340962167211584
+    },
+    {
+      "class": "van",
+      "dimension": "area",
+      "bucket": "small",
+      "count": 26,
+      "class_share": 0.006071929005137786
+    },
+    {
+      "class": "van",
+      "dimension": "aspect_ratio",
+      "bucket": "compact_<2",
+      "count": 1396,
+      "class_share": 0.32601588042970575
+    },
+    {
+      "class": "van",
+      "dimension": "aspect_ratio",
+      "bucket": "elongated_2-4",
+      "count": 2547,
+      "class_share": 0.5948155067725363
+    },
+    {
+      "class": "van",
+      "dimension": "aspect_ratio",
+      "bucket": "very_elongated_>=4",
+      "count": 339,
+      "class_share": 0.07916861279775805
+    },
+    {
+      "class": "van",
+      "dimension": "density",
+      "bucket": "dense_>=4",
+      "count": 349,
+      "class_share": 0.08150397010742644
+    },
+    {
+      "class": "van",
+      "dimension": "density",
+      "bucket": "moderate_1-3",
+      "count": 2497,
+      "class_share": 0.5831387202241943
+    },
+    {
+      "class": "van",
+      "dimension": "density",
+      "bucket": "sparse_0",
+      "count": 1436,
+      "class_share": 0.3353573096683793
+    },
+    {
+      "class": "van",
+      "dimension": "overlap_proxy",
+      "bucket": "isolated_<0.01",
+      "count": 3868,
+      "class_share": 0.9033162073797291
+    },
+    {
+      "class": "van",
+      "dimension": "overlap_proxy",
+      "bucket": "overlap_>=0.10",
+      "count": 81,
+      "class_share": 0.018916394208313873
+    },
+    {
+      "class": "van",
+      "dimension": "overlap_proxy",
+      "bucket": "touching_0.01-0.10",
+      "count": 333,
+      "class_share": 0.07776739841195703
+    }
+  ]
+}

@@ -36,7 +36,7 @@ training:
     project: runs/DroneVehicle_OBB_FusionTransfer
     name: DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1
 legacy:
-  run_dir: null
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1
 reports: []
 notes:
   - beta_init=0.10、beta_max=0.50，缩放因子理论范围为 [0.5, 1.5]。

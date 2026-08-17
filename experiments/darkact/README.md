@@ -2,7 +2,7 @@
 
 > 本文件由 Manifest 自动生成；模型结构以各实验链接的 YAML 为准。
 
-生成时间：2026-07-25T18:43:36+08:00
+生成时间：2026-08-10T10:02:55+08:00
 
 ## 架构树
 
@@ -13,14 +13,16 @@ DA-001 [tested] MAA2D -> C2f/SPPF -> LAFMerge2D
     │   └── DA-008 [planned] C2f/SPPF -> supervised target saliency -> full-C PaperLAF feedback
     │       └── DA-009 [tested] C2f/SPPF -> FP32-safe supervised target saliency -> full-C PaperLAF feedback
     │           ├── DA-010 [tested] C2f/SPPF -> FP32 sqrt(HW) target saliency -> full-C PaperLAF feedback
-    │           │   └── DA-014 [planned] P3/P4 soft-centerness supervision -> FP32 sqrt(HW) saliency -> full-C PaperLAF feedback
+    │           │   └── DA-014 [tested] P3/P4 soft-centerness supervision -> FP32 sqrt(HW) saliency -> full-C PaperLAF feedback
     │           └── DA-011 [tested] C2f/SPPF -> FP32 L2+temperature target saliency -> full-C PaperLAF feedback
     ├── DA-004 [tested] C2f/SPPF -> StaticMAA2D -> LAFMergeFeedback2D
-    │   └── DA-005 [tested] C2f/SPPF -> StaticMAA2D -> per-modal ZeroInitRefine -> LAF feedback
+    │   ├── DA-005 [tested] C2f/SPPF -> StaticMAA2D -> per-modal ZeroInitRefine -> LAF feedback
+    │   └── DA-015 [tested] Post-C2f StaticMAA -> disagreement-aware LAF(P3/P4); original LAF(P5)
     ├── DA-006 [trained] StaticMAA2D -> C2f/SPPF -> LAF feedback -> fused ZeroInitRefine
     ├── DA-007 [trained] C2f/SPPF -> LAFMergeFeedback2D
-    │   └── DA-012 [planned] C2f/SPPF -> LAFMergeFeedback2D -> fused Refine(P3/P4 only)
-    └── DA-013 [planned] zero-centered StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D
+    │   ├── DA-012 [tested] C2f/SPPF -> LAFMergeFeedback2D -> fused Refine(P3/P4 only)
+    │   └── DA-016 [created] semantic-disagreement LAF(P3/P4); original LAF(P5); no StaticMAA
+    └── DA-013 [tested] zero-centered StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D
 ```
 
 ## 架构与产物
@@ -38,9 +40,11 @@ DA-001 [tested] MAA2D -> C2f/SPPF -> LAFMerge2D
 | DA-009 | tested | DA-008 | 仅将 StaticMAAContext2D 内部 matmul/scale/softmax/matmul 改为 FP32，保留 sqrt(active_channels) 缩放与其他结构不变。 | C2f stage -> FP32-safe target saliency logits + OBB loss -> full-C PaperLAF feedback | C2f stage -> FP32-safe target saliency logits + OBB loss -> full-C PaperLAF feedback | C2f/SPPF stage -> FP32-safe target saliency logits + OBB loss -> full-C PaperLAF feedback | 100/100 | 0.704 | 1 | [YAML](../../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P345-FP32Safe-v2.yaml) | [Run](../../DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn_v2) |
 | DA-010 | tested | DA-009 | 仅将 FP32 目标显著性 attention 的除数从 sqrt(active_channels) 改为 sqrt(H*W)。 | C2f stage -> FP32 sqrt(HW) target saliency + OBB loss -> full-C PaperLAF feedback | C2f stage -> FP32 sqrt(HW) target saliency + OBB loss -> full-C PaperLAF feedback | C2f/SPPF stage -> FP32 sqrt(HW) target saliency + OBB loss -> full-C PaperLAF feedback | 100/100 | 0.705 | 1 | [YAML](../../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P345-SqrtHW-v3.yaml) | [Run](../../DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn-SqrtHW_v3) |
 | DA-011 | tested | DA-009 | Q/K 沿 H*W 做 L2 normalization，以每尺度、每模态一个可学习 tau 替代 sqrt(C) 缩放，V 保持未归一化。 | C2f stage -> FP32 L2+temperature target saliency + OBB loss -> full-C PaperLAF feedback | C2f stage -> FP32 L2+temperature target saliency + OBB loss -> full-C PaperLAF feedback | C2f/SPPF stage -> FP32 L2+temperature target saliency + OBB loss -> full-C PaperLAF feedback | 100/100 | 0.705 | 1 | [YAML](../../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P345-L2Temp-v4.yaml) | [Run](../../DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn-L2Norm-LearnTemp0p2_v4) |
-| DA-012 | planned | DA-007 | 仅在 P3/P4 的 LAF fused lateral 后增加零初始化残差 Refine，P5 和两条 backbone 反馈路径不变。 | C2f/C2f_Faster -> LAF feedback -> zero-init fused Refine -> FPN | C2f/C2f_Faster -> LAF feedback -> zero-init fused Refine -> FPN | C2f/SPPF -> LAF feedback -> FPN/PAN | 0/100 | — | 0 | [YAML](../../yaml/yolov8s-DarkAct-LAFMergeFeedback2D-Refine-P34-R4-NoStaticMAA-v1.yaml) | — |
-| DA-013 | planned | DA-002 | 仅将 StaticMAA2D 的 1+beta*sigmoid(logit) 改为有界的 1+beta*tanh(logit)，位置、容量及 LAF 均不变。 | zero-centered bidirectional MAA -> C2f stage -> LAF feedback | zero-centered bidirectional MAA -> C2f stage -> LAF feedback | zero-centered bidirectional MAA -> C2f/SPPF stage -> LAF feedback | 0/100 | — | 0 | [YAML](../../yaml/yolov8s-DarkAct-ZeroCenteredMAA2D-LAFMerge-P345-R4-v1.yaml) | — |
-| DA-014 | planned | DA-010 | 保持 sqrt(HW) 模块和融合结构不变；将硬 OBB mask 换为旋转 soft-centerness，仅监督 P3/P4，权重为 1.0/0.5，gain 在 10 epoch 内升至 0.025，并记录 gate 统计。 | C2f stage -> sqrt(HW) saliency + soft-centerness loss(weight 1.0) -> PaperLAF feedback | C2f stage -> sqrt(HW) saliency + soft-centerness loss(weight 0.5) -> PaperLAF feedback | C2f/SPPF stage -> sqrt(HW) saliency(no auxiliary loss) -> PaperLAF feedback | 0/100 | — | 0 | [YAML](../../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P34-SoftCenterness-Warmup-v5.yaml) | — |
+| DA-012 | tested | DA-007 | 仅在 P3/P4 的 LAF fused lateral 后增加零初始化残差 Refine，P5 和两条 backbone 反馈路径不变。 | C2f/C2f_Faster -> LAF feedback -> zero-init fused Refine -> FPN | C2f/C2f_Faster -> LAF feedback -> zero-init fused Refine -> FPN | C2f/SPPF -> LAF feedback -> FPN/PAN | 100/100 | 0.707 | 1 | [YAML](../../yaml/yolov8s-DarkAct-LAFMergeFeedback2D-Refine-P34-R4-NoStaticMAA-v1.yaml) | [Run](../../DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1) |
+| DA-013 | tested | DA-002 | 仅将 StaticMAA2D 的 1+beta*sigmoid(logit) 改为有界的 1+beta*tanh(logit)，位置、容量及 LAF 均不变。 | zero-centered bidirectional MAA -> C2f stage -> LAF feedback | zero-centered bidirectional MAA -> C2f stage -> LAF feedback | zero-centered bidirectional MAA -> C2f/SPPF stage -> LAF feedback | 100/100 | 0.705 | 1 | [YAML](../../yaml/yolov8s-DarkAct-ZeroCenteredMAA2D-LAFMerge-P345-R4-v1.yaml) | [Run](../../DroneVehicle_OBB_FusionTransfer/DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1) |
+| DA-014 | tested | DA-010 | 保持 sqrt(HW) 模块和融合结构不变；将硬 OBB mask 换为旋转 soft-centerness，仅监督 P3/P4，权重为 1.0/0.5，gain 在 10 epoch 内升至 0.025，并记录 gate 统计。 | C2f stage -> sqrt(HW) saliency + soft-centerness loss(weight 1.0) -> PaperLAF feedback | C2f stage -> sqrt(HW) saliency + soft-centerness loss(weight 0.5) -> PaperLAF feedback | C2f/SPPF stage -> sqrt(HW) saliency(no auxiliary loss) -> PaperLAF feedback | 100/100 | 0.704 | 1 | [YAML](../../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P34-SoftCenterness-Warmup-v5.yaml) | [Run](../../DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5) |
+| DA-015 | tested | DA-004 | 仅在 P3/P4 的原 LAF 输出上增加零初始化的轻量差异残差；P5、StaticMAA、Neck 和检测头保持不变。 | StaticMAA -> LAF + gamma*Project(RGB,IR,abs-diff,product) | StaticMAA -> LAF + gamma*Project(RGB,IR,abs-diff,product) | StaticMAA -> original LAFMergeFeedback2D | 100/100 | 0.708 | 1 | [YAML](../../yaml/yolov8s-DarkAct-PostC2f-DisagreementLAF-P34-R4-v1.yaml) | [Run](../../runs/DroneVehicle_OBB_FusionTransfer/DarkAct_DA015_PostC2f_DisagreementLAF_P34_H2-4-8_R4_v1) |
+| DA-016 | created | DA-007 | 仅将 P3/P4 的普通 LAF 替换为零初始化四权重语义分歧残差 LAF；P5、Neck、检测头、训练与增强策略完全不变。 | LAF + zero-init weighted(shared - RGB-specific - IR-specific - disagreement) | LAF + zero-init weighted(shared - RGB-specific - IR-specific - disagreement) | original LAFMergeFeedback2D | 100/100 | 0.708 | 1 | [YAML](../../yaml/yolov8s-DarkAct-SemanticDisagreementLAF-P34-R4-NoStaticMAA-v1.yaml) | [Run](../../runs/DroneVehicle_OBB_FusionTransfer/DarkAct_DA016_SemanticDisagreementLAF_P34_H2-4-8_R4-NoStaticMAA_v1) |
 
 ## 实验卡片
 
@@ -134,7 +138,7 @@ DA-001 [tested] MAA2D -> C2f/SPPF -> LAFMerge2D
 
 ### DA-012 · LAF-only 的 P3/P4 融合后精炼版
 
-- 状态：`planned`，进度 `0/100`，Test mAP50-95 `—`。
+- 状态：`tested`，进度 `100/100`，Test mAP50-95 `0.707`。
 - 架构：`C2f/SPPF -> LAFMergeFeedback2D -> fused Refine(P3/P4 only)`。
 - 假设：DA-007 的融合特征可能需要轻量局部重整，但低分辨率 P5 不需要额外精炼；只精炼 P3/P4 可改善定位且控制容量。
 - 相对变化：仅在 P3/P4 的 LAF fused lateral 后增加零初始化残差 Refine，P5 和两条 backbone 反馈路径不变。
@@ -142,7 +146,7 @@ DA-001 [tested] MAA2D -> C2f/SPPF -> LAFMerge2D
 
 ### DA-013 · 零中心双向 StaticMAA 门控版
 
-- 状态：`planned`，进度 `0/100`，Test mAP50-95 `—`。
+- 状态：`tested`，进度 `100/100`，Test mAP50-95 `0.705`。
 - 架构：`zero-centered StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D`。
 - 假设：原 sigmoid MAA 只能放大且易退化为常数增益；零中心双向门控可按位置和通道增强目标、抑制背景。
 - 相对变化：仅将 StaticMAA2D 的 1+beta*sigmoid(logit) 改为有界的 1+beta*tanh(logit)，位置、容量及 LAF 均不变。
@@ -150,8 +154,24 @@ DA-001 [tested] MAA2D -> C2f/SPPF -> LAFMerge2D
 
 ### DA-014 · P3/P4 旋转 Soft-Centerness 目标显著性版
 
-- 状态：`planned`，进度 `0/100`，Test mAP50-95 `—`。
+- 状态：`tested`，进度 `100/100`，Test mAP50-95 `0.704`。
 - 架构：`P3/P4 soft-centerness supervision -> FP32 sqrt(HW) saliency -> full-C PaperLAF feedback`。
 - 假设：旋转软中心监督可减少硬 OBB 填充的背景污染和边界量化噪声，P3/P4-only 与 gain warmup 可降低辅助任务对检测主任务的干扰。
 - 相对变化：保持 sqrt(HW) 模块和融合结构不变；将硬 OBB mask 换为旋转 soft-centerness，仅监督 P3/P4，权重为 1.0/0.5，gain 在 10 epoch 内升至 0.025，并记录 gate 统计。
 - 文件：[Manifest](manifests/DA-014.yaml) · [YAML](../../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P34-SoftCenterness-Warmup-v5.yaml) · [旧 Train](../../train_dronevehicle_darkact_target_saliency_soft_centerness.py) · [迁移脚本](../../tools/make_twostream_obb_weights_darkact_target_saliency_soft_centerness.py)。
+
+### DA-015 · P3/P4 差异感知 LAF 残差版
+
+- 状态：`tested`，进度 `100/100`，Test mAP50-95 `0.708`。
+- 架构：`Post-C2f StaticMAA -> disagreement-aware LAF(P3/P4); original LAF(P5)`。
+- 假设：在保持 LAF 模态选择能力的同时，显式建模 RGB/IR 冲突与一致响应，可改善暗区和热纹理互补目标的定位。
+- 相对变化：仅在 P3/P4 的原 LAF 输出上增加零初始化的轻量差异残差；P5、StaticMAA、Neck 和检测头保持不变。
+- 文件：[Manifest](manifests/DA-015.yaml) · [YAML](../../yaml/yolov8s-DarkAct-PostC2f-DisagreementLAF-P34-R4-v1.yaml) · [旧 Train](../../train_dronevehicle_darkact_disagreement_laf_p34.py) · [迁移脚本](../../tools/make_darkact_da015_checkpoint.py)。
+
+### DA-016 · P3/P4 四权重语义分歧 LAF 残差版
+
+- 状态：`created`，进度 `100/100`，Test mAP50-95 `0.708`。
+- 架构：`semantic-disagreement LAF(P3/P4); original LAF(P5); no StaticMAA`。
+- 假设：将融合从显著性增强转向共享、模态专有和冲突语义的显式分解，可改善外观相近车辆类别的跨模态判别。
+- 相对变化：仅将 P3/P4 的普通 LAF 替换为零初始化四权重语义分歧残差 LAF；P5、Neck、检测头、训练与增强策略完全不变。
+- 文件：[Manifest](manifests/DA-016.yaml) · [YAML](../../yaml/yolov8s-DarkAct-SemanticDisagreementLAF-P34-R4-NoStaticMAA-v1.yaml) · [旧 Train](../../train_dronevehicle_darkact_semantic_disagreement_laf_p34.py) · [迁移脚本](../../tools/make_darkact_da016_checkpoint.py)。

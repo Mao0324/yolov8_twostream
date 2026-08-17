@@ -1,0 +1,48 @@
+schema_version: 1
+id: DA-015
+family: DarkAct
+title: P3/P4 差异感知 LAF 残差版
+parent_id: DA-004
+lifecycle:
+  status: auto
+  recovery_confidence: confirmed
+hypothesis: 在保持 LAF 模态选择能力的同时，显式建模 RGB/IR 冲突与一致响应，可改善暗区和热纹理互补目标的定位。
+change_from_parent: 仅在 P3/P4 的原 LAF 输出上增加零初始化的轻量差异残差；P5、StaticMAA、Neck 和检测头保持不变。
+architecture:
+  summary: Post-C2f StaticMAA -> disagreement-aware LAF(P3/P4); original LAF(P5)
+  version: v1
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: StaticMAA -> LAF + gamma*Project(RGB,IR,abs-diff,product)
+    P4: StaticMAA -> LAF + gamma*Project(RGB,IR,abs-diff,product)
+    P5: StaticMAA -> original LAFMergeFeedback2D
+files:
+  model_yaml: yaml/yolov8s-DarkAct-PostC2f-DisagreementLAF-P34-R4-v1.yaml
+  train_entrypoint: train_dronevehicle_darkact_disagreement_laf_p34.py
+  migration_script: tools/make_darkact_da015_checkpoint.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_da015_disagreement_laf_p34.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+    - ultralytics/nn/modules/darkact_maalaf_v2.py
+    - ultralytics/nn/modules/darkact_disagreement_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - tools/queue_runtime.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_FusionTransfer
+    name: DarkAct_DA015_PostC2f_DisagreementLAF_P34_H2-4-8_R4_v1
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 架构母体为测试集 0.841 mAP50、0.708 mAP50-95 的 DA-004。
+  - 初始化严格从 pre-pth/yolov8s-obb.pt 迁移，不从 DA-004 训练权重继续训练。
+  - 独立训练脚本不导入 pretrained_rerun_tracker；也可使用 tools/train_experiment.py DA-015 启动。
+  - disagreement gamma=0，迁移完成时新增分支不改变各尺度原始 LAF 输出。

@@ -1,0 +1,18 @@
+weights: /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/DroneVehicle_OBB_FusionTransfer/DarkAct_PostC2fStaticMAA_LAFFeedback_P345_KLDProbIoU025_v1/weights/best.pt
+data: /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/data/dronevehicle.yaml
+split: test
+imgsz: 640
+batch: 16
+device: 2
+
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95)
+                   all       8980     159614      0.807      0.805      0.837      0.702
+                   car       8980     137146      0.952      0.968      0.986      0.842
+                 truck       8980       8657      0.784      0.804      0.842      0.688
+                   bus       8980       4467      0.927      0.949      0.967      0.835
+                   van       8980       4282      0.705      0.594      0.676      0.562
+           freight_car       8980       5062      0.668      0.709      0.713      0.581
+
+Speed: 0.2ms preprocess, 5.0ms inference, 0.0ms loss, 2.2ms postprocess per image
+前向传播 FPS: 201.86
+Results saved to /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/DroneVehicle_OBB_FusionTransfer/DarkAct_PostC2fStaticMAA_LAFFeedback_P345_KLDProbIoU025_v1/test_result

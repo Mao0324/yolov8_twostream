@@ -1,0 +1,4 @@
+architecture,parent,test_precision,test_recall,test_map50,test_map50_95,parent_map50,parent_map50_95,delta_map50,delta_map50_95,car_map50_95,truck_map50_95,bus_map50_95,van_map50_95,freight_car_map50_95,inference_fps,decision
+KLD05,DA-004,0.817,0.811,0.841,0.706,0.841,0.708,0.000,-0.002,0.840,0.691,0.838,0.571,0.589,199.83,discard_as_parent
+DA-015,DA-004,0.810,0.807,0.840,0.708,0.841,0.708,-0.001,0.000,0.844,0.697,0.838,0.565,0.594,195.69,discard_as_parent
+DA-016,DA-007,0.808,0.813,0.841,0.708,0.838,0.705,0.003,0.003,0.844,0.689,0.838,0.574,0.592,235.13,limited_ablation_only

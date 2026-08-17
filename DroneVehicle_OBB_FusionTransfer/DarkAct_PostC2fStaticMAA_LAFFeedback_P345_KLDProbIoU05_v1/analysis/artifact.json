@@ -1,0 +1,67 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "KLD–ProbIoU 0.5 混合损失实验分析",
+    "description": "DroneVehicle 双流 OBB：KLD 混合损失与同架构、同初始化口径 DA-004 基线的验证集和测试集比较。",
+    "generatedAt": "2026-08-06T16:00:00+08:00",
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# KLD–ProbIoU 0.5 混合损失实验分析"},
+      {"id": "summary", "type": "markdown", "body": "## 技术结论\n\nKLD 混合损失**没有带来可确认的总体测试集提升**。验证集最佳 mAP50-95 从 0.72754 提升至 0.73057（+0.00303），但同一 test 集上 mAP50 持平 0.841，mAP50-95 从 0.708 降至 0.706。类别效果明显分化：van 提升 +0.009 mAP50-95，而 car、truck 各下降 0.004，freight_car 下降 0.009。当前证据更支持“对部分几何形态有帮助”，不支持用 λ=0.5 全面替换现有回归目标。"},
+      {"id": "class_head", "type": "markdown", "body": "## 类别收益并不一致\n\nvan 是唯一获得明确双指标提升的类别；bus 基本持平。freight_car 的严格定位指标下降最大，抵消了 van 的收益。由于 car 占测试实例约 85.9%，其 -0.004 mAP50-95 也会显著影响总体判断。"},
+      {"id": "class_chart_block", "type": "chart", "chartId": "class_delta_chart", "layout": "full"},
+      {"id": "curve_head", "type": "markdown", "body": "## KLD 提高验证峰值，但后半程仍出现回落\n\nKLD 在第 51 epoch 达到最佳 mAP50-95=0.73057；基线在第 49 epoch 达到 0.72754。KLD 从最佳点到第 100 epoch 回落 0.00555，基线回落 0.00594，二者都有相近的后期退化。最佳权重选择是必要的，但不能解释 test 上未提升的问题。"},
+      {"id": "curve_chart_block", "type": "chart", "chartId": "val_curve_chart", "layout": "full"},
+      {"id": "scope", "type": "markdown", "body": "## 范围、数据和指标定义\n\n两组均为 100 epoch、batch 64、640 输入、seed 0、deterministic、SGD、AMP，使用相同 Post-C2f StaticMAA2D + LAF feedback 架构及相同 YOLOv8s-OBB 迁移策略。测试集为 8,980 张图、159,614 个 OBB 实例。mAP50 是 IoU=0.50 的平均精度；mAP50-95 是 IoU 0.50:0.95 的平均值。KLD 组唯一设计变化是正样本 box 回归采用 0.5 ProbIoU + 0.5 KLD；正样本分配器保持 ProbIoU。"},
+      {"id": "method", "type": "markdown", "body": "## 比较方法\n\n以预训练重跑后的 DA-004 v12 为严格基线，而不是早期 YAML-direct v1。重新计算两组 results.csv 的最佳 epoch、最佳到末轮回落及最后 20 epoch 均值；再从相同 test split 的 test.txt 对齐总体和五个类别的 P、R、mAP50、mAP50-95。训练 box loss 的绝对数值没有直接比较，因为 KLD 改变了损失尺度。"},
+      {"id": "limits", "type": "markdown", "body": "## 限制与稳健性\n\n结论应标记为“可带 caveat 使用”：每个配置只有一个 seed，±0.002 的总体 test mAP50-95 差异可能属于训练方差；现有 test.txt 没有单独报告 mAP75，无法直接验证论文所强调的高 IoU 定位收益；结果文件物理位于 v1 目录，但 args.yaml、checkpoint train_args 和 test.txt 都记录 v12 名称，且引用的 v12 路径当前不存在，属于需要修正的溯源命名问题。测试使用了不同 GPU，准确率仍可比较，但速度不可比较。"},
+      {"id": "next", "type": "markdown", "body": "## 推荐下一步\n\n1. 不把 λ=0.5 设为默认损失。\n2. 优先补跑 λ=0.25，并与 λ=0、0.5 使用至少 3 个 seed 比较。\n3. 测试时显式导出 mAP75；如果 KLD 的价值成立，应首先体现在 mAP75 或高 IoU 分段。\n4. 对 van 与 freight_car 按长宽比、目标尺寸和遮挡程度分桶，验证类别分化是否由几何形态驱动。\n5. 修正运行目录内部的 v1/v12 命名溯源后再纳入正式实验表。"},
+      {"id": "questions", "type": "markdown", "body": "## 后续问题\n\nλ=0.25 是否能保留 van 的收益而减少 freight_car 回落？KLD 收益是否集中在高长宽比或角度边界附近目标？不同 seed 下 +0.00303 的验证集提升能否稳定复现？"}
+    ],
+    "cards": [],
+    "charts": [
+      {"id": "class_delta_chart", "title": "各类别 Test mAP50-95 变化", "subtitle": "KLD λ=0.5 相对 DA-004 基线；正值表示提升", "type": "bar", "intent": "comparison", "dataset": "class_deltas", "encodings": {"x": {"field": "class", "label": "类别"}, "y": {"field": "delta_map5095", "label": "Δ mAP50-95", "format": "number"}, "tooltip": [{"field": "kld_map5095", "label": "KLD"}, {"field": "base_map5095", "label": "基线"}, {"field": "instances", "label": "实例数"}]}, "options": {"orientation": "vertical"}, "sourceId": "class_source"},
+      {"id": "val_curve_chart", "title": "验证集 mAP50-95 训练轨迹", "subtitle": "选取 12 个代表性 epoch；两组均在约 50 epoch 达峰后缓慢回落", "type": "line", "intent": "trend", "dataset": "val_curve", "encodings": {"x": {"field": "epoch", "label": "Epoch"}, "y": {"field": "map5095", "label": "Val mAP50-95", "format": "number"}, "color": {"field": "variant", "label": "配置"}, "tooltip": [{"field": "map50", "label": "Val mAP50"}]}, "sourceId": "curve_source"}
+    ],
+    "tables": [],
+    "sources": [
+      {"id": "class_source", "label": "测试集分类结果差异", "query": {"description": "对齐两份 test.txt 后计算 KLD 减基线。", "engine": "DuckDB", "language": "SQL", "sql": "SELECT * FROM (VALUES ('car',137146,0.840,0.844,-0.004,-0.001),('truck',8657,0.691,0.695,-0.004,-0.003),('bus',4467,0.838,0.838,0.000,0.002),('van',4282,0.571,0.562,0.009,0.014),('freight_car',5062,0.589,0.598,-0.009,-0.009)) AS t(class,instances,kld_map5095,base_map5095,delta_map5095,delta_map50)", "tables_used": ["KLD test_result/test.txt", "DA-004 v12 test_result/test.txt"], "filters": ["DroneVehicle test split; 8,980 images; 159,614 instances"], "metric_definitions": ["delta_map5095 = KLD class mAP50-95 - baseline class mAP50-95"]}},
+      {"id": "curve_source", "label": "验证集训练轨迹", "query": {"description": "从两份 results.csv 选择相同代表性 epoch。", "engine": "DuckDB", "language": "SQL", "sql": "SELECT epoch, 'KLD 0.5' AS variant, \"metrics/mAP50(B)\" AS map50, \"metrics/mAP50-95(B)\" AS map5095 FROM read_csv_auto('DroneVehicle_OBB_FusionTransfer/DarkAct_PostC2fStaticMAA_LAFFeedback_P345_KLDProbIoU05_v1/results.csv', header=true) WHERE epoch IN (1,10,20,30,40,45,49,51,60,70,80,90,100) UNION ALL SELECT epoch, 'DA-004 baseline' AS variant, \"metrics/mAP50(B)\" AS map50, \"metrics/mAP50-95(B)\" AS map5095 FROM read_csv_auto('DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12/results.csv', header=true) WHERE epoch IN (1,10,20,30,40,45,49,51,60,70,80,90,100) ORDER BY epoch, variant", "tables_used": ["KLD results.csv", "DA-004 v12 results.csv"], "filters": ["epochs 1,10,20,30,40,45,49,51,60,70,80,90,100"], "metric_definitions": ["map5095 = validation mAP averaged over IoU 0.50:0.95"]}}
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "generatedAt": "2026-08-06T16:00:00+08:00",
+    "datasets": {
+      "summary": [{"kld_test_map50": 0.841, "delta_test_map50": 0.0, "kld_test_map5095": 0.706, "delta_test_map5095": -0.002, "kld_val_best": 0.73057, "delta_val_best": 0.00303}],
+      "class_deltas": [
+        {"class": "car", "instances": 137146, "kld_map5095": 0.840, "base_map5095": 0.844, "delta_map5095": -0.004, "delta_map50": -0.001},
+        {"class": "truck", "instances": 8657, "kld_map5095": 0.691, "base_map5095": 0.695, "delta_map5095": -0.004, "delta_map50": -0.003},
+        {"class": "bus", "instances": 4467, "kld_map5095": 0.838, "base_map5095": 0.838, "delta_map5095": 0.000, "delta_map50": 0.002},
+        {"class": "van", "instances": 4282, "kld_map5095": 0.571, "base_map5095": 0.562, "delta_map5095": 0.009, "delta_map50": 0.014},
+        {"class": "freight_car", "instances": 5062, "kld_map5095": 0.589, "base_map5095": 0.598, "delta_map5095": -0.009, "delta_map50": -0.009}
+      ],
+      "val_curve": [
+        {"epoch": 1, "variant": "KLD 0.5", "map50": 0.51609, "map5095": 0.38206}, {"epoch": 1, "variant": "DA-004 baseline", "map50": 0.46293, "map5095": 0.34049},
+        {"epoch": 10, "variant": "KLD 0.5", "map50": 0.75837, "map5095": 0.60676}, {"epoch": 10, "variant": "DA-004 baseline", "map50": 0.76857, "map5095": 0.61838},
+        {"epoch": 20, "variant": "KLD 0.5", "map50": 0.83821, "map5095": 0.68847}, {"epoch": 20, "variant": "DA-004 baseline", "map50": 0.84351, "map5095": 0.69544},
+        {"epoch": 30, "variant": "KLD 0.5", "map50": 0.85472, "map5095": 0.70934}, {"epoch": 30, "variant": "DA-004 baseline", "map50": 0.85220, "map5095": 0.70980},
+        {"epoch": 40, "variant": "KLD 0.5", "map50": 0.87162, "map5095": 0.72471}, {"epoch": 40, "variant": "DA-004 baseline", "map50": 0.86500, "map5095": 0.72356},
+        {"epoch": 45, "variant": "KLD 0.5", "map50": 0.87404, "map5095": 0.73007}, {"epoch": 45, "variant": "DA-004 baseline", "map50": 0.86525, "map5095": 0.72543},
+        {"epoch": 49, "variant": "KLD 0.5", "map50": 0.87234, "map5095": 0.72897}, {"epoch": 49, "variant": "DA-004 baseline", "map50": 0.86767, "map5095": 0.72754},
+        {"epoch": 51, "variant": "KLD 0.5", "map50": 0.87346, "map5095": 0.73057}, {"epoch": 51, "variant": "DA-004 baseline", "map50": 0.86368, "map5095": 0.72541},
+        {"epoch": 60, "variant": "KLD 0.5", "map50": 0.87002, "map5095": 0.72778}, {"epoch": 60, "variant": "DA-004 baseline", "map50": 0.86475, "map5095": 0.72624},
+        {"epoch": 70, "variant": "KLD 0.5", "map50": 0.86775, "map5095": 0.72773}, {"epoch": 70, "variant": "DA-004 baseline", "map50": 0.86386, "map5095": 0.72701},
+        {"epoch": 80, "variant": "KLD 0.5", "map50": 0.86618, "map5095": 0.72755}, {"epoch": 80, "variant": "DA-004 baseline", "map50": 0.86245, "map5095": 0.72559},
+        {"epoch": 90, "variant": "KLD 0.5", "map50": 0.86510, "map5095": 0.72697}, {"epoch": 90, "variant": "DA-004 baseline", "map50": 0.86040, "map5095": 0.72369},
+        {"epoch": 100, "variant": "KLD 0.5", "map50": 0.86144, "map5095": 0.72502}, {"epoch": 100, "variant": "DA-004 baseline", "map50": 0.85708, "map5095": 0.72160}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "class_source", "label": "测试集分类结果差异", "query": {"description": "对齐两份 test.txt 后计算类别差异。", "engine": "DuckDB", "language": "SQL", "sql": "SELECT * FROM (VALUES ('car',137146,0.840,0.844,-0.004,-0.001),('truck',8657,0.691,0.695,-0.004,-0.003),('bus',4467,0.838,0.838,0.000,0.002),('van',4282,0.571,0.562,0.009,0.014),('freight_car',5062,0.589,0.598,-0.009,-0.009)) AS t(class,instances,kld_map5095,base_map5095,delta_map5095,delta_map50)"}},
+    {"id": "curve_source", "label": "验证集训练轨迹", "query": {"description": "从两份 results.csv 选择相同代表性 epoch。", "engine": "DuckDB", "language": "SQL", "sql": "SELECT epoch, 'KLD 0.5' AS variant, \"metrics/mAP50(B)\" AS map50, \"metrics/mAP50-95(B)\" AS map5095 FROM read_csv_auto('DroneVehicle_OBB_FusionTransfer/DarkAct_PostC2fStaticMAA_LAFFeedback_P345_KLDProbIoU05_v1/results.csv', header=true) WHERE epoch IN (1,10,20,30,40,45,49,51,60,70,80,90,100) UNION ALL SELECT epoch, 'DA-004 baseline' AS variant, \"metrics/mAP50(B)\" AS map50, \"metrics/mAP50-95(B)\" AS map5095 FROM read_csv_auto('DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12/results.csv', header=true) WHERE epoch IN (1,10,20,30,40,45,49,51,60,70,80,90,100) ORDER BY epoch, variant"}}
+  ]
+}

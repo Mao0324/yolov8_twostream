@@ -41,7 +41,7 @@ training:
     project: runs/DroneVehicle_OBB_FusionTransfer
     name: DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5
 legacy:
-  run_dir: null
+  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5
 reports:
   - experiments/darkact/TARGET_SALIENCY_DIAGNOSIS.md
 notes:
