@@ -87,6 +87,10 @@ from ultralytics.nn.modules import (
     StaticMAA2D,
     ZeroCenteredStaticMAA2D,
     LAFMergeFeedback2D,
+    DisagreementLAFMergeFeedback2D,
+    SemanticDisagreementLAFMergeFeedback2D,
+    ASSALAFMergeFeedback2D,
+    ASSAReplacedLAFMergeFeedback2D,
     PaperLAFMergeFeedback2D,
     StaticMAAContext2D,
     StaticMAAContext2DFP32Safe,
@@ -217,7 +221,12 @@ class BaseModel(nn.Module):
                     route = "pair"
                 elif isinstance(
                     m,
-                    (LAFMergeFeedback2D, PaperLAFMergeFeedback2D, TargetSaliencyPaperLAFMergeFeedback2D),
+                    (
+                        LAFMergeFeedback2D,
+                        DisagreementLAFMergeFeedback2D,
+                        PaperLAFMergeFeedback2D,
+                        TargetSaliencyPaperLAFMergeFeedback2D,
+                    ),
                 ):
                     route = "feedback"
                 elif legacy_graph_active or isinstance(m, (ADD, LAFMerge2D, FTCrossMerge)):
@@ -1150,8 +1159,21 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 )
             args = [stream_c2, *args[1:]]
             c2 = 2  # packed one-channel (S_rgb, S_ir) logits
-        elif m in {LAFMerge2D, LAFMergeFeedback2D}:
-            if isinstance(f, int) and m is LAFMergeFeedback2D:
+        elif m in {
+            LAFMerge2D,
+            LAFMergeFeedback2D,
+            DisagreementLAFMergeFeedback2D,
+            SemanticDisagreementLAFMergeFeedback2D,
+            ASSALAFMergeFeedback2D,
+            ASSAReplacedLAFMergeFeedback2D,
+        }:
+            if isinstance(f, int) and m in {
+                LAFMergeFeedback2D,
+                DisagreementLAFMergeFeedback2D,
+                SemanticDisagreementLAFMergeFeedback2D,
+                ASSALAFMergeFeedback2D,
+                ASSAReplacedLAFMergeFeedback2D,
+            }:
                 # A saved StaticMAA2D layer carries the (RGB, IR) pair as one
                 # graph source. Existing two-source LAF configurations retain
                 # their original parsing and execution behavior.
@@ -1297,7 +1319,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 StaticMAAContext2DL2Temp,
             }:
                 m_.twostream_route = "context"
-            elif m in {LAFMergeFeedback2D, PaperLAFMergeFeedback2D, TargetSaliencyPaperLAFMergeFeedback2D}:
+            elif m in {
+                LAFMergeFeedback2D,
+                DisagreementLAFMergeFeedback2D,
+                SemanticDisagreementLAFMergeFeedback2D,
+                ASSALAFMergeFeedback2D,
+                ASSAReplacedLAFMergeFeedback2D,
+                PaperLAFMergeFeedback2D,
+                TargetSaliencyPaperLAFMergeFeedback2D,
+            }:
                 m_.twostream_route = "feedback"
             elif m in {ADD, LAFMerge2D, FTCrossMerge}:
                 m_.twostream_route = "graph"
@@ -1322,6 +1352,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             ir_stream_ch = c2
         elif f == -3 or m in {
             LAFMergeFeedback2D,
+            DisagreementLAFMergeFeedback2D,
+            SemanticDisagreementLAFMergeFeedback2D,
+            ASSALAFMergeFeedback2D,
+            ASSAReplacedLAFMergeFeedback2D,
             PaperLAFMergeFeedback2D,
             TargetSaliencyPaperLAFMergeFeedback2D,
         }:

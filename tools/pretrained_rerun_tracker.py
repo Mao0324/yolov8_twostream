@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Track corrected checkpoint-direct DroneVehicle reruns in a Markdown table."""
+"""Track historical reruns and safely launch new checkpoint-based experiments.
+
+``tracked_train`` remains strict for the fixed ``PT-Rxxx`` campaign. New
+experiments should use ``checkpoint_train``; for backward compatibility, a
+non-PT-R ID accidentally passed to ``tracked_train`` is routed there instead of
+failing after the monitor has already created a run.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +13,7 @@ import argparse
 import csv
 import fcntl
 import json
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, Mapping
@@ -172,6 +179,33 @@ RECORDS = (
         "project": "DroneVehicle_OBB_FusionTransfer",
         "name": "DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn-L2Norm-LearnTemp0p2_v4",
         "legacy_run": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-OBBMaskS-FP32Attn-L2Norm-LearnTemp0p2_v4",
+    },
+    {
+        "id": "PT-R018",
+        "experiment": "DarkAct LAF-only fused Refine P34",
+        "script": "train_dronevehicle_darkact_laf_refine_p34.py",
+        "checkpoint": "pre-pth/yolov8s-obb_twostream_darkact_laf_refine_p34_no_staticmaa_v1.pt",
+        "project": "DroneVehicle_OBB_FusionTransfer",
+        "name": "DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1",
+        "legacy_run": "DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1",
+    },
+    {
+        "id": "PT-R019",
+        "experiment": "DarkAct zero-centered StaticMAA",
+        "script": "train_dronevehicle_darkact_zero_centered_maa.py",
+        "checkpoint": "pre-pth/yolov8s-obb_twostream_darkact_zerocenteredmaa_laffeedback_p345_v1.pt",
+        "project": "DroneVehicle_OBB_FusionTransfer",
+        "name": "DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1",
+        "legacy_run": "DroneVehicle_OBB_FusionTransfer/DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1",
+    },
+    {
+        "id": "PT-R020",
+        "experiment": "DarkAct target saliency P34 soft-centerness",
+        "script": "train_dronevehicle_darkact_target_saliency_soft_centerness.py",
+        "checkpoint": "pre-pth/yolov8s-obb_twostream_darkact_target_saliency_soft_centerness_p34_warmup_v5.pt",
+        "project": "DroneVehicle_OBB_FusionTransfer",
+        "name": "DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5",
+        "legacy_run": "DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5",
     },
 )
 RECORD_BY_ID = {record["id"]: record for record in RECORDS}
@@ -400,10 +434,44 @@ def _verify_checkpoint_direct(
         )
 
 
+def checkpoint_train(model, checkpoint: str | Path, **train_args):
+    """Train a new experiment from an explicit checkpoint without PT-R bookkeeping.
+
+    This validates the common accidental YAML/direct-load failure while keeping
+    the historical rerun registry completely separate from new experiments.
+    """
+    checkpoint_path = repo_path(checkpoint)
+    resume = train_args.get("resume") or False
+    if checkpoint_path.suffix != ".pt" or not checkpoint_path.is_file():
+        raise FileNotFoundError(f"checkpoint training requires an existing .pt: {checkpoint_path}")
+    if resume and not isinstance(resume, bool):
+        resume_path = repo_path(resume)
+        if checkpoint_path.resolve() != resume_path.resolve():
+            raise ValueError(f"resume checkpoint mismatch: {checkpoint_path} != {resume_path}")
+    actual_model_arg = (getattr(model, "overrides", {}) or {}).get("model")
+    if not _same_path(actual_model_arg, checkpoint_path):
+        raise RuntimeError(
+            "new experiment is not checkpoint-direct: "
+            f"model.overrides['model']={actual_model_arg!r}, expected {checkpoint_path}"
+        )
+    return model.train(**train_args)
+
+
 def tracked_train(model, record_id: str, checkpoint: str | Path, **train_args):
-    """Run training and update the record only after artifact-level verification."""
+    """Run one explicitly registered historical PT-R rerun.
+
+    Unknown ``PT-Rxxx`` IDs still raise because they usually indicate a typo.
+    Other IDs are new experiments and safely fall back to ``checkpoint_train``.
+    """
     if record_id not in RECORD_BY_ID:
-        raise KeyError(f"unknown pretrained rerun record: {record_id}")
+        if str(record_id).upper().startswith("PT-R"):
+            raise KeyError(f"unknown historical pretrained rerun record: {record_id}")
+        warnings.warn(
+            f"{record_id} is a new experiment, not a historical PT-R rerun; "
+            "routing to checkpoint_train without historical bookkeeping.",
+            stacklevel=2,
+        )
+        return checkpoint_train(model, checkpoint, **train_args)
     record = RECORD_BY_ID[record_id]
     checkpoint_path = repo_path(checkpoint)
     resume = train_args.get("resume") or False

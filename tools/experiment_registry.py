@@ -228,7 +228,18 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
         training = _required_mapping(manifest.get("training"), "training", experiment_id, errors)
         launch_mode = training.get("launch_mode")
         files = _required_mapping(manifest.get("files"), "files", experiment_id, errors)
-        _check_path(experiment_id, "files.model_yaml", files.get("model_yaml"), errors, warnings, file_only=True)
+        # Historical manifests may outlive source YAMLs that were never
+        # recovered. Keep them visible in generated indexes; the selected
+        # experiment launcher performs its own strict model-YAML check.
+        _check_path(
+            experiment_id,
+            "files.model_yaml",
+            files.get("model_yaml"),
+            errors,
+            warnings,
+            required=False,
+            file_only=True,
+        )
         _check_path(
             experiment_id,
             "files.init_checkpoint",
@@ -314,7 +325,13 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
                     warnings.append(str(exc))
                 else:
                     args_name = legacy_args.get("name")
-                    if args_name and args_name != output.get("name"):
+                    output_name = str(output.get("name") or "")
+                    args_name_text = str(args_name or "")
+                    name_matches = args_name_text == output_name or (
+                        args_name_text.startswith(output_name)
+                        and args_name_text[len(output_name) :].isdigit()
+                    )
+                    if args_name and not name_matches:
                         errors.append(
                             f"{experiment_id}: output name differs from legacy args.yaml: "
                             f"{output.get('name')!r} != {args_name!r}"
@@ -411,6 +428,45 @@ def _discover_registered_runs(manifest: Mapping[str, Any]) -> List[Path]:
     return sorted(matches, key=lambda path: (_run_activity_mtime(path), path.name))
 
 
+def _discover_named_runs(manifest: Mapping[str, Any]) -> List[Path]:
+    """Find pre-registry script runs by their declared project/name pair.
+
+    Historical scripts wrote ``project=DroneVehicle_OBB_FusionTransfer`` while
+    newer manifests reserve ``runs/DroneVehicle_OBB_FusionTransfer`` for the
+    ID launcher.  Probe both layouts and validate args.yaml's run name so an
+    auto-status manifest can adopt completed legacy artifacts safely.
+    """
+
+    output = ((manifest.get("training") or {}).get("output") or {})
+    project_value = output.get("project")
+    output_name = str(output.get("name") or "")
+    if not project_value or not output_name:
+        return []
+    project = repo_path(project_value)
+    candidates = [project / output_name] if project is not None else []
+    project_parts = Path(str(project_value)).parts
+    if len(project_parts) > 1 and project_parts[0] == "runs":
+        candidates.append(ROOT.joinpath(*project_parts[1:], output_name))
+
+    matches = []
+    for candidate in candidates:
+        args_path = candidate / "args.yaml"
+        if not candidate.is_dir() or not args_path.is_file():
+            continue
+        try:
+            args = _read_yaml(args_path)
+        except (OSError, RegistryError, yaml.YAMLError):
+            continue
+        recorded_name = str(args.get("name") or candidate.name)
+        # Ultralytics may append a numeric collision suffix to args.name even
+        # when a historical wrapper has already fixed the outer save folder.
+        if recorded_name == candidate.name or (
+            recorded_name.startswith(candidate.name) and recorded_name[len(candidate.name) :].isdigit()
+        ):
+            matches.append(candidate.resolve())
+    return matches
+
+
 def _run_target_epochs(run_dir: Path, fallback: int) -> int:
     """Prefer the immutable per-run configuration over today's shared profile."""
 
@@ -481,8 +537,9 @@ def artifact_snapshot(manifest: Mapping[str, Any], now: Optional[float] = None) 
     legacy_run_value = (manifest.get("legacy") or {}).get("run_dir")
     legacy_run = repo_path(legacy_run_value)
     registered_runs = _discover_registered_runs(manifest)
+    named_runs = _discover_named_runs(manifest)
 
-    known_runs = {path.resolve() for path in registered_runs}
+    known_runs = {path.resolve() for path in (*registered_runs, *named_runs)}
     if legacy_run and legacy_run.is_dir():
         known_runs.add(legacy_run.resolve())
     selected_run = max(
