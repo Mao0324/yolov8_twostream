@@ -28,6 +28,7 @@ files:
     - ultralytics/nn/modules/__init__.py
     - ultralytics/nn/tasks.py
     - tools/train_experiment.py
+    - tools/test_experiment.py
     - tools/training_monitor.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
