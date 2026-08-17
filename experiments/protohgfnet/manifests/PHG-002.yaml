@@ -1,0 +1,44 @@
+schema_version: 1
+id: PHG-002
+family: ProtoHGFNet
+title: P3/P4 硬 top-k 原型超图，P5 保留 ADD
+parent_id: PHG-001
+lifecycle:
+  status: created
+  recovery_confidence: confirmed
+hypothesis: 原型关系对高分辨率小目标特征更有价值，P5 保留 ADD 可降低高层过平滑和额外计算。
+change_from_parent: P3/P4 与 PHG-001 相同，P5 恢复 baseline ADD。
+architecture:
+  summary: hard top-k prototype hypergraph fusion on P3/P4; ADD on P5
+  version: v1
+  stages: [P3, P4]
+  heads: K6-k3-hard
+  flow:
+    P3: hard prototype hypergraph fusion
+    P4: hard prototype hypergraph fusion
+    P5: baseline ADD
+files:
+  model_yaml: yaml/protohgf_hard_p34.yaml
+  train_entrypoint: train_dronevehicle_protohgfnet.py
+  migration_script: tools/make_protohgfnet_checkpoints.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_protohgf_hard_p34.pt
+  module_files:
+    - ultralytics/nn/modules/proto_hg_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - tools/train_experiment.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_ProtoHGFNet
+    name: ProtoHGF_PHG002_HardK6K3_P34_v1
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 与 PHG-001 构成融合尺度消融。
+  - residual_scale=0，迁移后初始函数严格等价于 baseline ADD。

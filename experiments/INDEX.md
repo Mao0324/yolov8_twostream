@@ -2,9 +2,9 @@
 
 > 本文件由 `python tools/experiment_registry.py render` 自动生成，请修改 Manifest，不要直接编辑本文件。
 
-生成时间：2026-08-10T10:02:55+08:00
+生成时间：2026-08-18T00:41:38+08:00
 
-当前登记 23 个实验：created=1，interrupted=4，planned=3，tested=13，trained=2。
+当前登记 26 个实验：created=4，interrupted=4，planned=3，tested=13，trained=2。
 
 | ID | 论文族 | 状态 | 父实验 | 相对父实验的唯一改动 | 架构摘要 | Epoch | Test mAP50-95 | 尝试次数 | 文件链路 |
 |---|---|---|---|---|---|---:|---:|---:|---|
@@ -31,6 +31,9 @@
 | DA-014 | DarkAct | tested | DA-010 | 保持 sqrt(HW) 模块和融合结构不变；将硬 OBB mask 换为旋转 soft-centerness，仅监督 P3/P4，权重为 1.0/0.5，gain 在 10 epoch 内升至 0.025，并记录 gate 统计。 | P3/P4 soft-centerness supervision -> FP32 sqrt(HW) saliency -> full-C PaperLAF feedback | 100/100 | 0.704 | 1 | [Manifest](darkact/manifests/DA-014.yaml) · [YAML](../yaml/yolov8s-DarkAct-TargetSaliency-PaperLAF-P34-SoftCenterness-Warmup-v5.yaml) · [旧 Train](../train_dronevehicle_darkact_target_saliency_soft_centerness.py) · [当前 Run](../DroneVehicle_OBB_FusionTransfer/DarkAct_TargetSaliencyPaperLAF_P34SoftCenterness-W1-0p5-Gain0p025-Warmup10-GateStats_v5) |
 | DA-015 | DarkAct | tested | DA-004 | 仅在 P3/P4 的原 LAF 输出上增加零初始化的轻量差异残差；P5、StaticMAA、Neck 和检测头保持不变。 | Post-C2f StaticMAA -> disagreement-aware LAF(P3/P4); original LAF(P5) | 100/100 | 0.708 | 1 | [Manifest](darkact/manifests/DA-015.yaml) · [YAML](../yaml/yolov8s-DarkAct-PostC2f-DisagreementLAF-P34-R4-v1.yaml) · [旧 Train](../train_dronevehicle_darkact_disagreement_laf_p34.py) · [当前 Run](../runs/DroneVehicle_OBB_FusionTransfer/DarkAct_DA015_PostC2f_DisagreementLAF_P34_H2-4-8_R4_v1) |
 | DA-016 | DarkAct | created | DA-007 | 仅将 P3/P4 的普通 LAF 替换为零初始化四权重语义分歧残差 LAF；P5、Neck、检测头、训练与增强策略完全不变。 | semantic-disagreement LAF(P3/P4); original LAF(P5); no StaticMAA | 100/100 | 0.708 | 1 | [Manifest](darkact/manifests/DA-016.yaml) · [YAML](../yaml/yolov8s-DarkAct-SemanticDisagreementLAF-P34-R4-NoStaticMAA-v1.yaml) · [旧 Train](../train_dronevehicle_darkact_semantic_disagreement_laf_p34.py) · [当前 Run](../runs/DroneVehicle_OBB_FusionTransfer/DarkAct_DA016_SemanticDisagreementLAF_P34_H2-4-8_R4-NoStaticMAA_v1) |
+| PHG-001 | ProtoHGFNet | created | BL-001 | 仅将 baseline 的 P3/P4/P5 ADD 替换为 K=6、k=3 的低秩 ProtoHypergraphFusion；其余架构和训练配置不变。 | hard top-k prototype hypergraph fusion on P3/P4/P5 | 0/100 | — | 0 | [Manifest](protohgfnet/manifests/PHG-001.yaml) · [YAML](../yaml/protohgf_hard_p345.yaml) · [旧 Train](../train_dronevehicle_protohgfnet.py) · — |
+| PHG-002 | ProtoHGFNet | created | PHG-001 | P3/P4 与 PHG-001 相同，P5 恢复 baseline ADD。 | hard top-k prototype hypergraph fusion on P3/P4; ADD on P5 | 0/100 | — | 0 | [Manifest](protohgfnet/manifests/PHG-002.yaml) · [YAML](../yaml/protohgf_hard_p34.yaml) · [旧 Train](../train_dronevehicle_protohgfnet.py) · — |
+| PHG-003 | ProtoHGFNet | created | PHG-001 | 保持 K=6、k=3 和 P3/P4/P5 位置不变，仅将二值关系改为 top-k 内 softmax 权重。 | soft-weighted top-k prototype hypergraph fusion on P3/P4/P5 | 0/100 | — | 0 | [Manifest](protohgfnet/manifests/PHG-003.yaml) · [YAML](../yaml/protohgf_soft_p345.yaml) · [旧 Train](../train_dronevehicle_protohgfnet.py) · — |
 
 ## 查询与训练
 

@@ -98,6 +98,7 @@ from ultralytics.nn.modules import (
     StaticMAAContext2DSqrtHW,
     TargetSaliencyPaperLAFMergeFeedback2D,
     FTCrossMerge,
+    ProtoHypergraphFusion,
     ZeroInitResidualRefine2D,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -1220,6 +1221,18 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if ch[f[1]] != c2:
                 raise ValueError(f"FTCrossMerge source channels differ: {c2} vs {ch[f[1]]}")
             args = [c2, *args]
+        elif m is ProtoHypergraphFusion:
+            if not isinstance(f, list) or len(f) != 2:
+                raise ValueError("ProtoHypergraphFusion requires exactly two source layers")
+            c2 = ch[f[0]]
+            if ch[f[1]] != c2:
+                raise ValueError(f"ProtoHypergraphFusion source channels differ: {c2} vs {ch[f[1]]}")
+            configured_c2 = make_divisible(min(args[0], max_channels) * width, 8)
+            if configured_c2 != c2:
+                raise ValueError(
+                    f"ProtoHypergraphFusion configured channels {configured_c2} do not match inputs {c2}"
+                )
+            args = [c2, *args[1:]]
         elif m in {SKAttention,GLF,NAM,GLCBAM,GCBAM,SACBAM,CSFM}:
             c1 = ch[f[0]]+ch[f[1]]
             c2 = ch[f[0]]
@@ -1329,7 +1342,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 TargetSaliencyPaperLAFMergeFeedback2D,
             }:
                 m_.twostream_route = "feedback"
-            elif m in {ADD, LAFMerge2D, FTCrossMerge}:
+            elif m in {ADD, LAFMerge2D, FTCrossMerge, ProtoHypergraphFusion}:
                 m_.twostream_route = "graph"
                 twostream_branch_active = False
             else:

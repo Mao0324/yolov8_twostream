@@ -1,0 +1,45 @@
+schema_version: 1
+id: PHG-001
+family: ProtoHGFNet
+title: P3/P4/P5 硬 top-k 原型超图融合
+parent_id: BL-001
+lifecycle:
+  status: created
+  recovery_confidence: confirmed
+hypothesis: 将像素级双模态交互压缩到少量目标语义原型并限制在硬 top-k 邻域，可减少 DroneVehicle 大面积背景对融合的干扰并提升测试 mAP50。
+change_from_parent: 仅将 baseline 的 P3/P4/P5 ADD 替换为 K=6、k=3 的低秩 ProtoHypergraphFusion；其余架构和训练配置不变。
+architecture:
+  summary: hard top-k prototype hypergraph fusion on P3/P4/P5
+  version: v1
+  stages: [P3, P4, P5]
+  heads: K6-k3-hard
+  flow:
+    P3: prototypes -> hard joint relation -> low-rank modulation -> global modality gate
+    P4: prototypes -> hard joint relation -> low-rank modulation -> global modality gate
+    P5: prototypes -> hard joint relation -> low-rank modulation -> global modality gate
+files:
+  model_yaml: yaml/protohgf_hard_p345.yaml
+  train_entrypoint: train_dronevehicle_protohgfnet.py
+  migration_script: tools/make_protohgfnet_checkpoints.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_protohgf_hard_p345.pt
+  module_files:
+    - ultralytics/nn/modules/proto_hg_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - tools/train_experiment.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_ProtoHGFNet
+    name: ProtoHGF_PHG001_HardK6K3_P345_v1
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 原论文 KC 级 FiLM 被改为 C/4 低秩原型回投，显著降低新增参数。
+  - 暂不引入双单模态教师，先隔离验证原型超图融合本身。
+  - residual_scale=0，迁移后初始函数严格等价于 baseline ADD。

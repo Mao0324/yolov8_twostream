@@ -1,0 +1,44 @@
+schema_version: 1
+id: PHG-003
+family: ProtoHGFNet
+title: P3/P4/P5 软 top-k 原型关系对照
+parent_id: PHG-001
+lifecycle:
+  status: created
+  recovery_confidence: confirmed
+hypothesis: 虽然论文中硬关系更优，但弱配准 DroneVehicle 上对 top-k 邻居保留相似度置信权重可能缓解错误边的突变影响。
+change_from_parent: 保持 K=6、k=3 和 P3/P4/P5 位置不变，仅将二值关系改为 top-k 内 softmax 权重。
+architecture:
+  summary: soft-weighted top-k prototype hypergraph fusion on P3/P4/P5
+  version: v1
+  stages: [P3, P4, P5]
+  heads: K6-k3-soft
+  flow:
+    P3: soft top-k prototype relation fusion
+    P4: soft top-k prototype relation fusion
+    P5: soft top-k prototype relation fusion
+files:
+  model_yaml: yaml/protohgf_soft_p345.yaml
+  train_entrypoint: train_dronevehicle_protohgfnet.py
+  migration_script: tools/make_protohgfnet_checkpoints.py
+  init_checkpoint: pre-pth/yolov8s-obb_twostream_protohgf_soft_p345.pt
+  module_files:
+    - ultralytics/nn/modules/proto_hg_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - tools/train_experiment.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/dronevehicle_obb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
+  output:
+    project: runs/DroneVehicle_OBB_ProtoHGFNet
+    name: ProtoHGF_PHG003_SoftK6K3_P345_v1
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 与 PHG-001 构成关系权重消融，不同时改变原型数或融合尺度。
+  - residual_scale=0，迁移后初始函数严格等价于 baseline ADD。
