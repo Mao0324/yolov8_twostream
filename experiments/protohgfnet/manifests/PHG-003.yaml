@@ -19,7 +19,7 @@ architecture:
     P5: soft top-k prototype relation fusion
 files:
   model_yaml: yaml/protohgf_soft_p345.yaml
-  train_entrypoint: train_dronevehicle_protohgfnet.py
+  train_entrypoint: train_dronevehicle_protohgf_soft_p345.py
   migration_script: tools/make_protohgfnet_checkpoints.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_protohgf_soft_p345.pt
   module_files:
