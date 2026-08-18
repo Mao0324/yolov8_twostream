@@ -20,7 +20,7 @@ architecture:
 files:
   model_yaml: yaml/cfgpnet_crosscea_only_p345.yaml
   train_entrypoint: train_dronevehicle_cfgpnet_crosscea_only_p345.py
-  migration_script: tools/make_cfgpnet_checkpoints_from_yolov8s.py
+  migration_script: tools/make_cfgpnet_checkpoints_from_baseline.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_cfgp_crosscea_only_p345.pt
   module_files:
     - ultralytics/nn/modules/cfgp_fusion.py
