@@ -19,7 +19,7 @@ architecture:
     P5: CrossCEA(groups=8) -> candidate max selection
 files:
   model_yaml: yaml/cfgpnet_crosscea_asaf_p345.yaml
-  train_entrypoint: train_dronevehicle_cfgpnet.py
+  train_entrypoint: train_dronevehicle_cfgpnet_crosscea_asaf_p345.py
   migration_script: tools/make_cfgpnet_checkpoints.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_cfgp_crosscea_asaf_p345.pt
   module_files:
