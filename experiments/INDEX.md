@@ -2,7 +2,7 @@
 
 > 本文件由 `python tools/experiment_registry.py render` 自动生成，请修改 Manifest，不要直接编辑本文件。
 
-生成时间：2026-08-18T09:48:52+08:00
+生成时间：2026-08-18T15:53:20+08:00
 
 当前登记 24 个实验：created=4，interrupted=4，planned=1，tested=13，trained=2。
 

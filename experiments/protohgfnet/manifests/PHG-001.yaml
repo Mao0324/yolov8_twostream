@@ -20,7 +20,7 @@ architecture:
 files:
   model_yaml: yaml/protohgf_hard_p345.yaml
   train_entrypoint: train_dronevehicle_protohgf_hard_p345.py
-  migration_script: tools/make_protohgfnet_checkpoints_from_yolov8s.py
+  migration_script: tools/make_protohgfnet_checkpoints_from_baseline.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_protohgf_hard_p345.pt
   module_files:
     - ultralytics/nn/modules/proto_hg_fusion.py
