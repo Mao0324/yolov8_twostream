@@ -2,7 +2,7 @@
 
 > 本文件由 Manifest 自动生成；模型结构以各实验链接的 YAML 为准。
 
-生成时间：2026-08-18T09:42:24+08:00
+生成时间：2026-08-18T09:48:52+08:00
 
 ## 架构树
 
@@ -28,7 +28,7 @@ PHG-001 [created] hard top-k prototype hypergraph fusion on P3/P4/P5
 - 架构：`hard top-k prototype hypergraph fusion on P3/P4/P5`。
 - 假设：将像素级双模态交互压缩到少量目标语义原型并限制在硬 top-k 邻域，可减少 DroneVehicle 大面积背景对融合的干扰并提升测试 mAP50。
 - 相对变化：仅将 baseline 的 P3/P4/P5 ADD 替换为 K=6、k=3 的低秩 ProtoHypergraphFusion；其余架构和训练配置不变。
-- 文件：[Manifest](manifests/PHG-001.yaml) · [YAML](../../yaml/protohgf_hard_p345.yaml) · [旧 Train](../../train_dronevehicle_protohgf_hard_p345.py) · [迁移脚本](../../tools/make_protohgfnet_checkpoints.py)。
+- 文件：[Manifest](manifests/PHG-001.yaml) · [YAML](../../yaml/protohgf_hard_p345.yaml) · [旧 Train](../../train_dronevehicle_protohgf_hard_p345.py) · [迁移脚本](../../tools/make_protohgfnet_checkpoints_from_yolov8s.py)。
 
 ### PHG-002 · P3/P4 硬 top-k 原型超图，P5 保留 ADD
 
@@ -36,7 +36,7 @@ PHG-001 [created] hard top-k prototype hypergraph fusion on P3/P4/P5
 - 架构：`hard top-k prototype hypergraph fusion on P3/P4; ADD on P5`。
 - 假设：原型关系对高分辨率小目标特征更有价值，P5 保留 ADD 可降低高层过平滑和额外计算。
 - 相对变化：P3/P4 与 PHG-001 相同，P5 恢复 baseline ADD。
-- 文件：[Manifest](manifests/PHG-002.yaml) · [YAML](../../yaml/protohgf_hard_p34.yaml) · [旧 Train](../../train_dronevehicle_protohgf_hard_p34.py) · [迁移脚本](../../tools/make_protohgfnet_checkpoints.py)。
+- 文件：[Manifest](manifests/PHG-002.yaml) · [YAML](../../yaml/protohgf_hard_p34.yaml) · [旧 Train](../../train_dronevehicle_protohgf_hard_p34.py) · [迁移脚本](../../tools/make_protohgfnet_checkpoints_from_yolov8s.py)。
 
 ### PHG-003 · P3/P4/P5 软 top-k 原型关系对照
 
@@ -44,4 +44,4 @@ PHG-001 [created] hard top-k prototype hypergraph fusion on P3/P4/P5
 - 架构：`soft-weighted top-k prototype hypergraph fusion on P3/P4/P5`。
 - 假设：虽然论文中硬关系更优，但弱配准 DroneVehicle 上对 top-k 邻居保留相似度置信权重可能缓解错误边的突变影响。
 - 相对变化：保持 K=6、k=3 和 P3/P4/P5 位置不变，仅将二值关系改为 top-k 内 softmax 权重。
-- 文件：[Manifest](manifests/PHG-003.yaml) · [YAML](../../yaml/protohgf_soft_p345.yaml) · [旧 Train](../../train_dronevehicle_protohgf_soft_p345.py) · [迁移脚本](../../tools/make_protohgfnet_checkpoints.py)。
+- 文件：[Manifest](manifests/PHG-003.yaml) · [YAML](../../yaml/protohgf_soft_p345.yaml) · [旧 Train](../../train_dronevehicle_protohgf_soft_p345.py) · [迁移脚本](../../tools/make_protohgfnet_checkpoints_from_yolov8s.py)。
