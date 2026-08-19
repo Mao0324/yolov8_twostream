@@ -99,7 +99,7 @@ class ProtoHypergraphFusion(nn.Module):
     def _topk_relation(self, similarity, k, self_loops=False):
         values, indices = similarity.topk(k, dim=-1)
         if self.relation == "soft":
-            edge_values = F.softmax(values, dim=-1)
+            edge_values = F.softmax(values, dim=-1).to(dtype=similarity.dtype)
         else:
             edge_values = torch.ones_like(values)
         relation = torch.zeros_like(similarity).scatter(-1, indices, edge_values)
