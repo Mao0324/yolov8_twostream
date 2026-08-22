@@ -849,6 +849,82 @@ class P2IRPromptAsymIdentityGDERMergeFeedback2D(_P2AsymmetricIRPromptMergeFeedba
         )
 
 
+class P2IRPromptAsymModExpertMergeFeedback2D(_P2AsymmetricIRPromptMergeFeedbackBase):
+    """V14 IR prompt/LAF plus only the V13 asymmetric modality expert at P4."""
+
+    def __init__(
+        self,
+        channels,
+        num_heads=4,
+        partial_ratio=4,
+        dilation=1,
+        gate_reduction=8,
+        expert_reduction=8,
+    ):
+        # Build the unchanged V13 Prompt/LAF path without instantiating either
+        # V13 GDER expert or its dual-expert gate, then add only E_mod.
+        super().__init__(channels, num_heads, partial_ratio, dilation, gate_reduction)
+        self.modality_expert = _P2AsymmetricIdentityModalityExpert(channels, expert_reduction)
+
+    def forward(self, x):
+        rgb, ir = self._validate_inputs(x)
+        ir_spatial_logits = self.ir_prompt_head(ir)
+        p_ir = ir_spatial_logits.sigmoid()
+        ir_prompted = ir + self.ir_prompt_embed(p_ir)
+
+        fused_base = self.merge((rgb, ir_prompted))
+        modality_feature = self.modality_expert(rgb, ir_prompted, p_ir)
+        fused_refined = fused_base + modality_feature
+
+        if self.capture_prompt:
+            self._last_aux_outputs = {
+                "ir_spatial_logits": ir_spatial_logits,
+                "rgb_spatial_logits": None,
+                "rgb_global_logit": None,
+            }
+
+        correction = fused_refined - (rgb + ir)
+        return rgb + correction, ir + correction, fused_refined
+
+
+class P2IRPromptAttExpertMergeFeedback2D(_P2AsymmetricIRPromptMergeFeedbackBase):
+    """V15 IR prompt/LAF plus only the V13 prior-agnostic attention expert at P4."""
+
+    def __init__(
+        self,
+        channels,
+        num_heads=4,
+        partial_ratio=4,
+        dilation=1,
+        gate_reduction=8,
+        expert_reduction=8,
+    ):
+        # Build the unchanged V13 Prompt/LAF path without E_mod, E_att, or the
+        # gate, then add back only the exact V13 E_att implementation.
+        super().__init__(channels, num_heads, partial_ratio, dilation, gate_reduction)
+        self.attention_expert = _P2CBAMExpert(channels, expert_reduction)
+
+    def forward(self, x):
+        rgb, ir = self._validate_inputs(x)
+        ir_spatial_logits = self.ir_prompt_head(ir)
+        p_ir = ir_spatial_logits.sigmoid()
+        ir_prompted = ir + self.ir_prompt_embed(p_ir)
+
+        fused_base = self.merge((rgb, ir_prompted))
+        attention_feature = self.attention_expert(fused_base)
+        fused_refined = fused_base + attention_feature
+
+        if self.capture_prompt:
+            self._last_aux_outputs = {
+                "ir_spatial_logits": ir_spatial_logits,
+                "rgb_spatial_logits": None,
+                "rgb_global_logit": None,
+            }
+
+        correction = fused_refined - (rgb + ir)
+        return rgb + correction, ir + correction, fused_refined
+
+
 P2_PROMPT_MODULES = (
     P2IRPromptLAFMergeFeedback2D,
     P2DualPromptLAFMergeFeedback2D,
@@ -864,6 +940,8 @@ P2_SECOND_GEN_PROMPT_MODULES = (
     P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
     P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
     P2IRPromptAsymIdentityGDERMergeFeedback2D,
+    P2IRPromptAsymModExpertMergeFeedback2D,
+    P2IRPromptAttExpertMergeFeedback2D,
 )
 
 __all__ = (
@@ -880,4 +958,6 @@ __all__ = (
     "P2_SECOND_GEN_PROMPT_MODULES",
     "P2IRPromptLAFMergeFeedbackNoStaticMAA2D",
     "P2IRPromptAsymIdentityGDERMergeFeedback2D",
+    "P2IRPromptAsymModExpertMergeFeedback2D",
+    "P2IRPromptAttExpertMergeFeedback2D",
 )

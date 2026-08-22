@@ -102,6 +102,8 @@ from ultralytics.nn.modules import (
     P2IRPromptLAFMergeFeedback2D,
     P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
     P2IRPromptAsymIdentityGDERMergeFeedback2D,
+    P2IRPromptAsymModExpertMergeFeedback2D,
+    P2IRPromptAttExpertMergeFeedback2D,
     P2IRSpatialRGBGlobalLAFMergeFeedback2D,
     P2DualPromptLAFMergeFeedback2D,
     P2DualPromptGDERMergeFeedback2D,
@@ -249,6 +251,8 @@ class BaseModel(nn.Module):
                         P2DualSpatialLAFMergeFeedback2D,
                         P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
                         P2IRPromptAsymIdentityGDERMergeFeedback2D,
+                        P2IRPromptAsymModExpertMergeFeedback2D,
+                        P2IRPromptAttExpertMergeFeedback2D,
                     ),
                 ):
                     route = "feedback"
@@ -1200,6 +1204,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             P2DualSpatialLAFMergeFeedback2D,
             P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
             P2IRPromptAsymIdentityGDERMergeFeedback2D,
+            P2IRPromptAsymModExpertMergeFeedback2D,
+            P2IRPromptAttExpertMergeFeedback2D,
         }:
             if isinstance(f, int) and m in {
                 LAFMergeFeedback2D,
@@ -1218,6 +1224,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 P2DualSpatialLAFMergeFeedback2D,
                 P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
                 P2IRPromptAsymIdentityGDERMergeFeedback2D,
+                P2IRPromptAsymModExpertMergeFeedback2D,
+                P2IRPromptAttExpertMergeFeedback2D,
             }:
                 # A saved StaticMAA2D layer carries the (RGB, IR) pair as one
                 # graph source. Existing two-source LAF configurations retain
@@ -1395,6 +1403,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 P2DualSpatialLAFMergeFeedback2D,
                 P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
                 P2IRPromptAsymIdentityGDERMergeFeedback2D,
+                P2IRPromptAsymModExpertMergeFeedback2D,
+                P2IRPromptAttExpertMergeFeedback2D,
             }:
                 m_.twostream_route = "feedback"
             elif m in {ADD, LAFMerge2D, FTCrossMerge, ProtoHypergraphFusion}:
@@ -1437,6 +1447,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             P2DualSpatialLAFMergeFeedback2D,
             P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
             P2IRPromptAsymIdentityGDERMergeFeedback2D,
+            P2IRPromptAsymModExpertMergeFeedback2D,
+            P2IRPromptAttExpertMergeFeedback2D,
         }:
             rgb_stream_ch = ir_stream_ch = c2
         

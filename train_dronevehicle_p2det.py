@@ -78,6 +78,14 @@ VARIANTS = {
         "yaml/yolov8s-P2Det-IRPrompt-AsymIdentityGDER-P4-NoStaticMAA-PostC2f-v13.yaml",
         "P2D-013_IRPrompt-AsymIdentityGDER-P4-NoStaticMAA_PostC2f_v13",
     ),
+    "asym_mod_expert_p4": (
+        "yaml/yolov8s-P2Det-IRPrompt-AsymModExpert-P4-NoStaticMAA-PostC2f-v14.yaml",
+        "P2D-014_IRPrompt-AsymModExpert-P4-NoStaticMAA_PostC2f_v14",
+    ),
+    "att_expert_p4": (
+        "yaml/yolov8s-P2Det-IRPrompt-AttExpert-P4-NoStaticMAA-PostC2f-v15.yaml",
+        "P2D-015_IRPrompt-AttExpert-P4-NoStaticMAA_PostC2f_v15",
+    ),
 }
 
 # Keep every historical semantic key and add explicit version aliases.
@@ -96,6 +104,8 @@ VARIANTS.update(
         "v11": VARIANTS["ir_only_no_static"],
         "v12": VARIANTS["asym_identity_gder_p45"],
         "v13": VARIANTS["asym_identity_gder_p4"],
+        "v14": VARIANTS["asym_mod_expert_p4"],
+        "v15": VARIANTS["att_expert_p4"],
     }
 )
 SECOND_GEN_VARIANTS = {
@@ -106,6 +116,8 @@ SECOND_GEN_VARIANTS = {
     "ir_only_no_static",
     "asym_identity_gder_p45",
     "asym_identity_gder_p4",
+    "asym_mod_expert_p4",
+    "att_expert_p4",
     "v7",
     "v8",
     "v9",
@@ -113,6 +125,8 @@ SECOND_GEN_VARIANTS = {
     "v11",
     "v12",
     "v13",
+    "v14",
+    "v15",
 }
 
 _torch_load = torch.load

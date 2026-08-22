@@ -113,6 +113,8 @@ from .p2det_prompt_gder import (
     P2IRPromptLAFMergeFeedback2D,
     P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
     P2IRPromptAsymIdentityGDERMergeFeedback2D,
+    P2IRPromptAsymModExpertMergeFeedback2D,
+    P2IRPromptAttExpertMergeFeedback2D,
     P2IRSpatialRGBGlobalLAFMergeFeedback2D,
 )
 from .zero_init_refine import ZeroInitResidualRefine2D
@@ -228,6 +230,8 @@ __all__ = (
     "P2IRPromptLAFMergeFeedback2D",
     "P2IRPromptLAFMergeFeedbackNoStaticMAA2D",
     "P2IRPromptAsymIdentityGDERMergeFeedback2D",
+    "P2IRPromptAsymModExpertMergeFeedback2D",
+    "P2IRPromptAttExpertMergeFeedback2D",
     "P2DualPromptLAFMergeFeedback2D",
     "P2DualPromptGDERMergeFeedback2D",
     "P2_PROMPT_MODULES",
