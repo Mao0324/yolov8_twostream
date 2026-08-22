@@ -1,0 +1,155 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "P2D 测试集性能瓶颈分析",
+    "description": "DroneVehicle OBB FusionTransfer 中 P2D-001 至 P2D-013 的测试结果完整性、总体平台期、类别差异和历史上限分析。",
+    "generatedAt": "2026-08-22T10:09:50+08:00",
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# P2D 测试集性能瓶颈分析"},
+      {"id": "summary", "type": "markdown", "body": "## 技术结论\n\n**P2D 当前已经进入明确的工程性局部瓶颈，但不能据此断言所有类别达到绝对上限。** 9 个已完成测试的配置中，mAP50 仅落在 0.835–0.840；P2D-001 首次达到 0.840 后，后续 8 个已测试配置没有刷新。mAP50-95 仅从首个配置的 0.706 提升到 P2D-008 的 0.707。当前结构微调主要造成类别间收益互换，而不是稳定抬高总体 AP。\n\ncar 和 bus 基本饱和于当前评估口径；van 与 freight_car 仍明显可动，但改进经常被其他类别回退抵消。按 9 个配置逐类挑选观测最佳值，理论宏平均 mAP50 也只有 0.842，比实际最好 0.840 高 0.002，说明在**已探索的 P2D 设计空间内**剩余组合红利很小。\n\n结论仍有重要限制：13 个 P2D 目录只有 9 个具有 test.txt；P2D-005 已训练 91 epoch 但尚未测试，P2D-011 至 013 仅训练 2–3 epoch。每个配置只有 seed 0 单次结果，且 test.txt 只保留三位小数，因此无法把 0.001–0.003 的差异解释为统计显著提升。"},
+      {"id": "overall_head", "type": "markdown", "body": "## 总体 mAP 已形成窄平台\n\nP2D-001、P2D-006 的 mAP50 并列最高 0.840；P2D-008 的 mAP50-95 最高 0.707，但其 mAP50 为 0.839。所有其余配置都落在这三个前沿点之下。图中 9 个实验的总体 AP 波动范围均只有 0.005，且没有形成随编号推进的持续上升趋势。", "sourceId": "p2d_test_source"},
+      {"id": "overall_chart_block", "type": "chart", "chartId": "overall_chart", "layout": "full"},
+      {"id": "class_head", "type": "markdown", "body": "## 不是所有类别都“提不上去”\n\ncar 的 9 次 mAP50 全部为 0.986，bus 仅在 0.967–0.969 之间变化，二者可视为当前分辨率、训练方案和模型族下的稳定高位。truck 的跨度为 0.008；van 为 0.011；freight_car 最大，为 0.019。后两类仍有可优化空间，但现有模块改动更像在类别之间重新分配能力，而没有同时改善所有类别。", "sourceId": "p2d_test_source"},
+      {"id": "class_chart_block", "type": "chart", "chartId": "class_spread_chart", "layout": "full"},
+      {"id": "frontier", "type": "markdown", "body": "## 当前前沿由三个配置构成\n\n- **P2D-001**：mAP50/mAP50-95 为 0.840/0.706，truck mAP50 最高 0.846。\n- **P2D-006**：同为 0.840/0.706，van mAP50 最高 0.684。\n- **P2D-008**：mAP50-95 最高 0.707，freight_car 同时取得最高 mAP50 0.725 和最高 mAP50-95 0.596。\n\n如果主目标是总体 mAP50，P2D-001 与 P2D-006 没有可分辨差异；如果更重视严格定位或 freight_car，P2D-008 更合适。不要依据不同 GPU 上的 FPS 把这三者作准确速度排序。", "sourceId": "p2d_test_source"},
+      {"id": "history", "type": "markdown", "body": "## P2D 尚未超过目录内历史最好结果\n\n同一 DroneVehicle test split 上，旧系列最高记录为 mAP50=0.841、mAP50-95=0.708。P2D 当前最好分别低 0.001。差值很小，不能说明 P2D 明显更差，但说明 P2D 的结构创新尚未形成超出既有平台的可确认增益。", "sourceId": "historical_source"},
+      {"id": "scope", "type": "markdown", "body": "## 范围、数据和指标定义\n\n纳入 P2D-001、002、003、004、006、007、008、009、010 的独立 test.txt。九组均使用 DroneVehicle test split、8,980 张图、159,614 个 OBB 实例、640 输入；类别为 car、truck、bus、van、freight_car。mAP50 是 IoU=0.50 下五类 AP 的宏平均；mAP50-95 是 IoU 0.50:0.95 的宏平均。类别实例数高度不均衡，但 mAP 对类别等权，因此任一类别提升 0.010 只会使总体 mAP 理论上提升约 0.002。"},
+      {"id": "method", "type": "markdown", "body": "## 判断方法\n\n本分析先核对测试口径一致性与结果完整性，再比较总体范围、按实验顺序的最好已知值、各类别跨配置范围、逐类观测最优值的宏平均，以及目录内非 P2D 历史最好值。将“局部瓶颈”定义为：连续结构变体无法刷新总体最佳、总体波动窄、类别收益相互抵消，并且逐类拼接观测最佳后的剩余宏平均红利很小。训练验证集最佳值也被核对，但 9 个配置中验证最佳与测试结果的线性相关很弱，因此没有用验证排名替代测试结论。"},
+      {"id": "limits", "type": "markdown", "body": "## 限制、稳健性和数据质量\n\n**结论置信度为中等。** 单配置单 seed 无法估计训练方差；测试汇总只保留三位小数，0.001 级差异处于显示精度边界；目录中没有逐图预测或 bootstrap 结果，无法给出置信区间。P2D-005 有 91 个训练 epoch 和 best.pt，但缺少测试结果；P2D-011 至 013 只有 2–3 个 epoch，也不能纳入。\n\n此外，如果模型设计一直参考这批 test 结果，测试集已逐步承担验证集角色，会产生选择偏差。后续实验应只用 validation 做迭代，把 test 冻结到候选方案和多 seed 都确定后再评一次，最好再保留一个未参与设计的新 holdout。"},
+      {"id": "next", "type": "markdown", "body": "## 推荐下一步\n\n1. 先补测 P2D-005；P2D-011 至 013 完整训练后再统一测试，补齐结果矩阵。\n2. 对 P2D-001、006、008 各跑至少 3 个 seed；只有平均增益超过 seed 波动并且方向一致，才算突破平台。\n3. 暂停继续堆叠同类 prompt/GDER 小改动，优先针对 van 与 freight_car 做可解释分桶：目标尺寸、长宽比、旋转角、遮挡、昼夜/模态质量。\n4. 导出逐图预测并 bootstrap mAP；同时增加 AP75、按尺寸 AP 和类别混淆，判断瓶颈来自分类、召回还是高 IoU 定位。\n5. 若仍要追总体 mAP50，目标应至少设为稳定超过 0.842，而不是追逐 0.001 的单次峰值；否则更值得优化 mAP50-95、难类 AP、参数量或延迟。"},
+      {"id": "questions", "type": "markdown", "body": "## 后续问题\n\nP2D-005 的测试结果是否会改变当前前沿？van 与 freight_car 的错误是否集中在小目标、极端长宽比或跨模态失配？P2D-001、006、008 的 3-seed 均值和方差分别是多少？在未被反复查看的新 holdout 上，0.840 左右的平台是否仍然存在？"}
+    ],
+    "cards": [],
+    "charts": [
+      {
+        "id": "overall_chart",
+        "title": "P2D 已测试配置的总体 AP",
+        "subtitle": "9 个可比测试结果；实验编号为离散设计顺序，非连续时间",
+        "type": "line",
+        "intent": "trend",
+        "dataset": "run_metrics_long",
+        "encodings": {
+          "x": {"field": "run", "label": "实验"},
+          "y": {"field": "value", "label": "AP", "format": "number"}
+        },
+        "color": {"field": "metric", "label": "指标"},
+        "tooltip": [
+          {"field": "design", "label": "设计"},
+          {"field": "val_best", "label": "验证集最佳"},
+          {"field": "car_map50", "label": "car mAP50"},
+          {"field": "truck_map50", "label": "truck mAP50"},
+          {"field": "van_map50", "label": "van mAP50"},
+          {"field": "freight_map50", "label": "freight_car mAP50"}
+        ],
+        "sourceId": "p2d_test_source"
+      },
+      {
+        "id": "class_spread_chart",
+        "title": "各类别 mAP50 的跨配置范围",
+        "subtitle": "最大值减最小值；范围表示对设计变化的敏感度，不等同于可实现的未来增益",
+        "type": "bar",
+        "intent": "comparison",
+        "dataset": "class_spread",
+        "encodings": {
+          "x": {"field": "class", "label": "类别"},
+          "y": {"field": "range_map50", "label": "mAP50 范围", "format": "number"}
+        },
+        "tooltip": [
+          {"field": "min_map50", "label": "最低"},
+          {"field": "max_map50", "label": "最高"},
+          {"field": "mean_map50", "label": "均值"},
+          {"field": "best_run", "label": "最高配置"},
+          {"field": "instances", "label": "测试实例数"}
+        ],
+        "options": {"orientation": "vertical"},
+        "sourceId": "p2d_test_source"
+      }
+    ],
+    "tables": [],
+    "sources": [
+      {
+        "id": "p2d_test_source",
+        "label": "P2D 测试结果汇总",
+        "query": {
+          "description": "从 9 份 test_result/test.txt 对齐总体与类别指标，并与各自 results.csv 的验证集最佳值配对。",
+          "engine": "SQL values snapshot",
+          "language": "SQL",
+          "sql": "SELECT * FROM (VALUES ('P2D-001',0.840,0.706,0.986,0.846,0.967,0.677,0.723),('P2D-002',0.839,0.706,0.986,0.844,0.967,0.681,0.717),('P2D-003',0.835,0.702,0.986,0.838,0.969,0.676,0.707),('P2D-004',0.837,0.703,0.986,0.843,0.968,0.678,0.709),('P2D-006',0.840,0.706,0.986,0.843,0.968,0.684,0.718),('P2D-007',0.837,0.704,0.986,0.842,0.968,0.680,0.710),('P2D-008',0.839,0.707,0.986,0.843,0.969,0.674,0.725),('P2D-009',0.836,0.704,0.986,0.841,0.968,0.680,0.706),('P2D-010',0.837,0.704,0.986,0.845,0.969,0.673,0.713)) AS t(run,map50,map5095,car,truck,bus,van,freight_car)",
+          "tables_used": ["DroneVehicle_OBB_FusionTransfer/P2D-*/test_result/test.txt", "DroneVehicle_OBB_FusionTransfer/P2D-*/results.csv"],
+          "filters": ["P2D 前缀", "存在 test_result/test.txt", "DroneVehicle test split", "imgsz=640"],
+          "metric_definitions": ["mAP50 = 五个类别在 IoU=0.50 下 AP 的宏平均", "mAP50-95 = 五个类别在 IoU 0.50:0.95 下 AP 的宏平均", "class range = 9 个已测试配置中该类别最大 mAP50 减最小 mAP50"]
+        }
+      },
+      {
+        "id": "historical_source",
+        "label": "目录内历史最好测试结果",
+        "query": {
+          "description": "扫描 DroneVehicle_OBB_FusionTransfer 下非 P2D test.txt 的 all 行并按总体 AP 排序。",
+          "engine": "SQL values snapshot",
+          "language": "SQL",
+          "sql": "SELECT * FROM (VALUES ('DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12',0.841,0.708),('DarkAct_StaticMAA2DLAFMergeFeedbackRefine_P345_H2-4-8_RefineE0p25-K1-3-G0-MSK3-5-R4-PosBeta-DW3D1-2-2_v12',0.840,0.708)) AS t(run,map50,map5095)",
+          "tables_used": ["DroneVehicle_OBB_FusionTransfer/*/test_result/test.txt"],
+          "filters": ["排除 P2D 前缀", "同一 DroneVehicle test split"]
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "generatedAt": "2026-08-22T10:09:50+08:00",
+    "datasets": {
+      "run_metrics_long": [
+        {"run": "P2D-001", "order": 1, "design": "IRPrompt-P34-PostC2f", "metric": "mAP50", "value": 0.840, "val_best": 0.87293, "car_map50": 0.986, "truck_map50": 0.846, "bus_map50": 0.967, "van_map50": 0.677, "freight_map50": 0.723},
+        {"run": "P2D-001", "order": 1, "design": "IRPrompt-P34-PostC2f", "metric": "mAP50-95", "value": 0.706, "val_best": 0.73153, "car_map50": 0.986, "truck_map50": 0.846, "bus_map50": 0.967, "van_map50": 0.677, "freight_map50": 0.723},
+        {"run": "P2D-002", "order": 2, "design": "DualPrompt-P34-PostC2f", "metric": "mAP50", "value": 0.839, "val_best": 0.86124, "car_map50": 0.986, "truck_map50": 0.844, "bus_map50": 0.967, "van_map50": 0.681, "freight_map50": 0.717},
+        {"run": "P2D-002", "order": 2, "design": "DualPrompt-P34-PostC2f", "metric": "mAP50-95", "value": 0.706, "val_best": 0.71970, "car_map50": 0.986, "truck_map50": 0.844, "bus_map50": 0.967, "van_map50": 0.681, "freight_map50": 0.717},
+        {"run": "P2D-003", "order": 3, "design": "DualPrompt-GDER-P4", "metric": "mAP50", "value": 0.835, "val_best": 0.86918, "car_map50": 0.986, "truck_map50": 0.838, "bus_map50": 0.969, "van_map50": 0.676, "freight_map50": 0.707},
+        {"run": "P2D-003", "order": 3, "design": "DualPrompt-GDER-P4", "metric": "mAP50-95", "value": 0.702, "val_best": 0.72766, "car_map50": 0.986, "truck_map50": 0.838, "bus_map50": 0.969, "van_map50": 0.676, "freight_map50": 0.707},
+        {"run": "P2D-004", "order": 4, "design": "DualPrompt-P345-GDER-P45", "metric": "mAP50", "value": 0.837, "val_best": 0.87469, "car_map50": 0.986, "truck_map50": 0.843, "bus_map50": 0.968, "van_map50": 0.678, "freight_map50": 0.709},
+        {"run": "P2D-004", "order": 4, "design": "DualPrompt-P345-GDER-P45", "metric": "mAP50-95", "value": 0.703, "val_best": 0.73277, "car_map50": 0.986, "truck_map50": 0.843, "bus_map50": 0.968, "van_map50": 0.678, "freight_map50": 0.709},
+        {"run": "P2D-006", "order": 6, "design": "DualPrompt-GDER-P45-NoStaticMAA", "metric": "mAP50", "value": 0.840, "val_best": 0.86747, "car_map50": 0.986, "truck_map50": 0.843, "bus_map50": 0.968, "van_map50": 0.684, "freight_map50": 0.718},
+        {"run": "P2D-006", "order": 6, "design": "DualPrompt-GDER-P45-NoStaticMAA", "metric": "mAP50-95", "value": 0.706, "val_best": 0.72704, "car_map50": 0.986, "truck_map50": 0.843, "bus_map50": 0.968, "van_map50": 0.684, "freight_map50": 0.718},
+        {"run": "P2D-007", "order": 7, "design": "IRSpatial-RGBGlobal-P34", "metric": "mAP50", "value": 0.837, "val_best": 0.86642, "car_map50": 0.986, "truck_map50": 0.842, "bus_map50": 0.968, "van_map50": 0.680, "freight_map50": 0.710},
+        {"run": "P2D-007", "order": 7, "design": "IRSpatial-RGBGlobal-P34", "metric": "mAP50-95", "value": 0.704, "val_best": 0.72686, "car_map50": 0.986, "truck_map50": 0.842, "bus_map50": 0.968, "van_map50": 0.680, "freight_map50": 0.710},
+        {"run": "P2D-008", "order": 8, "design": "DualPrompt-IdentityGDER-P45", "metric": "mAP50", "value": 0.839, "val_best": 0.87462, "car_map50": 0.986, "truck_map50": 0.843, "bus_map50": 0.969, "van_map50": 0.674, "freight_map50": 0.725},
+        {"run": "P2D-008", "order": 8, "design": "DualPrompt-IdentityGDER-P45", "metric": "mAP50-95", "value": 0.707, "val_best": 0.73431, "car_map50": 0.986, "truck_map50": 0.843, "bus_map50": 0.969, "van_map50": 0.674, "freight_map50": 0.725},
+        {"run": "P2D-009", "order": 9, "design": "DualPrompt-RGBGlobal-IdentityGDER", "metric": "mAP50", "value": 0.836, "val_best": 0.86291, "car_map50": 0.986, "truck_map50": 0.841, "bus_map50": 0.968, "van_map50": 0.680, "freight_map50": 0.706},
+        {"run": "P2D-009", "order": 9, "design": "DualPrompt-RGBGlobal-IdentityGDER", "metric": "mAP50-95", "value": 0.704, "val_best": 0.72467, "car_map50": 0.986, "truck_map50": 0.841, "bus_map50": 0.968, "van_map50": 0.680, "freight_map50": 0.706},
+        {"run": "P2D-010", "order": 10, "design": "DualPrompt-RGBGlobal-FactorizedP4", "metric": "mAP50", "value": 0.837, "val_best": 0.86941, "car_map50": 0.986, "truck_map50": 0.845, "bus_map50": 0.969, "van_map50": 0.673, "freight_map50": 0.713},
+        {"run": "P2D-010", "order": 10, "design": "DualPrompt-RGBGlobal-FactorizedP4", "metric": "mAP50-95", "value": 0.704, "val_best": 0.72974, "car_map50": 0.986, "truck_map50": 0.845, "bus_map50": 0.969, "van_map50": 0.673, "freight_map50": 0.713}
+      ],
+      "class_spread": [
+        {"class": "car", "instances": 137146, "min_map50": 0.986, "max_map50": 0.986, "range_map50": 0.000, "mean_map50": 0.9860, "best_run": "并列全部"},
+        {"class": "truck", "instances": 8657, "min_map50": 0.838, "max_map50": 0.846, "range_map50": 0.008, "mean_map50": 0.8428, "best_run": "P2D-001"},
+        {"class": "bus", "instances": 4467, "min_map50": 0.967, "max_map50": 0.969, "range_map50": 0.002, "mean_map50": 0.9681, "best_run": "P2D-003/008/010"},
+        {"class": "van", "instances": 4282, "min_map50": 0.673, "max_map50": 0.684, "range_map50": 0.011, "mean_map50": 0.6781, "best_run": "P2D-006"},
+        {"class": "freight_car", "instances": 5062, "min_map50": 0.706, "max_map50": 0.725, "range_map50": 0.019, "mean_map50": 0.7142, "best_run": "P2D-008"}
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "p2d_test_source",
+      "label": "P2D 测试结果汇总",
+      "query": {
+        "description": "从 9 份 P2D test.txt 对齐总体和分类指标。",
+        "engine": "SQL values snapshot",
+        "language": "SQL",
+        "sql": "SELECT * FROM (VALUES ('P2D-001',0.840,0.706),('P2D-002',0.839,0.706),('P2D-003',0.835,0.702),('P2D-004',0.837,0.703),('P2D-006',0.840,0.706),('P2D-007',0.837,0.704),('P2D-008',0.839,0.707),('P2D-009',0.836,0.704),('P2D-010',0.837,0.704)) AS t(run,map50,map5095)"
+      }
+    },
+    {
+      "id": "historical_source",
+      "label": "目录内历史最好测试结果",
+      "query": {
+        "description": "非 P2D 历史最好值。",
+        "engine": "SQL values snapshot",
+        "language": "SQL",
+        "sql": "SELECT * FROM (VALUES ('historical best mAP50',0.841,0.708),('historical best mAP50-95',0.840,0.708)) AS t(record,map50,map5095)"
+      }
+    }
+  ]
+}

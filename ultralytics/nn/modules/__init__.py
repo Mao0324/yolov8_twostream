@@ -100,6 +100,21 @@ from .darkact_target_saliency_stable_attention import (
 )
 from .ft_fusion import FTCrossMerge
 from .proto_hg_fusion import ProtoHypergraphFusion
+from .p2det_prompt_gder import (
+    P2_PROMPT_MODULES,
+    P2_SECOND_GEN_PROMPT_MODULES,
+    P2DualPromptGDERMergeFeedback2D,
+    P2DualPromptIdentityGDERMergeFeedback2D,
+    P2DualPromptLAFMergeFeedback2D,
+    P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+    P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+    P2DualPromptRGBGlobalLAFMergeFeedback2D,
+    P2DualSpatialLAFMergeFeedback2D,
+    P2IRPromptLAFMergeFeedback2D,
+    P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+    P2IRPromptAsymIdentityGDERMergeFeedback2D,
+    P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+)
 from .zero_init_refine import ZeroInitResidualRefine2D
 from .conv import (
     CBAM,
@@ -210,5 +225,18 @@ __all__ = (
     "TargetSaliencyPaperLAFMergeFeedback2D",
     "FTCrossMerge",
     "ProtoHypergraphFusion",
+    "P2IRPromptLAFMergeFeedback2D",
+    "P2IRPromptLAFMergeFeedbackNoStaticMAA2D",
+    "P2IRPromptAsymIdentityGDERMergeFeedback2D",
+    "P2DualPromptLAFMergeFeedback2D",
+    "P2DualPromptGDERMergeFeedback2D",
+    "P2_PROMPT_MODULES",
+    "P2IRSpatialRGBGlobalLAFMergeFeedback2D",
+    "P2DualSpatialLAFMergeFeedback2D",
+    "P2DualPromptIdentityGDERMergeFeedback2D",
+    "P2DualPromptRGBGlobalLAFMergeFeedback2D",
+    "P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D",
+    "P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D",
+    "P2_SECOND_GEN_PROMPT_MODULES",
     "ZeroInitResidualRefine2D",
 )

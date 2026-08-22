@@ -99,6 +99,17 @@ from ultralytics.nn.modules import (
     TargetSaliencyPaperLAFMergeFeedback2D,
     FTCrossMerge,
     ProtoHypergraphFusion,
+    P2IRPromptLAFMergeFeedback2D,
+    P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+    P2IRPromptAsymIdentityGDERMergeFeedback2D,
+    P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+    P2DualPromptLAFMergeFeedback2D,
+    P2DualPromptGDERMergeFeedback2D,
+    P2DualPromptIdentityGDERMergeFeedback2D,
+    P2DualPromptRGBGlobalLAFMergeFeedback2D,
+    P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+    P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+    P2DualSpatialLAFMergeFeedback2D,
     ZeroInitResidualRefine2D,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -227,6 +238,17 @@ class BaseModel(nn.Module):
                         DisagreementLAFMergeFeedback2D,
                         PaperLAFMergeFeedback2D,
                         TargetSaliencyPaperLAFMergeFeedback2D,
+                        P2IRPromptLAFMergeFeedback2D,
+                        P2DualPromptLAFMergeFeedback2D,
+                        P2DualPromptGDERMergeFeedback2D,
+                        P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+                        P2DualPromptIdentityGDERMergeFeedback2D,
+                        P2DualPromptRGBGlobalLAFMergeFeedback2D,
+                        P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+                        P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+                        P2DualSpatialLAFMergeFeedback2D,
+                        P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+                        P2IRPromptAsymIdentityGDERMergeFeedback2D,
                     ),
                 ):
                     route = "feedback"
@@ -1167,6 +1189,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SemanticDisagreementLAFMergeFeedback2D,
             ASSALAFMergeFeedback2D,
             ASSAReplacedLAFMergeFeedback2D,
+            P2IRPromptLAFMergeFeedback2D,
+            P2DualPromptLAFMergeFeedback2D,
+            P2DualPromptGDERMergeFeedback2D,
+            P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+            P2DualPromptIdentityGDERMergeFeedback2D,
+            P2DualPromptRGBGlobalLAFMergeFeedback2D,
+            P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+            P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+            P2DualSpatialLAFMergeFeedback2D,
+            P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+            P2IRPromptAsymIdentityGDERMergeFeedback2D,
         }:
             if isinstance(f, int) and m in {
                 LAFMergeFeedback2D,
@@ -1174,6 +1207,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 SemanticDisagreementLAFMergeFeedback2D,
                 ASSALAFMergeFeedback2D,
                 ASSAReplacedLAFMergeFeedback2D,
+                P2IRPromptLAFMergeFeedback2D,
+                P2DualPromptLAFMergeFeedback2D,
+                P2DualPromptGDERMergeFeedback2D,
+                P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+                P2DualPromptIdentityGDERMergeFeedback2D,
+                P2DualPromptRGBGlobalLAFMergeFeedback2D,
+                P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+                P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+                P2DualSpatialLAFMergeFeedback2D,
+                P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+                P2IRPromptAsymIdentityGDERMergeFeedback2D,
             }:
                 # A saved StaticMAA2D layer carries the (RGB, IR) pair as one
                 # graph source. Existing two-source LAF configurations retain
@@ -1340,6 +1384,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 ASSAReplacedLAFMergeFeedback2D,
                 PaperLAFMergeFeedback2D,
                 TargetSaliencyPaperLAFMergeFeedback2D,
+                P2IRPromptLAFMergeFeedback2D,
+                P2DualPromptLAFMergeFeedback2D,
+                P2DualPromptGDERMergeFeedback2D,
+                P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+                P2DualPromptIdentityGDERMergeFeedback2D,
+                P2DualPromptRGBGlobalLAFMergeFeedback2D,
+                P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+                P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+                P2DualSpatialLAFMergeFeedback2D,
+                P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+                P2IRPromptAsymIdentityGDERMergeFeedback2D,
             }:
                 m_.twostream_route = "feedback"
             elif m in {ADD, LAFMerge2D, FTCrossMerge, ProtoHypergraphFusion}:
@@ -1371,6 +1426,17 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             ASSAReplacedLAFMergeFeedback2D,
             PaperLAFMergeFeedback2D,
             TargetSaliencyPaperLAFMergeFeedback2D,
+            P2IRPromptLAFMergeFeedback2D,
+            P2DualPromptLAFMergeFeedback2D,
+            P2DualPromptGDERMergeFeedback2D,
+            P2IRSpatialRGBGlobalLAFMergeFeedback2D,
+            P2DualPromptIdentityGDERMergeFeedback2D,
+            P2DualPromptRGBGlobalLAFMergeFeedback2D,
+            P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
+            P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
+            P2DualSpatialLAFMergeFeedback2D,
+            P2IRPromptLAFMergeFeedbackNoStaticMAA2D,
+            P2IRPromptAsymIdentityGDERMergeFeedback2D,
         }:
             rgb_stream_ch = ir_stream_ch = c2
         
