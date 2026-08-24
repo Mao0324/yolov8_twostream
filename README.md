@@ -70,6 +70,47 @@ windows直接运行可能报多进程错误，请运行python train_for_windows.
 
 ```
 注：windows直接运行可能报多进程错误，请运行python train_for_windows.py
+
+### 双卡/多卡 DDP 加载预训练权重的重要说明
+
+本仓库使用的 Ultralytics YOLOv8.1.47 在自动 DDP 模式下，只会把 Trainer 的参数序列化到
+`~/.config/Ultralytics/DDP/_temp_*.py`，不会把父进程中已经修改过的模型对象直接传给 DDP 子进程。
+因此，下面这种“先用 YAML 建模、再调用 `load()`”的写法只适用于单卡，**禁止用于双卡或多卡训练**：
+
+```python
+# 错误：父进程会加载权重，但 DDP 子进程仍可能从 YAML 随机初始化。
+model = YOLO("yaml/baseline.yaml", task="obb")
+model.load("pre-pth/yolov8s-obb_twostream_baseline.pt")
+model.train(device="0,1", ...)
+```
+
+原因是 `model.load()` 虽然会更新父进程模型和 `self.ckpt`，却不会把
+`self.overrides["model"]` 改为该 `.pt` 路径。自动 DDP 生成的临时脚本仍会得到
+`model: yaml/baseline.yaml`，子进程随后执行相当于 `get_model(cfg=yaml, weights=None)` 的逻辑，
+最终从随机权重开始训练。DDP 启动前出现 `Transferred ... items from pretrained weights`，只能证明
+父进程加载成功，不能证明真正训练的 DDP 子进程加载成功。
+
+双卡/多卡训练必须直接用 `.pt` 构造 YOLO：
+
+```python
+# 正确：DDP 临时参数中的 model 是 .pt，所有子进程都会加载该权重。
+checkpoint = "pre-pth/yolov8s-obb_twostream_baseline.pt"
+model = YOLO(checkpoint, task="obb")
+model.train(device="0,1", ...)
+```
+
+如果新模型结构必须先由 YAML 构建并从其他模型部分迁移权重，应先生成一个内嵌目标结构和迁移后
+参数的初始化 `.pt`，再另起训练进程通过 `YOLO(init_checkpoint)` 启动多卡训练，不能在同一个
+自动 DDP 训练进程中使用 `YOLO(yaml) + model.load(pt)`。
+
+启动后至少检查以下三项：
+
+1. `args.yaml` 中的 `model` 必须是预期的 `.pt`，不能是 YAML。
+2. `~/.config/Ultralytics/DDP/_temp_*.py` 的 `overrides['model']` 必须是预期的 `.pt`。
+3. `DDP:` 命令输出之后，子进程应再次出现权重加载信息；仅检查 DDP 之前的 `Transferred ...` 不够。
+
+`pretrained: true` 只是配置开关，也不能单独证明 DDP 子进程已经加载指定权重。
+
 ## 6. 测试
 ```
 python test.py  
@@ -113,4 +154,3 @@ Feel free to dive in! [Open an issue](https://github.com/mujianyu/TwoStream_Yolo
 # Contributors
 This project exists thanks to all the people who contribute.\
 @ [hopesala](https://github.com/hopesala) <img src="https://avatars.githubusercontent.com/u/8850257?v=4" alt="hopesala" width="50" height="50">
-
