@@ -1,0 +1,137 @@
+{
+  "source_branches": [
+    "main",
+    "ASSAFusion",
+    "CRFormer",
+    "DarkACT",
+    "exp/cfgpnet-lite",
+    "exp/protohgfnet-lite"
+  ],
+  "unique_committed_test_artifacts": 36,
+  "comparable_threshold": "mAP50 > 0.83, args.pretrained=true, args.model is .pt",
+  "comparable_runs": 23,
+  "variant_runs": 22,
+  "branches_without_additional_committed_test_results": [
+    "exp/cfgpnet-lite",
+    "exp/protohgfnet-lite"
+  ],
+  "test_population_signatures": [
+    {
+      "images": 8980,
+      "instances": 159614,
+      "split": "test",
+      "imgsz": "640",
+      "count": 23
+    }
+  ],
+  "training_config_signature_count": 1,
+  "training_config_keys": [
+    "epochs",
+    "batch",
+    "imgsz",
+    "optimizer",
+    "lr0",
+    "lrf",
+    "momentum",
+    "weight_decay",
+    "warmup_epochs",
+    "cos_lr",
+    "close_mosaic",
+    "seed",
+    "deterministic",
+    "amp"
+  ],
+  "baseline": {
+    "branch": "main",
+    "path": "runs_baseline/train2/test_result/test.txt",
+    "map50": 0.833,
+    "map50_95": 0.701,
+    "precision": 0.815,
+    "recall": 0.799,
+    "best_fitness_epoch": 61,
+    "best_val_map50": 0.86854,
+    "best_val_map50_95": 0.72724,
+    "last_val_map50": 0.85742,
+    "last_val_map50_95": 0.72078
+  },
+  "best_observed": {
+    "branch": "DarkACT",
+    "path": "DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v12/test_result/test.txt",
+    "family": "DarkACT",
+    "map50": 0.841,
+    "map50_95": 0.708,
+    "delta_map50_vs_baseline": 0.008,
+    "delta_map50_95_vs_baseline": 0.007,
+    "best_fitness_epoch": 49,
+    "best_val_map50": 0.86767,
+    "best_val_map50_95": 0.72754
+  },
+  "variant_distribution": {
+    "map50_min": 0.833,
+    "map50_mean": 0.837318,
+    "map50_median": 0.837,
+    "map50_max": 0.841,
+    "mean_delta_map50_vs_baseline": 0.004318,
+    "map50_95_min": 0.701,
+    "map50_95_mean": 0.704773,
+    "map50_95_median": 0.705,
+    "map50_95_max": 0.708,
+    "mean_delta_map50_95_vs_baseline": 0.003773
+  },
+  "theoretical_macro_map50_headroom": 0.167,
+  "class_deltas_for_best_observed": [
+    {
+      "class": "car",
+      "baseline_map50": 0.986,
+      "best_map50": 0.986,
+      "delta_map50": 0.0,
+      "baseline_map50_95": 0.843,
+      "best_map50_95": 0.844,
+      "delta_map50_95": 0.0010000000000000009
+    },
+    {
+      "class": "truck",
+      "baseline_map50": 0.835,
+      "best_map50": 0.846,
+      "delta_map50": 0.01100000000000001,
+      "baseline_map50_95": 0.683,
+      "best_map50_95": 0.695,
+      "delta_map50_95": 0.0119999999999999
+    },
+    {
+      "class": "bus",
+      "baseline_map50": 0.968,
+      "best_map50": 0.968,
+      "delta_map50": 0.0,
+      "baseline_map50_95": 0.838,
+      "best_map50_95": 0.838,
+      "delta_map50_95": 0.0
+    },
+    {
+      "class": "van",
+      "baseline_map50": 0.671,
+      "best_map50": 0.674,
+      "delta_map50": 0.0030000000000000027,
+      "baseline_map50_95": 0.561,
+      "best_map50_95": 0.562,
+      "delta_map50_95": 0.0010000000000000009
+    },
+    {
+      "class": "freight_car",
+      "baseline_map50": 0.707,
+      "best_map50": 0.729,
+      "delta_map50": 0.02200000000000002,
+      "baseline_map50_95": 0.58,
+      "best_map50_95": 0.598,
+      "delta_map50_95": 0.018000000000000016
+    }
+  ],
+  "validation_limits": {
+    "unique_seeds": [
+      0
+    ],
+    "per_image_predictions_committed": false,
+    "paired_bootstrap_possible_from_committed_artifacts": false,
+    "test_set_used_for_many_model_comparisons": true
+  }
+}

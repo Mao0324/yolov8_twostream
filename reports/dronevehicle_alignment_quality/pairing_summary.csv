@@ -1,0 +1,4 @@
+split,rgb_files,ir_files,label_files,exact_triplets,triplet_coverage_pct,rgb_without_ir,ir_without_rgb,images_without_label,labels_without_pair,dimension_matches,dimension_match_pct,unreadable_pairs,dimension_profile
+train,17990,17990,17990,17990,100.0,0,0,0,0,17990,100.0,0,ir_640x512:17990; rgb_640x512:17990
+val,1469,1469,1469,1469,100.0,0,0,0,0,1469,100.0,0,ir_640x512:1469; rgb_640x512:1469
+test,8980,8980,8980,8980,100.0,0,0,0,0,8980,100.0,0,ir_640x512:8980; rgb_640x512:8980

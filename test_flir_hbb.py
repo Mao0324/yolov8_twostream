@@ -1,11 +1,21 @@
-from pathlib import Path
+#!/usr/bin/env python3
+"""Evaluate a three-class two-stream model on the aligned FLIR HBB test split."""
+
+from __future__ import annotations
+
 import argparse
 import subprocess
-#python test_dronevehicle.py --weights /home/biiteam/Storage-4T/biiteam/MCONG/TwoStream_Yolov8_2/dronevehicle_runs_assa_ir_to_rgb2/train/weights/best.pt --project /home/biiteam/Storage-4T/biiteam/MCONG/TwoStream_Yolov8_2/dronevehicle_runs_assa_ir_to_rgb2/train  --name test_result
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent
+DEFAULT_DATA = ROOT / "data/flir_align.yaml"
+PREPARED_DATA = ROOT / "data/flir_align_hbb"
 
 
 def query_gpu_free_memory(timeout=5):
     """Return ``[(physical_index, free_mib), ...]`` without importing CUDA/PyTorch."""
+
     command = [
         "nvidia-smi",
         "--query-gpu=index,memory.free",
@@ -35,8 +45,9 @@ def query_gpu_free_memory(timeout=5):
     return gpus
 
 
-def resolve_test_device(requested, min_free_mib=8192):
-    """Resolve ``auto`` to the physical GPU with the most currently free memory."""
+def resolve_test_device(requested, min_free_mib=4096):
+    """Resolve ``auto`` to the physical GPU with the most free memory."""
+
     requested = str(requested).strip().lower()
     if requested not in {"", "auto"}:
         return requested
@@ -46,7 +57,7 @@ def resolve_test_device(requested, min_free_mib=8192):
     snapshot = ", ".join(f"GPU {index}: {free_mib} MiB free" for index, free_mib in sorted(gpus))
     if selected_free < min_free_mib:
         raise RuntimeError(
-            "No GPU has enough free memory for safe DroneVehicle validation: "
+            "No GPU has enough free memory for safe FLIR HBB validation: "
             f"required >= {min_free_mib} MiB; {snapshot}. "
             "Wait for a training job to finish, lower --batch together with --min-free-mib, "
             "or explicitly use --device cpu."
@@ -58,16 +69,29 @@ def resolve_test_device(requested, min_free_mib=8192):
     return str(selected_index)
 
 
+def infer_project(weights, requested_project):
+    """Use the training run as project when weights are ``<run>/weights/*.pt``."""
+
+    if requested_project:
+        return str(Path(requested_project).expanduser().resolve())
+    weights = Path(weights).expanduser().resolve()
+    if weights.parent.name == "weights":
+        return str(weights.parent.parent)
+    return str(ROOT / "runs/FLIR_HBB_Evaluation")
+
+
 def save_test_report(validator, cli_args):
-    """Save the final OBB metrics table to test.txt in the validation directory."""
+    """Save final HBB metrics to ``test.txt`` in the validation directory."""
+
     metrics = validator.metrics
     speed = metrics.speed
     inference_ms = speed.get("inference", 0.0)
-
     lines = [
-        f"weights: {Path(cli_args.weights).resolve()}",
-        f"data: {Path(cli_args.data).resolve()}",
-        "split: test",
+        f"weights: {Path(cli_args.weights).expanduser().resolve()}",
+        f"data: {Path(cli_args.data).expanduser().resolve()}",
+        f"split: {cli_args.split}",
+        "task: detect",
+        "annotation_type: HBB",
         f"imgsz: {cli_args.imgsz}",
         f"batch: {cli_args.batch}",
         f"device: {cli_args.device}",
@@ -114,61 +138,101 @@ def save_test_report(validator, cli_args):
 
 
 def parse_args():
-    repo_root = Path(__file__).resolve().parent
-    default_data = repo_root / "data" / "dronevehicle.yaml"
-
-    parser = argparse.ArgumentParser(description="Test DroneVehicle on test split.")
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--weights",
         type=str,
         required=True,
-        help="Path to trained model weights, e.g. runs/.../weights/best.pt",
+        help="trained FLIR HBB weights, normally <run>/weights/best.pt",
     )
-    parser.add_argument(
-        "--data",
-        type=str,
-        default=str(default_data),
-        help="Dataset yaml path (default: data/dronevehicle.yaml)",
-    )
-    parser.add_argument("--imgsz", type=int, default=640, help="Validation image size")
-    parser.add_argument("--batch", type=int, default=16, help="Validation batch size")
-    parser.add_argument("--workers", type=int, default=0, help="Validation dataloader workers")
+    parser.add_argument("--data", type=str, default=str(DEFAULT_DATA), help="FLIR dataset YAML")
+    parser.add_argument("--split", choices=("test", "val"), default="test")
+    parser.add_argument("--imgsz", type=int, default=640)
+    parser.add_argument("--batch", type=int, default=16)
+    parser.add_argument("--workers", type=int, default=0)
     parser.add_argument(
         "--device",
         type=str,
         default="auto",
-        help="CUDA device, e.g. 0; default auto selects the GPU with most free memory",
+        help="CUDA device such as 0; auto selects the GPU with most free memory",
+    )
+    parser.add_argument("--min-free-mib", type=int, default=4096)
+    parser.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="output project; defaults to the training run containing weights/",
+    )
+    parser.add_argument("--name", type=str, default="test_result")
+    parser.add_argument("--conf", type=float, default=0.001)
+    parser.add_argument("--iou", type=float, default=0.7)
+    parser.add_argument("--max-det", type=int, default=300)
+    parser.add_argument("--save-json", action="store_true")
+    parser.add_argument("--save-txt", action="store_true")
+    parser.add_argument("--save-conf", action="store_true")
+    parser.add_argument("--exist-ok", action="store_true")
+    parser.add_argument(
+        "--prepare-data",
+        action="store_true",
+        help="prepare the paired FLIR HBB layout before validation",
     )
     parser.add_argument(
-        "--min-free-mib",
-        type=int,
-        default=8192,
-        help="Minimum free GPU memory required by --device auto (default: 8192 MiB)",
+        "--source-root",
+        type=Path,
+        default=None,
+        help="original flir_align root used with --prepare-data",
     )
-    parser.add_argument("--project", type=str, default=None, help="Output project directory")
-    parser.add_argument("--name", type=str, default="test_dronevehicle", help="Run name")
-    parser.add_argument("--conf", type=float, default=0.001, help="Confidence threshold")
-    parser.add_argument("--iou", type=float, default=0.7, help="NMS IoU threshold")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    weights = Path(args.weights).expanduser().resolve()
+    data = Path(args.data).expanduser().resolve()
+    if not weights.is_file():
+        raise FileNotFoundError(f"weights not found: {weights}")
+    if not data.is_file():
+        raise FileNotFoundError(f"dataset YAML not found: {data}")
     if args.min_free_mib <= 0:
         raise ValueError(f"--min-free-mib must be positive, got {args.min_free_mib}")
+
+    if args.prepare_data:
+        from tools.prepare_flir_align_hbb import DEFAULT_SOURCE, prepare_dataset
+
+        manifest = prepare_dataset(args.source_root or DEFAULT_SOURCE, PREPARED_DATA)
+        print(
+            "[DATA] prepared FLIR pairs: "
+            + ", ".join(
+                f"{split}={stats['images']} images/{stats['boxes']} boxes"
+                for split, stats in manifest["splits"].items()
+            )
+        )
+    else:
+        from tools.prepare_flir_align_hbb import validate_prepared_dataset
+
+        validate_prepared_dataset(PREPARED_DATA)
+
+    args.weights = str(weights)
+    args.data = str(data)
+    args.project = infer_project(weights, args.project)
     args.device = resolve_test_device(args.device, args.min_free_mib)
 
-    # Device selection must finish before importing Ultralytics/PyTorch so
-    # select_device() can safely set CUDA_VISIBLE_DEVICES to the chosen card.
+    # Select the physical GPU before importing PyTorch/Ultralytics.
     from ultralytics import YOLO
-    import ultralytics.nn.tasks  # noqa: F401
+    import ultralytics.nn.tasks  # noqa: F401  # Register custom two-stream modules.
 
-    model = YOLO(args.weights)
+    model = YOLO(args.weights, task="detect")
+    detect_head = model.model.model[-1]
+    model_nc = int(getattr(detect_head, "nc", len(model.names)))
+    if model_nc != 3:
+        raise ValueError(
+            f"FLIR evaluation now uses 3 classes (car/person/bicycle), but {weights} has nc={model_nc}. "
+            "Retrain with the three-class checkpoint/config instead of evaluating legacy four-class weights."
+        )
     model.add_callback("on_val_end", lambda validator: save_test_report(validator, args))
-
     metrics = model.val(
         data=args.data,
-        split="test",
+        split=args.split,
         imgsz=args.imgsz,
         batch=args.batch,
         workers=args.workers,
@@ -177,9 +241,15 @@ def main():
         name=args.name,
         conf=args.conf,
         iou=args.iou,
-        task="obb",
+        max_det=args.max_det,
+        save_json=args.save_json,
+        save_txt=args.save_txt,
+        save_conf=args.save_conf,
+        exist_ok=args.exist_ok,
+        task="detect",
     )
     print(metrics)
+    return metrics
 
 
 if __name__ == "__main__":
