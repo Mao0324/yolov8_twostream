@@ -1,0 +1,60 @@
+schema_version: 1
+id: FLIRDA-001
+family: DarkAct
+title: FLIR · DarkAct SemanticDisagreementLAF P34 · scale-n · 3-class HBB
+parent_id: DA-016
+lifecycle:
+  status: created
+  recovery_confidence: confirmed
+dataset:
+  id: flir_align
+  name: FLIR aligned
+  task: detect
+  annotation_type: HBB
+  modalities: [visible, thermal]
+  classes: [car, person, bicycle]
+hypothesis: 将 scale-n DA-016 的跨模态语义分歧融合迁移到对齐的 FLIR 可见光/热红外 HBB 检测，可改善低照度道路目标检测。
+change_from_parent: 数据集由 DroneVehicle OBB 改为 FLIR aligned HBB，类别改为 car/person/bicycle（排除 dog），检测头由 OBB 改为 Detect；scale-n 双流骨干和 P3/P4/P5 融合结构保持不变。
+architecture:
+  summary: FLIR DarkAct SemanticDisagreementLAF P34 scale-n 3Class HBB Detect
+  version: v1
+  scale: n
+  stages: [P3, P4, P5]
+  heads: H2-4-8
+  flow:
+    P3: SemanticDisagreementLAF + zero-init four-way residual
+    P4: SemanticDisagreementLAF + zero-init four-way residual
+    P5: original LAFMergeFeedback2D
+files:
+  model_yaml: fliryaml/yolov8n-DarkAct-SemanticDisagreementLAF-P34-R4-NoStaticMAA-FLIR-HBB_scalen.yaml
+  train_entrypoint: train_flir_darkact_semantic_disagreement_laf_p34_scalen_hbb.py
+  test_entrypoint: test_flir_hbb.py
+  migration_script: tools/make_twostream_hbb_weights_flir.py
+  init_checkpoint: pre-pth/yolov8n-hbb_twostream_darkact_semantic_disagreement_laf_p34_flir_3class_scalen.pt
+  module_files:
+    - ultralytics/nn/modules/darkact_maalaf.py
+    - ultralytics/nn/modules/darkact_maalaf_v2.py
+    - ultralytics/nn/modules/darkact_disagreement_fusion.py
+  integration_files:
+    - ultralytics/nn/modules/__init__.py
+    - ultralytics/nn/tasks.py
+    - monitor/monitored_detection_trainer.py
+    - tools/prepare_flir_align_hbb.py
+    - tools/queue_runtime.py
+    - tools/training_monitor.py
+training:
+  profile: experiments/profiles/flir_hbb_100e.yaml
+  launch_mode: checkpoint
+  trainer_class: ultralytics.models.yolo.detect.train:DetectionTrainer
+  output:
+    project: runs/FLIR_Align_HBB_FusionTransfer
+    name: FLIR_DarkAct_SemanticDisagreementLAF_P34_R4_NoStaticMAA_scalen_3Class_HBB
+legacy:
+  run_dir: null
+reports: []
+notes:
+  - 此 Manifest 存放在 datasets/flir 下；方法归属由 family=DarkAct 表达，避免把数据集与方法放在同一目录层级。
+  - 使用 train_new.json/test_new.json 的 3 类标注，排除 dog；test split 作为验证集。
+  - 旧 HBB/HBB2 运行为 4 类口径，不与本 3 类配置混用权重或指标。
+  - 原始 COCO HBB 标注由 tools/prepare_flir_align_hbb.py 转成归一化 YOLO xywh。
+  - 初始化从标准 yolov8n.pt 迁移；类别预测层和新增融合参数保留目标模型初始化。

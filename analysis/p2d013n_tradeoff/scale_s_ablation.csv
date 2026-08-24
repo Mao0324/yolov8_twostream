@@ -1,0 +1,13 @@
+model,gder_variant,class,map50,map50_95,delta_vs_prompt_only_map50,delta_vs_prompt_only_map50_95
+P2D-011,prompt_only,all,0.836,0.702,0.000,0.000
+P2D-013,full_gder_p4,all,0.840,0.706,0.004,0.004
+P2D-014,modality_only_p4,all,0.839,0.706,0.003,0.004
+P2D-015,attention_only_p4,all,0.841,0.707,0.005,0.005
+P2D-011,prompt_only,truck,0.846,0.693,0.000,0.000
+P2D-013,full_gder_p4,truck,0.847,0.693,0.001,0.000
+P2D-014,modality_only_p4,truck,0.849,0.695,0.003,0.002
+P2D-015,attention_only_p4,truck,0.848,0.695,0.002,0.002
+P2D-011,prompt_only,freight_car,0.710,0.579,0.000,0.000
+P2D-013,full_gder_p4,freight_car,0.720,0.590,0.010,0.011
+P2D-014,modality_only_p4,freight_car,0.717,0.586,0.007,0.007
+P2D-015,attention_only_p4,freight_car,0.722,0.591,0.012,0.012

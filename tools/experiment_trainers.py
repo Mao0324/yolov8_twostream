@@ -1,4 +1,4 @@
-"""Importable OBB trainer wrappers that materialize experiment provenance in single-GPU and DDP runs."""
+"""Importable Detect/OBB wrappers with provenance for single-GPU and DDP runs."""
 
 from __future__ import annotations
 
@@ -8,11 +8,19 @@ import shutil
 from pathlib import Path
 
 import torch
-from ultralytics.models.yolo.obb.target_saliency_train import TargetSaliencyOBBTrainer
+from ultralytics.models.yolo.detect.train import DetectionTrainer
 from ultralytics.models.yolo.obb.train import OBBTrainer
 from ultralytics.utils import RANK
 
 from tools.training_monitor import RemoteMonitorTrainerMixin
+
+try:
+    from ultralytics.models.yolo.obb.target_saliency_train import TargetSaliencyOBBTrainer
+except ModuleNotFoundError as exc:
+    TargetSaliencyOBBTrainer = None
+    _TARGET_SALIENCY_IMPORT_ERROR = exc
+else:
+    _TARGET_SALIENCY_IMPORT_ERROR = None
 
 
 SNAPSHOT_STAGE_ENV = "YOLO_EXPERIMENT_SNAPSHOT_STAGE"
@@ -71,25 +79,39 @@ class ExperimentOBBTrainer(RemoteMonitorTrainerMixin, _SnapshotMixin, OBBTrainer
     """Default OBB trainer with provenance and rank-0 remote monitoring."""
 
 
-class ExperimentTargetSaliencyOBBTrainer(
-    RemoteMonitorTrainerMixin,
-    _SnapshotMixin,
-    TargetSaliencyOBBTrainer,
-):
-    """Target-saliency OBB trainer with provenance and rank-0 remote monitoring."""
+class ExperimentDetectionTrainer(RemoteMonitorTrainerMixin, _SnapshotMixin, DetectionTrainer):
+    """Default HBB trainer with provenance and rank-0 remote monitoring."""
 
 
 TRAINER_WRAPPERS = {
+    "ultralytics.models.yolo.detect.train:DetectionTrainer": ExperimentDetectionTrainer,
     "ultralytics.models.yolo.obb.train:OBBTrainer": ExperimentOBBTrainer,
-    "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer": (
-        ExperimentTargetSaliencyOBBTrainer
-    ),
 }
+
+if TargetSaliencyOBBTrainer is not None:
+
+    class ExperimentTargetSaliencyOBBTrainer(
+        RemoteMonitorTrainerMixin,
+        _SnapshotMixin,
+        TargetSaliencyOBBTrainer,
+    ):
+        """Target-saliency OBB trainer with provenance and rank-0 remote monitoring."""
+
+    TRAINER_WRAPPERS[
+        "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer"
+    ] = ExperimentTargetSaliencyOBBTrainer
 
 
 def get_trainer_wrapper(trainer_class: str):
     """Return a static importable wrapper; never silently fall back for custom losses."""
 
+    if (
+        trainer_class == "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer"
+        and _TARGET_SALIENCY_IMPORT_ERROR is not None
+    ):
+        raise ValueError(
+            f"trainer_class {trainer_class!r} is unavailable: {_TARGET_SALIENCY_IMPORT_ERROR}"
+        ) from _TARGET_SALIENCY_IMPORT_ERROR
     try:
         return TRAINER_WRAPPERS[trainer_class]
     except KeyError as exc:
@@ -100,7 +122,7 @@ def get_trainer_wrapper(trainer_class: str):
 
 
 __all__ = (
+    "ExperimentDetectionTrainer",
     "ExperimentOBBTrainer",
-    "ExperimentTargetSaliencyOBBTrainer",
     "get_trainer_wrapper",
 )

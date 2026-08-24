@@ -1,0 +1,7 @@
+transition,denominator,baseline_count,module_count,count_delta,baseline_rate_pct,module_rate_pct,rate_delta_pp
+truck→truck,8657,6866,7082,216,79.312,81.807,2.495
+truck→freight_car,8657,937,835,-102,10.824,9.645,-1.178
+truck→background,8657,437,325,-112,5.048,3.754,-1.294
+freight_car→freight_car,5062,3603,3532,-71,71.177,69.775,-1.403
+freight_car→truck,5062,692,773,81,13.670,15.271,1.600
+freight_car→background,5062,237,217,-20,4.682,4.287,-0.395

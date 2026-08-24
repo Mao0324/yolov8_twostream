@@ -142,6 +142,9 @@ dmypy.json
 
 # datasets and projects
 datasets/
+!experiments/datasets/
+!experiments/datasets/**
+data/flir_align_hbb/
 runs/
 wandb/
 tests/

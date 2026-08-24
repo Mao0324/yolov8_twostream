@@ -1,0 +1,311 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "title": "P2D-013N 的 freight_car / truck trade-off 诊断",
+    "description": "对 scale-n baseline 与 IRPrompt + P4 GDER 实验的类别指标、混淆转移和模块实际行为进行技术诊断。",
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# P2D-013N 的 freight_car / truck trade-off 诊断"
+      },
+      {
+        "id": "technical-summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n**这是一次有收益但不均匀的类别边界重分配。** 模块模型的总体 mAP50-95 从 0.687 提高到 0.691（+0.4pp），但 mAP50 从 0.827 降到 0.826。`freight_car` 确实退化：mAP50 −1.2pp、mAP50-95 −0.7pp；`truck` 不是整体受损，而是 recall +2.8pp、precision −1.1pp，mAP50 −0.5pp、mAP50-95 +0.2pp。\n\n**最直接的 trade-off 发生在 truck / freight_car 决策边界。** 真实 `truck` 被判成 `freight_car` 减少 102 个，而真实 `freight_car` 被判成 `truck` 增加 81 个；`truck` 真阳性增加 216，`freight_car` 真阳性减少 71。两类双向混淆总量反而少了 21 个，但边界整体向 `truck` 偏移。\n\n**IRPrompt 确实学成了目标显著性，而不是类别判别器。** 训练末期 P3/P4 的前景—背景 prompt gap 分别为 0.426/0.503；代码中的 teacher 只使用旋转框几何，不读取类别标签。它能增强“这里有目标”，不能直接回答“这是 truck 还是 freight_car”。\n\n**当前 scale-n GDER 实际更像 P4 的 fused-feature attention refinement。** 八对固定测试图探针中，门控均值接近 49.5% modality / 50.5% attention，但加权 attention 输出约为 fused P4 RMS 的 15.1%，modality-identity 输出只有 1.44%；门控标准差仅 1.34%。因此名义上是双专家动态路由，实际贡献主要来自 class-agnostic attention 分支。\n\n**因果结论仍有限。** scale-n 没有 prompt-only / 单专家消融，而且实验只跑了单 seed；基线到 P2D-013N 还同时替换了融合 carrier。现有证据支持“通用目标增强与定位收益，换来相似车辆类别边界偏移”，但不能把退化唯一归因于 GDER 或 IRPrompt。"
+      },
+      {
+        "id": "class-delta-heading",
+        "type": "markdown",
+        "body": "## 总体收益由 car / bus / van 抵消 freight_car 损失\n\n严格 IoU 指标上，car、bus、van 分别提高 0.4、0.7、1.3pp，足以抵消 freight_car 的 −0.7pp；truck 仍小幅提高 0.2pp。宽松 IoU=0.50 时则是 van +1.2pp 与 freight_car −1.2pp 基本对冲，truck 再损失 0.5pp，所以宏平均轻微下降 0.1pp。图中两个指标必须一起读：truck 更像定位/召回改善伴随排序或分类精度代价，freight_car 则在宽松和严格 IoU 下都下降。"
+      },
+      {
+        "id": "class-delta-chart",
+        "type": "chart",
+        "chartId": "class-delta"
+      },
+      {
+        "id": "confusion-heading",
+        "type": "markdown",
+        "body": "## truck 的召回增益有一部分来自 freight_car 边界右移\n\n在保存的 confusion threshold 下，truck 的正确识别率提高 2.50pp，同时 truck→freight_car 与 truck→background 各下降约 1.18/1.29pp；但 freight_car→truck 上升 1.60pp，几乎完全解释了 freight_car 正确率下降 1.40pp。也就是说，模块提高了两类合计的检出与分离数量，却把更多模糊货运车辆归到了 `truck`。这与 PR/F1 曲线中 freight_car 面积和峰值略降一致。"
+      },
+      {
+        "id": "confusion-table",
+        "type": "table",
+        "tableId": "confusion-focus"
+      },
+      {
+        "id": "irprompt-heading",
+        "type": "markdown",
+        "body": "## IRPrompt 学会了前景 centerness，主要有效尺度是 P3/P4\n\nIRPrompt 从 IR 特征的通道均值、最大值和 3×3/5×5 局部对比度预测单通道空间图，再通过 1×1 投影以残差方式写回 IR 特征。监督目标是所有旋转框的 max-composited soft-centerness，P3/P4 权重为 1.0/0.5，辅助损失 gain 为 0.025，并在 10 epoch 内 warm up。\n\n训练 telemetry 证明它不是空模块：epoch 100 的 P3/P4 前景均值为 0.472/0.534，背景均值为 0.046/0.030。固定测试图探针中，P3 prompt embedding RMS 为输入 IR 特征的 3.35%，P4 为 0.74%；P5 只有 0.11%，且 prompt std 约 0.00013，基本退化为常数。实际可用的提示主要在 P3，其次 P4，P5 几乎没有贡献。\n\n因为 teacher 不包含类别信息，且 freight_car / truck 的目标几何高度相近，IRPrompt 更容易改善目标存在性与中心区域，而不是维护两者的细粒度类别 margin。"
+      },
+      {
+        "id": "module-table",
+        "type": "table",
+        "tableId": "module-behavior"
+      },
+      {
+        "id": "gder-heading",
+        "type": "markdown",
+        "body": "## GDER 的门控看似均衡，实际由 attention expert 主导\n\nP4 GDER 包含两个零初始化残差专家：一支保持 raw RGB 与 IR-prior 的模态身份后再融合；另一支对已经融合的 P4 特征做 CBAM 风格通道/空间注意力。channel-wise softmax gate 再将两支残差加回 fused feature。\n\n仅看 0.493/0.507 的 gate 均值会误判为两专家贡献接近。真实样本输出尺度显示 attention 分支的加权 RMS 是 modality 分支约 10.5 倍；对应末层权重 L2 也为 4.009 对 0.0368。当前 GDER 因而主要强化融合后的显著结构，保留模态身份的专家几乎没打开。对 P4 上只有约 2×5.7 个 cell 的 truck / freight_car，这种通用注意力容易改善框与检出，却不足以保护细分类边界。\n\n支持性反证也很重要：在 scale-s 的同 carrier 消融中，P4 full GDER 相对 prompt-only 反而让 freight_car mAP50-95 +1.1pp，attention-only 为 +1.2pp。因此 GDER 并非天然伤害 freight_car；scale-n 的退化更可能是容量、carrier、边界和 seed 的交互。"
+      },
+      {
+        "id": "ablation-table",
+        "type": "table",
+        "tableId": "scale-s-ablation"
+      },
+      {
+        "id": "geometry-heading",
+        "type": "markdown",
+        "body": "## truck 与 freight_car 在 P4 上几何上几乎不可区分\n\n测试集的两类中位框尺寸高度重合：truck 约 32.2×90.4 px，freight_car 约 31.6×92.0 px。映射到 stride-16 的 P4 后，短边都只有约 2 个 cell，长边约 5.7 个 cell。P4 attention 可以稳定增强“长车辆”结构，但仅靠这一尺度很难保留车头/车厢连接、热分布或纹理等细粒度差异；这正是边界向高召回的 truck 偏移时最脆弱的情形。"
+      },
+      {
+        "id": "geometry-table",
+        "type": "table",
+        "tableId": "test-geometry"
+      },
+      {
+        "id": "scope",
+        "type": "markdown",
+        "body": "## 比较口径与方法\n\n主比较使用两次 `best.pt` 在同一 DroneVehicle OBB test split 上保存的类别 P/R、mAP50、mAP50-95、PR/F1 曲线和 confusion matrix。两次评估均为 8,980 张图、159,614 个实例、imgsz=640、batch=16；训练 args 除模型与输出路径外一致，均为 100 epoch、SGD、seed 0、deterministic。\n\n模块机制通过四类证据交叉验证：实现代码与 YAML；100 epoch 训练 telemetry；best checkpoint 参数范数；八对固定 test RGB/IR 图像的前向 RMS 探针。对象几何由全部 8,980 个 test 标签的 OBB polygon 计算。scale-s v11/v13/v14/v15 仅作为同 carrier 的辅助消融，不与 scale-n 数值直接合并。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 不确定性与稳健性限制\n\n- scale-n 每个结构只有一个 seed，0.5–1.2pp 的类别变化尚无重复训练方差。\n- baseline→P2D-013N 不只增加 IRPrompt/GDER，还更换了融合 carrier；现有主比较是系统级效果，不是模块因果效应。\n- confusion matrix 是一个固定置信度工作点，P/R 与 AP 汇总来自不同阈值行为，不能互相替代。\n- 八图 RMS 探针能证明模块实际输出尺度，但不能代表全部 8,980 张图或分类别响应。\n- test 日志保留三位小数；没有逐预测文件，因此无法做 paired bootstrap、按昼夜/遮挡/尺度切片或置信度校准分解。\n- 推理时间从 1.4ms 增至 2.2ms、参数从 3.914M 增至 4.209M，但不是受控硬件基准。"
+      },
+      {
+        "id": "next-steps",
+        "type": "markdown",
+        "body": "## 最小代价的下一步\n\n1. **先补 scale-n 的因果消融，不继续叠新模块。** 用同一初始化和至少 3 seeds 跑：P2 carrier 无 prompt/GDER、+P3/P4 IRPrompt、+P4 modality-only、+P4 attention-only、full GDER。必须保留逐图预测。\n2. **把专家输出尺度纳入 gate。** 在门控前对两专家做 RMS/LayerNorm 归一化，或给每支增加可学习 residual scale；否则 50/50 gate 仍会产生 10× 的实际贡献差。\n3. **优先保护 P3 的细粒度类别信息。** truck / freight_car 在 P4 短边仅约 2 cells；若要增强模态身份，先测试 P3 的轻量 modality residual，而不是继续强化 P4/P5 attention。\n4. **删除或关闭 P5 IRPrompt 做零成本核验。** 当前 P5 prompt 近似常数，embedding 仅为 IR RMS 的 0.11%，保留它缺乏实证价值。\n5. **用类别边界 guardrail 选模型。** 除总体 mAP50-95 外，至少约束 freight_car mAP50-95、freight_car→truck rate、truck precision，以及 3-seed 均值±标准差。"
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "body": "## 下一轮需要回答的问题\n\n- freight_car→truck 的新增 81 个错误集中在夜间、遮挡、特定尺度还是 RGB/IR 错位样本？\n- attention-only 在 scale-n 是否仍主导，还是 0.25 width 下发生了专家容量竞争？\n- 若将两专家输出归一化，gate 的输入依赖性是否真正增大，并恢复 freight_car margin？\n- P3 class-balanced ROI/contrastive 辅助是否能保留货车细分类别，同时不牺牲 van 的 +1.3pp 收益？"
+      }
+    ],
+    "charts": [
+      {
+        "id": "class-delta",
+        "title": "各类别相对 baseline 的 AP 变化",
+        "description": "scale-n test；单位为百分点，正值改善、负值退化。",
+        "dataset": "class_delta",
+        "type": "bar",
+        "intent": "comparison",
+        "question": "模块模型在哪些类别和 IoU 口径上改善或退化？",
+        "rationale": "分组柱状图同时保留 mAP50 与 mAP50-95 的方向差异，能区分 truck 的宽松 IoU 损失与严格 IoU 小幅收益。",
+        "encodings": {
+          "x": {"field": "class", "type": "nominal", "label": "类别"},
+          "y": {"field": "delta_pp", "type": "quantitative", "label": "ΔAP（百分点）"},
+          "color": {"field": "metric", "type": "nominal", "label": "指标"}
+        },
+        "palette": {"kind": "categorical", "root": "blue"},
+        "legend": {"show": true, "position": "bottom"},
+        "referenceLines": [{"axis": "y", "value": 0, "label": "baseline"}],
+        "sourceId": "test-metrics-source"
+      }
+    ],
+    "tables": [
+      {
+        "id": "confusion-focus",
+        "title": "truck / freight_car 的关键混淆转移",
+        "description": "confusion matrix 固定工作点；rate 以真实类别实例数为分母。",
+        "dataset": "confusion_focus",
+        "columns": [
+          {"field": "transition", "label": "真实→预测", "type": "string"},
+          {"field": "baseline_count", "label": "baseline 数量", "type": "number", "format": ".0f"},
+          {"field": "module_count", "label": "模块数量", "type": "number", "format": ".0f"},
+          {"field": "count_delta", "label": "数量变化", "type": "number", "format": "+.0f", "semantic": "movement"},
+          {"field": "baseline_rate_pct", "label": "baseline 比率 %", "type": "number", "format": ".2f"},
+          {"field": "module_rate_pct", "label": "模块比率 %", "type": "number", "format": ".2f"},
+          {"field": "rate_delta_pp", "label": "比率变化 pp", "type": "number", "format": "+.2f", "semantic": "movement"}
+        ],
+        "defaultSort": {"field": "count_delta", "direction": "desc"},
+        "sourceId": "confusion-source"
+      },
+      {
+        "id": "module-behavior",
+        "title": "IRPrompt / GDER 的实际输出尺度",
+        "description": "训练末期验证 telemetry 与八对固定 test 图像前向探针。",
+        "dataset": "module_behavior",
+        "columns": [
+          {"field": "component", "label": "组件", "type": "string"},
+          {"field": "stage", "label": "尺度", "type": "string"},
+          {"field": "measure", "label": "证据指标", "type": "string"},
+          {"field": "value", "label": "数值", "type": "number", "format": ".3f"},
+          {"field": "interpretation", "label": "解释", "type": "string"}
+        ],
+        "defaultSort": {"field": "component", "direction": "asc"},
+        "sourceId": "probe-source"
+      },
+      {
+        "id": "scale-s-ablation",
+        "title": "scale-s 同 carrier 的 GDER 分支消融",
+        "description": "仅作方向性支持；delta 相对 P2D-011 prompt-only。",
+        "dataset": "scale_s_ablation",
+        "columns": [
+          {"field": "variant", "label": "P4 变体", "type": "string"},
+          {"field": "class", "label": "类别", "type": "string"},
+          {"field": "map50_95", "label": "mAP50-95", "type": "number", "format": ".3f"},
+          {"field": "delta_pp", "label": "相对 prompt-only pp", "type": "number", "format": "+.1f", "semantic": "movement"}
+        ],
+        "defaultSort": {"field": "class", "direction": "asc"},
+        "sourceId": "ablation-source"
+      },
+      {
+        "id": "test-geometry",
+        "title": "测试集类别框几何",
+        "description": "全部 test OBB；像素口径 640×512，P4 stride=16。",
+        "dataset": "test_geometry",
+        "columns": [
+          {"field": "class", "label": "类别", "type": "string"},
+          {"field": "instances", "label": "实例数", "type": "number", "format": ".0f"},
+          {"field": "short_px", "label": "中位短边 px", "type": "number", "format": ".2f"},
+          {"field": "long_px", "label": "中位长边 px", "type": "number", "format": ".2f"},
+          {"field": "p4_short", "label": "P4 中位短边 cells", "type": "number", "format": ".2f"},
+          {"field": "p4_long", "label": "P4 中位长边 cells", "type": "number", "format": ".2f"}
+        ],
+        "defaultSort": {"field": "instances", "direction": "desc"},
+        "sourceId": "geometry-source"
+      }
+    ],
+    "sources": [
+      {
+        "id": "test-metrics-source",
+        "name": "scale-n baseline 与模块 test 分类指标",
+        "type": "file",
+        "path": "test_class_metrics.csv",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "解析两份 test_result/test.txt 并计算模块相对 baseline 的类别差值。",
+          "sql": "SELECT class, metric, delta_pp FROM class_delta ORDER BY class, metric;",
+          "tables_used": ["test_class_metrics.csv"],
+          "filters": ["split=test", "imgsz=640", "weights=best.pt"],
+          "metric_definitions": {"mAP50": "每类 OBB AP@IoU 0.50。", "mAP50-95": "每类 OBB AP 在 IoU 0.50:0.95 上的平均。", "delta_pp": "模块 AP 减 baseline AP，乘 100 后以百分点显示。"}
+        }
+      },
+      {
+        "id": "confusion-source",
+        "name": "两份测试混淆矩阵中的 truck / freight_car 转移",
+        "type": "file",
+        "path": "confusion_focus.csv",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "从 raw confusion matrix 读取真实 truck/freight_car 的关键预测去向并按真实类实例数归一化。",
+          "sql": "SELECT * FROM confusion_focus ORDER BY count_delta DESC;",
+          "tables_used": ["confusion_focus.csv"],
+          "filters": ["split=test", "confusion threshold=validator default"],
+          "metric_definitions": {"rate_delta_pp": "模块转移率减 baseline 转移率，以百分点表示。"}
+        }
+      },
+      {
+        "id": "probe-source",
+        "name": "IRPrompt/GDER 训练 telemetry 与 best.pt 前向探针",
+        "type": "file",
+        "path": "module_probe.json",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "使用固定八对 test RGB/IR 图像测量 prompt embedding 与专家加权输出的 RMS 比例，并结合 epoch 100 telemetry。",
+          "sql": "SELECT component, stage, measure, value, interpretation FROM module_behavior ORDER BY component, stage, measure;",
+          "tables_used": ["module_probe.json"],
+          "filters": ["weights=module best.pt", "sample ids=00001..00008", "imgsz=640"],
+          "metric_definitions": {"embedding_pct": "prompt embedding RMS / 输入 IR 特征 RMS ×100。", "expert_pct": "门控后专家输出 RMS / fused_base RMS ×100。"}
+        }
+      },
+      {
+        "id": "ablation-source",
+        "name": "scale-s P2D-011/013/014/015 测试消融",
+        "type": "file",
+        "path": "scale_s_ablation.csv",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "同 carrier 下对 prompt-only、full GDER、modality-only 与 attention-only 的 test 指标比较。",
+          "sql": "SELECT * FROM scale_s_ablation WHERE class IN ('all','truck','freight_car') ORDER BY class, model;",
+          "tables_used": ["scale_s_ablation.csv"],
+          "filters": ["scale=s", "split=test", "weights=best.pt"],
+          "metric_definitions": {"delta_pp": "相对 P2D-011 prompt-only 的 mAP50-95 变化，百分点。"}
+        }
+      },
+      {
+        "id": "geometry-source",
+        "name": "DroneVehicle test OBB 框几何",
+        "type": "file",
+        "path": "test_box_geometry.csv",
+        "query": {
+          "language": "sql",
+          "engine": "SQLite",
+          "description": "对全部 test 标签 polygon 计算 minimum-area rectangle，并换算 P4 stride-16 cells。",
+          "sql": "SELECT class, instances, short_side_p50_px, long_side_p50_px, p4_short_cells_p50, p4_long_cells_p50 FROM test_box_geometry ORDER BY instances DESC;",
+          "tables_used": ["test_box_geometry.csv"],
+          "filters": ["split=test", "valid OBB labels"],
+          "metric_definitions": {"p4_short": "中位短边像素 / 16。", "p4_long": "中位长边像素 / 16。"}
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "generated_at": "2026-08-23T00:00:00+08:00",
+    "datasets": {
+      "class_delta": [
+        {"class": "car", "metric": "mAP50", "delta_pp": 0.0, "baseline": 0.986, "module": 0.986, "instances": 137146},
+        {"class": "car", "metric": "mAP50-95", "delta_pp": 0.4, "baseline": 0.836, "module": 0.840, "instances": 137146},
+        {"class": "truck", "metric": "mAP50", "delta_pp": -0.5, "baseline": 0.835, "module": 0.830, "instances": 8657},
+        {"class": "truck", "metric": "mAP50-95", "delta_pp": 0.2, "baseline": 0.672, "module": 0.674, "instances": 8657},
+        {"class": "bus", "metric": "mAP50", "delta_pp": 0.0, "baseline": 0.963, "module": 0.963, "instances": 4467},
+        {"class": "bus", "metric": "mAP50-95", "delta_pp": 0.7, "baseline": 0.825, "module": 0.832, "instances": 4467},
+        {"class": "van", "metric": "mAP50", "delta_pp": 1.2, "baseline": 0.642, "module": 0.654, "instances": 4282},
+        {"class": "van", "metric": "mAP50-95", "delta_pp": 1.3, "baseline": 0.529, "module": 0.542, "instances": 4282},
+        {"class": "freight_car", "metric": "mAP50", "delta_pp": -1.2, "baseline": 0.709, "module": 0.697, "instances": 5062},
+        {"class": "freight_car", "metric": "mAP50-95", "delta_pp": -0.7, "baseline": 0.575, "module": 0.568, "instances": 5062}
+      ],
+      "confusion_focus": [
+        {"transition":"truck→truck","baseline_count":6866,"module_count":7082,"count_delta":216,"baseline_rate_pct":79.312,"module_rate_pct":81.807,"rate_delta_pp":2.495},
+        {"transition":"truck→freight_car","baseline_count":937,"module_count":835,"count_delta":-102,"baseline_rate_pct":10.824,"module_rate_pct":9.645,"rate_delta_pp":-1.178},
+        {"transition":"truck→background","baseline_count":437,"module_count":325,"count_delta":-112,"baseline_rate_pct":5.048,"module_rate_pct":3.754,"rate_delta_pp":-1.294},
+        {"transition":"freight_car→freight_car","baseline_count":3603,"module_count":3532,"count_delta":-71,"baseline_rate_pct":71.177,"module_rate_pct":69.775,"rate_delta_pp":-1.403},
+        {"transition":"freight_car→truck","baseline_count":692,"module_count":773,"count_delta":81,"baseline_rate_pct":13.670,"module_rate_pct":15.271,"rate_delta_pp":1.600},
+        {"transition":"freight_car→background","baseline_count":237,"module_count":217,"count_delta":-20,"baseline_rate_pct":4.682,"module_rate_pct":4.287,"rate_delta_pp":-0.395}
+      ],
+      "module_behavior": [
+        {"component":"IRPrompt","stage":"P3","measure":"epoch100 前景-背景 gap","value":0.426,"interpretation":"已学成强目标显著性"},
+        {"component":"IRPrompt","stage":"P4","measure":"epoch100 前景-背景 gap","value":0.503,"interpretation":"已学成强目标显著性"},
+        {"component":"IRPrompt","stage":"P3","measure":"embedding / IR RMS (%)","value":3.352,"interpretation":"实际残差主要入口"},
+        {"component":"IRPrompt","stage":"P4","measure":"embedding / IR RMS (%)","value":0.739,"interpretation":"弱于 P3"},
+        {"component":"IRPrompt","stage":"P5","measure":"embedding / IR RMS (%)","value":0.106,"interpretation":"近似无效；prompt 近常数"},
+        {"component":"GDER modality","stage":"P4","measure":"weighted output / fused RMS (%)","value":1.438,"interpretation":"身份专家几乎未打开"},
+        {"component":"GDER attention","stage":"P4","measure":"weighted output / fused RMS (%)","value":15.072,"interpretation":"主导 GDER 实际修正"},
+        {"component":"GDER gate","stage":"P4","measure":"gate std (%)","value":1.344,"interpretation":"动态分化较弱"}
+      ],
+      "scale_s_ablation": [
+        {"variant":"prompt-only","class":"all","map50_95":0.702,"delta_pp":0.0},
+        {"variant":"full GDER P4","class":"all","map50_95":0.706,"delta_pp":0.4},
+        {"variant":"modality-only P4","class":"all","map50_95":0.706,"delta_pp":0.4},
+        {"variant":"attention-only P4","class":"all","map50_95":0.707,"delta_pp":0.5},
+        {"variant":"prompt-only","class":"truck","map50_95":0.693,"delta_pp":0.0},
+        {"variant":"full GDER P4","class":"truck","map50_95":0.693,"delta_pp":0.0},
+        {"variant":"modality-only P4","class":"truck","map50_95":0.695,"delta_pp":0.2},
+        {"variant":"attention-only P4","class":"truck","map50_95":0.695,"delta_pp":0.2},
+        {"variant":"prompt-only","class":"freight_car","map50_95":0.579,"delta_pp":0.0},
+        {"variant":"full GDER P4","class":"freight_car","map50_95":0.590,"delta_pp":1.1},
+        {"variant":"modality-only P4","class":"freight_car","map50_95":0.586,"delta_pp":0.7},
+        {"variant":"attention-only P4","class":"freight_car","map50_95":0.591,"delta_pp":1.2}
+      ],
+      "test_geometry": [
+        {"class":"car","instances":137146,"short_px":24.14,"long_px":55.73,"p4_short":1.51,"p4_long":3.48},
+        {"class":"truck","instances":8657,"short_px":32.21,"long_px":90.37,"p4_short":2.01,"p4_long":5.65},
+        {"class":"bus","instances":4467,"short_px":37.00,"long_px":124.00,"p4_short":2.31,"p4_long":7.75},
+        {"class":"van","instances":4282,"short_px":26.93,"long_px":61.03,"p4_short":1.68,"p4_long":3.81},
+        {"class":"freight_car","instances":5062,"short_px":31.57,"long_px":91.97,"p4_short":1.97,"p4_long":5.75}
+      ]
+    }
+  },
+  "sources": []
+}

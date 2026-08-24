@@ -1,0 +1,561 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DroneVehicle RGB/IR 配准质量审计",
+    "description": "检查 DroneVehicle 准备数据中的 RGB/IR 是否可视为同一车辆处于同一像素坐标。",
+    "generatedAt": "2026-08-20T14:43:03+08:00",
+    "cards": [
+      {
+        "id": "pair_card",
+        "dataset": "headline",
+        "sourceId": "alignment_audit",
+        "description": "Exact same-stem RGB/IR/label triplets across train, val, and test.",
+        "metrics": [
+          {
+            "label": "完整配对",
+            "field": "paired_images",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "median_card",
+        "dataset": "headline",
+        "sourceId": "alignment_audit",
+        "description": "Median scene-level residual translation among trusted estimates.",
+        "metrics": [
+          {
+            "label": "残余位移中位数 (px)",
+            "field": "median_shift_px",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "within_card",
+        "dataset": "headline",
+        "sourceId": "alignment_audit",
+        "description": "Share of trusted estimates with residual translation at or below 2 pixels.",
+        "metrics": [
+          {
+            "label": "≤2 px 占比 (%)",
+            "field": "within_2px_pct",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "p90_card",
+        "dataset": "headline",
+        "sourceId": "alignment_audit",
+        "description": "90th percentile residual translation among trusted estimates.",
+        "metrics": [
+          {
+            "label": "残余位移 P90 (px)",
+            "field": "p90_shift_px",
+            "format": "number"
+          }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "shift_distribution_chart",
+        "title": "可信配准样本的残余位移分布",
+        "subtitle": "n=293；另有 107/400 因跨模态相关性不足或估计超界而未纳入位移分位数。",
+        "showDescription": true,
+        "intent": "distribution",
+        "question": "同一场景在 RGB 与 IR 中通常相差多少像素？",
+        "rationale": "分箱百分比直接显示严格同像素、近似同坐标和明显错位样本的比例。",
+        "type": "bar",
+        "dataset": "shift_distribution",
+        "sourceId": "alignment_audit",
+        "encodings": {
+          "x": {
+            "field": "range",
+            "type": "ordinal",
+            "label": "Residual shift"
+          },
+          "y": {
+            "field": "share_pct",
+            "type": "quantitative",
+            "label": "Share",
+            "unit": "%"
+          },
+          "tooltip": [
+            {
+              "field": "samples",
+              "type": "quantitative",
+              "label": "Samples"
+            },
+            {
+              "field": "share_pct",
+              "type": "quantitative",
+              "label": "Share (%)"
+            }
+          ]
+        },
+        "xAxisTitle": "残余位移范围",
+        "yAxisTitle": "可信样本占比 (%)",
+        "layout": "full",
+        "palette": {
+          "kind": "sequential",
+          "name": "blue"
+        },
+        "settings": {
+          "orientation": "vertical",
+          "showValues": true
+        }
+      },
+      {
+        "id": "split_shift_chart",
+        "title": "不同 split 的残余位移",
+        "subtitle": "验证集抽样中位数较高，但每个 split 的可信样本量不同。",
+        "showDescription": true,
+        "intent": "comparison",
+        "question": "train、val、test 的配准质量是否一致？",
+        "rationale": "中位数与 P90 并列可区分典型配准和尾部错位。",
+        "type": "bar",
+        "dataset": "split_chart",
+        "sourceId": "alignment_audit",
+        "encodings": {
+          "x": {
+            "field": "split",
+            "type": "nominal",
+            "label": "Split"
+          },
+          "y": {
+            "field": "shift_px",
+            "type": "quantitative",
+            "label": "Residual shift",
+            "unit": "px"
+          },
+          "color": {
+            "field": "metric",
+            "type": "nominal",
+            "label": "Statistic"
+          },
+          "tooltip": [
+            {
+              "field": "metric",
+              "type": "text",
+              "label": "Statistic"
+            },
+            {
+              "field": "shift_px",
+              "type": "quantitative",
+              "label": "Shift (px)"
+            }
+          ]
+        },
+        "xAxisTitle": "Split",
+        "yAxisTitle": "残余位移 (px)",
+        "layout": "full",
+        "palette": {
+          "kind": "categorical",
+          "name": "tableau10"
+        },
+        "legend": {
+          "position": "top",
+          "title": "Statistic"
+        },
+        "settings": {
+          "groupMode": "grouped",
+          "orientation": "vertical",
+          "showValues": true
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "pairing_table",
+        "title": "全量文件配对与尺寸检查",
+        "subtitle": "所有 split 均为同名、同数量、同分辨率的 RGB/IR/label 三元组。",
+        "dataset": "pairing",
+        "sourceId": "alignment_audit",
+        "layout": "full",
+        "density": "spacious",
+        "columns": [
+          {
+            "field": "split",
+            "label": "Split",
+            "type": "text"
+          },
+          {
+            "field": "exact_triplets",
+            "label": "Exact triplets",
+            "format": "number"
+          },
+          {
+            "field": "triplet_coverage_pct",
+            "label": "Coverage (%)",
+            "format": "number"
+          },
+          {
+            "field": "dimension_match_pct",
+            "label": "Same size (%)",
+            "format": "number"
+          },
+          {
+            "field": "unreadable_pairs",
+            "label": "Unreadable",
+            "format": "number"
+          }
+        ]
+      },
+      {
+        "id": "box_table",
+        "title": "目标像素尺度",
+        "subtitle": "短边基于每个有效标签多边形的最小外接旋转矩形。",
+        "dataset": "box_sizes",
+        "sourceId": "alignment_audit",
+        "layout": "full",
+        "density": "spacious",
+        "columns": [
+          {
+            "field": "class",
+            "label": "Class",
+            "type": "text"
+          },
+          {
+            "field": "instances",
+            "label": "Instances",
+            "format": "number"
+          },
+          {
+            "field": "short_side_p10_px",
+            "label": "Short side P10 (px)",
+            "format": "number"
+          },
+          {
+            "field": "short_side_p50_px",
+            "label": "Short side P50 (px)",
+            "format": "number"
+          },
+          {
+            "field": "short_side_p90_px",
+            "label": "Short side P90 (px)",
+            "format": "number"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "alignment_audit",
+        "label": "Prepared DroneVehicle RGB/IR pairs and alignment audit outputs",
+        "path": "reports/dronevehicle_alignment_quality/summary.json",
+        "query": {
+          "engine": "duckdb",
+          "language": "sql",
+          "description": "analyze_alignment.py checks every prepared pair and label, then estimates residual cross-modal translation on a deterministic evenly spaced sample using gradient phase correlation and ECC.",
+          "sql": "SELECT * FROM read_json_auto('reports/dronevehicle_alignment_quality/summary.json')",
+          "tables_used": [
+            "datasets/DroneVehicle_twostream_3/images/{train,val,test}",
+            "datasets/DroneVehicle_twostream_3/image/{train,val,test}",
+            "datasets/DroneVehicle_twostream_3/labels/{train,val,test}",
+            "reports/dronevehicle_alignment_quality/alignment_samples.csv"
+          ],
+          "filters": [
+            "All 28,439 prepared RGB/IR/label stems for pairing and size checks",
+            "Deterministic evenly spaced sample: train 200, val 50, test 150",
+            "Trusted translation estimate: ECC correlation >= 0.50 and shift <= 10 px",
+            "Trusted affine estimate: correlation >= 0.50, scale in [0.98, 1.02], absolute rotation <= 1 degree"
+          ],
+          "metric_definitions": [
+            "Residual shift is hypot(dx, dy) from translation-only ECC on normalized RGB/IR gradient magnitudes.",
+            "Within-N-pixel share is calculated only among trusted registration estimates.",
+            "Object short side is the smaller dimension of cv2.minAreaRect fitted to each valid normalized label polygon at 640x512."
+          ]
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# DroneVehicle RGB/IR 配准质量审计"
+      },
+      {
+        "id": "answer",
+        "type": "markdown",
+        "sourceId": "alignment_audit",
+        "body": "## 结论：整体配准较好，但同一车辆不应严格视为完全相同 `(x, y)`\n\n- **可以近似同坐标。** 28,439 对样本全部同名、同尺寸（640×512）且共享标签；可信几何估计的残余平移中位数为 **1.741 px**，54.27% 在 **2 px** 内。\n- **不能按逐像素完全对齐处理。** 可信估计的 P90 为 **6.857 px**，18.77% 落在 **5–10 px**；视觉叠加中道路边缘、灯杆和车辆会共同出现方向一致的红/绿边。\n- **对小车辆仍有实际影响。** 全部目标短边中位数约 **25 px**，所以典型 1.741 px 位移约为短边的 **6.97%**；尾部 5–10 px 对逐像素加和、相乘或局部注意力并不小。\n- 更准确的表述是：**DroneVehicle 已做较好的几何配准，同一车通常出现在邻近坐标，但并非保证 RGB `(x,y)` 与 IR `(x,y)` 完全相同。**"
+      },
+      {
+        "id": "metrics",
+        "type": "metric-strip",
+        "cardIds": [
+          "pair_card",
+          "median_card",
+          "within_card",
+          "p90_card"
+        ]
+      },
+      {
+        "id": "integrity",
+        "type": "markdown",
+        "sourceId": "alignment_audit",
+        "body": "## 文件与监督口径完全一致\n\ntrain 17,990 对、val 1,469 对、test 8,980 对，RGB、IR 和标签 stem 覆盖率均为 100%，所有图像尺寸一致。500,515 条多边形标签均可解析；边界目标允许 3/5/6 个顶点，因此不能把非四边形行误判为坏标签。需要注意，共享同一标签文件只说明训练监督采用同一坐标，不是原始两幅图严格逐像素相同的独立证据。"
+      },
+      {
+        "id": "pair_table",
+        "type": "table",
+        "tableId": "pairing_table",
+        "layout": "full"
+      },
+      {
+        "id": "geometry",
+        "type": "markdown",
+        "sourceId": "alignment_audit",
+        "body": "## 多数样本是 1–3 px 级别，但尾部错位真实存在\n\n400 对均匀抽样中，293 对通过跨模态相关性与位移范围筛选。中位方向偏移为 dx **+0.319 px**、dy **−0.398 px**，说明全数据没有一个大的统一平移；但不同采集序列可呈现不同方向的稳定偏移。40 对仿射抽样中，30 对可信结果的中心位移中位数为 **1.709 px**、旋转中位数仅 **0.094°**、尺度约为 1，而最大角点位移 P90 达 **10.451 px**，表明局部位置/视差仍可能让画面边缘错开。"
+      },
+      {
+        "id": "distribution",
+        "type": "chart",
+        "chartId": "shift_distribution_chart",
+        "layout": "full"
+      },
+      {
+        "id": "split",
+        "type": "chart",
+        "chartId": "split_shift_chart",
+        "layout": "full"
+      },
+      {
+        "id": "scale",
+        "type": "markdown",
+        "sourceId": "alignment_audit",
+        "body": "## 位移相对车辆尺寸并非总是可忽略\n\n全体目标的短边 P10/P50/P90 分别约为 **18/25/34 px**。典型 1–2 px 对多尺度特征融合通常可容忍，但 5–10 px 已相当于小目标短边的约 28%–56%。这解释了为什么数据整体看起来配准良好，仍可能让对像素对应高度敏感的融合模块受损。"
+      },
+      {
+        "id": "boxes",
+        "type": "table",
+        "tableId": "box_table",
+        "layout": "full"
+      },
+      {
+        "id": "model_implication",
+        "type": "markdown",
+        "body": "## 对双流模型的含义\n\n1. 可继续使用共享 OBB 标签和同尺度双流输入，不需要把整个数据集判定为未配准。\n2. 不应假定每个特征位置严格一一对应；逐像素 concat/sum 后立刻做窄核交互时，建议加入 2–8 px 等效感受野、可变形采样或局部跨模态注意力。\n3. 建议按本审计的位移分箱做验证集分层评估：`≤2 px`、`2–5 px`、`5–10 px`。若模块只在高错位组提升，才说明它真正解决了配准鲁棒性；若各组都无提升，瓶颈更可能在表征或优化而不是配准。\n4. 数据增强应对两个模态同步做几何变换；不要分别随机裁剪、旋转或透视，否则会人为增加新的错位。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "sourceId": "alignment_audit",
+        "body": "## 证据边界\n\n- 107/400 对因跨模态纹理差异、热晕、阴影、植被或估计超界未进入分位数统计；它们是“未知”，不能自动解释为更差配准。\n- ECC 是场景级估计，不是逐车 RGB/IR 双标注；动态车辆与传感器时序差可能带来个体偏差。\n- 高位移与低位移蒙太奇分别保存在 `high_shift_montage.jpg` 和 `low_shift_montage.jpg`，用于人工复核。\n\n因此该结果适合支持“整体配准较好但非像素级完美”的工程判断，不适合宣称每一辆车的真实中心误差都已被精确测量。"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-20T14:43:03+08:00",
+    "status": "ready",
+    "datasets": {
+      "headline": [
+        {
+          "paired_images": 28439,
+          "median_shift_px": 1.741,
+          "within_2px_pct": 54.27,
+          "p90_shift_px": 6.857
+        }
+      ],
+      "pairing": [
+        {
+          "split": "train",
+          "rgb_files": 17990,
+          "ir_files": 17990,
+          "label_files": 17990,
+          "exact_triplets": 17990,
+          "triplet_coverage_pct": 100.0,
+          "rgb_without_ir": 0,
+          "ir_without_rgb": 0,
+          "images_without_label": 0,
+          "labels_without_pair": 0,
+          "dimension_matches": 17990,
+          "dimension_match_pct": 100.0,
+          "unreadable_pairs": 0,
+          "dimension_profile": "ir_640x512:17990; rgb_640x512:17990"
+        },
+        {
+          "split": "val",
+          "rgb_files": 1469,
+          "ir_files": 1469,
+          "label_files": 1469,
+          "exact_triplets": 1469,
+          "triplet_coverage_pct": 100.0,
+          "rgb_without_ir": 0,
+          "ir_without_rgb": 0,
+          "images_without_label": 0,
+          "labels_without_pair": 0,
+          "dimension_matches": 1469,
+          "dimension_match_pct": 100.0,
+          "unreadable_pairs": 0,
+          "dimension_profile": "ir_640x512:1469; rgb_640x512:1469"
+        },
+        {
+          "split": "test",
+          "rgb_files": 8980,
+          "ir_files": 8980,
+          "label_files": 8980,
+          "exact_triplets": 8980,
+          "triplet_coverage_pct": 100.0,
+          "rgb_without_ir": 0,
+          "ir_without_rgb": 0,
+          "images_without_label": 0,
+          "labels_without_pair": 0,
+          "dimension_matches": 8980,
+          "dimension_match_pct": 100.0,
+          "unreadable_pairs": 0,
+          "dimension_profile": "ir_640x512:8980; rgb_640x512:8980"
+        }
+      ],
+      "shift_distribution": [
+        {
+          "range": "≤1 px",
+          "samples": 108,
+          "share_pct": 36.86
+        },
+        {
+          "range": "1–2 px",
+          "samples": 51,
+          "share_pct": 17.41
+        },
+        {
+          "range": "2–3 px",
+          "samples": 28,
+          "share_pct": 9.56
+        },
+        {
+          "range": "3–5 px",
+          "samples": 51,
+          "share_pct": 17.41
+        },
+        {
+          "range": "5–10 px",
+          "samples": 55,
+          "share_pct": 18.77
+        }
+      ],
+      "split_chart": [
+        {
+          "split": "train",
+          "metric": "Median",
+          "shift_px": 1.719
+        },
+        {
+          "split": "train",
+          "metric": "P90",
+          "shift_px": 6.513
+        },
+        {
+          "split": "val",
+          "metric": "Median",
+          "shift_px": 3.008
+        },
+        {
+          "split": "val",
+          "metric": "P90",
+          "shift_px": 8.081
+        },
+        {
+          "split": "test",
+          "metric": "Median",
+          "shift_px": 1.719
+        },
+        {
+          "split": "test",
+          "metric": "P90",
+          "shift_px": 5.786
+        }
+      ],
+      "box_sizes": [
+        {
+          "class": "all",
+          "instances": 500515,
+          "short_side_p10_px": 18.0,
+          "short_side_p50_px": 25.0,
+          "short_side_p90_px": 34.0,
+          "long_side_p50_px": 57.24
+        },
+        {
+          "class": "car",
+          "instances": 428083,
+          "short_side_p10_px": 17.52,
+          "short_side_p50_px": 24.14,
+          "short_side_p90_px": 31.1,
+          "long_side_p50_px": 55.97
+        },
+        {
+          "class": "truck",
+          "instances": 25960,
+          "short_side_p10_px": 21.69,
+          "short_side_p50_px": 31.85,
+          "short_side_p90_px": 44.55,
+          "long_side_p50_px": 86.79
+        },
+        {
+          "class": "bus",
+          "instances": 16590,
+          "short_side_p10_px": 28.32,
+          "short_side_p50_px": 36.63,
+          "short_side_p90_px": 48.7,
+          "long_side_p50_px": 123.16
+        },
+        {
+          "class": "van",
+          "instances": 12708,
+          "short_side_p10_px": 18.11,
+          "short_side_p50_px": 26.17,
+          "short_side_p90_px": 35.98,
+          "long_side_p50_px": 59.36
+        },
+        {
+          "class": "freight_car",
+          "instances": 17174,
+          "short_side_p10_px": 21.07,
+          "short_side_p50_px": 30.93,
+          "short_side_p90_px": 46.23,
+          "long_side_p50_px": 86.65
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "alignment_audit",
+      "label": "Prepared DroneVehicle RGB/IR pairs and alignment audit outputs",
+      "path": "reports/dronevehicle_alignment_quality/summary.json",
+      "query": {
+        "engine": "duckdb",
+        "language": "sql",
+        "description": "analyze_alignment.py checks every prepared pair and label, then estimates residual cross-modal translation on a deterministic evenly spaced sample using gradient phase correlation and ECC.",
+        "sql": "SELECT * FROM read_json_auto('reports/dronevehicle_alignment_quality/summary.json')",
+        "tables_used": [
+          "datasets/DroneVehicle_twostream_3/images/{train,val,test}",
+          "datasets/DroneVehicle_twostream_3/image/{train,val,test}",
+          "datasets/DroneVehicle_twostream_3/labels/{train,val,test}",
+          "reports/dronevehicle_alignment_quality/alignment_samples.csv"
+        ],
+        "filters": [
+          "All 28,439 prepared RGB/IR/label stems for pairing and size checks",
+          "Deterministic evenly spaced sample: train 200, val 50, test 150",
+          "Trusted translation estimate: ECC correlation >= 0.50 and shift <= 10 px",
+          "Trusted affine estimate: correlation >= 0.50, scale in [0.98, 1.02], absolute rotation <= 1 degree"
+        ],
+        "metric_definitions": [
+          "Residual shift is hypot(dx, dy) from translation-only ECC on normalized RGB/IR gradient magnitudes.",
+          "Within-N-pixel share is calculated only among trusted registration estimates.",
+          "Object short side is the smaller dimension of cv2.minAreaRect fitted to each valid normalized label polygon at 640x512."
+        ]
+      }
+    }
+  ],
+  "package_info": {
+    "analysisScript": "reports/dronevehicle_alignment_quality/analyze_alignment.py",
+    "notebook": "reports/dronevehicle_alignment_quality/dronevehicle_alignment_quality.ipynb",
+    "summary": "reports/dronevehicle_alignment_quality/summary.json"
+  }
+}

@@ -19,7 +19,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENTS_ROOT = ROOT / "experiments"
-MANIFEST_PATTERN = "*/manifests/*.yaml"
+MANIFEST_PATTERN = "**/manifests/*.yaml"
 ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d{3}$")
 ALLOWED_STATUSES = {
     "auto",
@@ -34,6 +34,7 @@ ALLOWED_STATUSES = {
 ALLOWED_LAUNCH_MODES = {"checkpoint"}
 ALLOWED_RECOVERY_CONFIDENCE = {"confirmed", "recovered", "inferred"}
 SUPPORTED_TRAINER_CLASSES = {
+    "ultralytics.models.yolo.detect.train:DetectionTrainer",
     "ultralytics.models.yolo.obb.train:OBBTrainer",
     "ultralytics.models.yolo.obb.target_saliency_train:SoftCenternessTargetSaliencyOBBTrainer",
     "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer",
@@ -200,6 +201,19 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
         if not manifest.get("change_from_parent"):
             errors.append(f"{experiment_id}: missing change_from_parent")
 
+        dataset = manifest.get("dataset")
+        if dataset is not None:
+            dataset = _required_mapping(dataset, "dataset", experiment_id, errors)
+            for key in ("id", "name", "task", "annotation_type"):
+                if not dataset.get(key):
+                    errors.append(f"{experiment_id}: missing dataset.{key}")
+            if dataset.get("task") not in {"detect", "obb"}:
+                errors.append(f"{experiment_id}: dataset.task must be 'detect' or 'obb'")
+            if not isinstance(dataset.get("modalities"), list) or not dataset.get("modalities"):
+                errors.append(f"{experiment_id}: dataset.modalities must be a non-empty list")
+            if not isinstance(dataset.get("classes"), list) or not dataset.get("classes"):
+                errors.append(f"{experiment_id}: dataset.classes must be a non-empty list")
+
         lifecycle = _required_mapping(manifest.get("lifecycle"), "lifecycle", experiment_id, errors)
         status = lifecycle.get("status")
         if status not in ALLOWED_STATUSES:
@@ -260,6 +274,15 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
         )
         _check_path(
             experiment_id,
+            "files.test_entrypoint",
+            files.get("test_entrypoint"),
+            errors,
+            warnings,
+            required=False,
+            file_only=True,
+        )
+        _check_path(
+            experiment_id,
             "files.migration_script",
             files.get("migration_script"),
             errors,
@@ -296,8 +319,25 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
             except RegistryError as exc:
                 errors.append(str(exc))
             else:
-                if profile.get("task") != "obb":
-                    errors.append(f"{experiment_id}: profile.task must be 'obb'")
+                profile_task = profile.get("task")
+                if profile_task not in {"detect", "obb"}:
+                    errors.append(f"{experiment_id}: profile.task must be 'detect' or 'obb'")
+                expected_trainer = {
+                    "detect": "ultralytics.models.yolo.detect.train:DetectionTrainer",
+                    "obb": "ultralytics.models.yolo.obb.train:OBBTrainer",
+                }.get(profile_task)
+                if expected_trainer and trainer_class != expected_trainer:
+                    # OBB has additional registered custom-loss trainers; only
+                    # enforce the exact mapping for standard HBB detection.
+                    if profile_task == "detect":
+                        errors.append(
+                            f"{experiment_id}: detect profile requires trainer_class {expected_trainer!r}"
+                        )
+                if isinstance(dataset, dict) and dataset.get("task") != profile_task:
+                    errors.append(
+                        f"{experiment_id}: dataset.task {dataset.get('task')!r} "
+                        f"does not match profile.task {profile_task!r}"
+                    )
                 if not isinstance(profile.get("environment", {}), dict):
                     errors.append(f"{experiment_id}: profile.environment must be a mapping")
                 _check_path(experiment_id, "profile.data", profile.get("data"), errors, warnings, file_only=True)
@@ -628,6 +668,31 @@ def _epoch_progress(snapshot: Mapping[str, Any]) -> str:
     return f"{completed}/{target}" if target else str(completed)
 
 
+def _dataset_name(manifest: Mapping[str, Any]) -> str:
+    """Return explicit dataset metadata or a stable profile-data fallback."""
+
+    dataset = manifest.get("dataset") or {}
+    if isinstance(dataset, dict) and dataset.get("name"):
+        return str(dataset["name"])
+    try:
+        profile = load_profile(manifest)
+    except RegistryError:
+        return "—"
+    return str(profile.get("dataset_name") or Path(str(profile.get("data") or "—")).stem)
+
+
+def _task_and_scale(manifest: Mapping[str, Any]) -> str:
+    dataset = manifest.get("dataset") or {}
+    task = dataset.get("annotation_type") if isinstance(dataset, dict) else None
+    if not task:
+        try:
+            task = str(load_profile(manifest).get("task") or "—").upper()
+        except RegistryError:
+            task = "—"
+    scale = (manifest.get("architecture") or {}).get("scale")
+    return f"{task} / {scale}" if scale else str(task)
+
+
 def _family_tree(family_manifests: Sequence[Mapping[str, Any]], snapshots: Mapping[str, Mapping[str, Any]]) -> str:
     by_id = {str(item["id"]): item for item in family_manifests}
     children: Dict[Optional[str], List[str]] = defaultdict(list)
@@ -673,8 +738,8 @@ def render_index(manifests: Sequence[Dict[str, Any]], generated_at: str) -> str:
         "",
         f"当前登记 {len(manifests)} 个实验：{count_text}。",
         "",
-        "| ID | 论文族 | 状态 | 父实验 | 相对父实验的唯一改动 | 架构摘要 | Epoch | Test mAP50-95 | 尝试次数 | 文件链路 |",
-        "|---|---|---|---|---|---|---:|---:|---:|---|",
+        "| ID | 方法族 | 数据集 | Task/Scale | 状态 | 父实验 | 相对父实验的唯一改动 | 架构摘要 | Epoch | Test mAP50-95 | 尝试次数 | 文件链路 |",
+        "|---|---|---|---|---|---|---|---|---:|---:|---:|---|",
     ]
     for item in manifests:
         snapshot = snapshots[item["id"]]
@@ -682,16 +747,20 @@ def render_index(manifests: Sequence[Dict[str, Any]], generated_at: str) -> str:
         link_items = [
             _md_link(item["_manifest_path"], output_file, "Manifest"),
             _md_link(files.get("model_yaml"), output_file, "YAML"),
-            _md_link(files.get("train_entrypoint"), output_file, "旧 Train"),
+            _md_link(files.get("train_entrypoint"), output_file, "Train"),
             _md_link(snapshot.get("run_dir"), output_file, "当前 Run"),
         ]
+        if files.get("test_entrypoint"):
+            link_items.insert(3, _md_link(files["test_entrypoint"], output_file, "Test"))
         if snapshot.get("legacy_run_dir") and snapshot.get("legacy_run_dir") != snapshot.get("run_dir"):
             link_items.append(_md_link(snapshot.get("legacy_run_dir"), output_file, "旧 Run"))
         links = " · ".join(link_items)
         lines.append(
-            "| {id} | {family} | {status} | {parent} | {change} | {summary} | {epochs} | {metric} | {attempts} | {links} |".format(
+            "| {id} | {family} | {dataset} | {task_scale} | {status} | {parent} | {change} | {summary} | {epochs} | {metric} | {attempts} | {links} |".format(
                 id=item["id"],
                 family=item["family"],
+                dataset=_dataset_name(item),
+                task_scale=_task_and_scale(item),
                 status=snapshot["status"],
                 parent=item.get("parent_id") or "—",
                 change=str(item["change_from_parent"]).replace("|", "\\|"),
@@ -743,15 +812,17 @@ def render_family_readme(
         "",
         "## 架构与产物",
         "",
-        "| ID | 状态 | 父实验 | 唯一改动 | P3 | P4 | P5 | Epoch | Test mAP50-95 | 尝试次数 | YAML | 当前运行 |",
-        "|---|---|---|---|---|---|---|---:|---:|---:|---|---|",
+        "| ID | 数据集 | Task/Scale | 状态 | 父实验 | 唯一改动 | P3 | P4 | P5 | Epoch | Test mAP50-95 | 尝试次数 | YAML | 当前运行 |",
+        "|---|---|---|---|---|---|---|---|---|---:|---:|---:|---|---|",
     ]
     for item in manifests:
         snapshot = snapshots[item["id"]]
         flow = item["architecture"]["flow"]
         lines.append(
-            "| {id} | {status} | {parent} | {change} | {p3} | {p4} | {p5} | {epochs} | {metric} | {attempts} | {yaml} | {run} |".format(
+            "| {id} | {dataset} | {task_scale} | {status} | {parent} | {change} | {p3} | {p4} | {p5} | {epochs} | {metric} | {attempts} | {yaml} | {run} |".format(
                 id=item["id"],
+                dataset=_dataset_name(item),
+                task_scale=_task_and_scale(item),
                 status=snapshot["status"],
                 parent=item.get("parent_id") or "—",
                 change=str(item["change_from_parent"]).replace("|", "\\|"),
@@ -770,15 +841,24 @@ def render_family_readme(
     for item in manifests:
         snapshot = snapshots[item["id"]]
         files = item["files"]
+        file_links = [
+            _md_link(item["_manifest_path"], output_file, "Manifest"),
+            _md_link(files.get("model_yaml"), output_file, "YAML"),
+            _md_link(files.get("train_entrypoint"), output_file, "Train"),
+        ]
+        if files.get("test_entrypoint"):
+            file_links.append(_md_link(files["test_entrypoint"], output_file, "Test"))
+        file_links.append(_md_link(files.get("migration_script"), output_file, "迁移脚本"))
         lines.extend(
             [
                 f"### {item['id']} · {item['title']}",
                 "",
                 f"- 状态：`{snapshot['status']}`，进度 `{_epoch_progress(snapshot)}`，Test mAP50-95 `{_metric(snapshot.get('test_map50_95'))}`。",
+                f"- 数据集：`{_dataset_name(item)}`，任务/尺度：`{_task_and_scale(item)}`。",
                 f"- 架构：`{item['architecture']['summary']}`。",
                 f"- 假设：{item['hypothesis']}",
                 f"- 相对变化：{item['change_from_parent']}",
-                f"- 文件：{_md_link(item['_manifest_path'], output_file, 'Manifest')} · {_md_link(files.get('model_yaml'), output_file, 'YAML')} · {_md_link(files.get('train_entrypoint'), output_file, '旧 Train')} · {_md_link(files.get('migration_script'), output_file, '迁移脚本')}。",
+                f"- 文件：{' · '.join(file_links)}。",
                 "",
             ]
         )
@@ -792,6 +872,9 @@ def render_registry_csv(manifests: Sequence[Dict[str, Any]]) -> str:
     fields = [
         "id",
         "family",
+        "dataset",
+        "task",
+        "scale",
         "title",
         "parent_id",
         "status",
@@ -803,6 +886,7 @@ def render_registry_csv(manifests: Sequence[Dict[str, Any]]) -> str:
         "change_from_parent",
         "model_yaml",
         "train_entrypoint",
+        "test_entrypoint",
         "migration_script",
         "init_checkpoint",
         "trainer_class",
@@ -825,6 +909,9 @@ def render_registry_csv(manifests: Sequence[Dict[str, Any]]) -> str:
             {
                 "id": item["id"],
                 "family": item["family"],
+                "dataset": _dataset_name(item),
+                "task": str((item.get("dataset") or {}).get("annotation_type") or load_profile(item).get("task") or ""),
+                "scale": (item.get("architecture") or {}).get("scale", ""),
                 "title": item["title"],
                 "parent_id": item.get("parent_id") or "",
                 "status": snapshot["status"],
@@ -836,6 +923,7 @@ def render_registry_csv(manifests: Sequence[Dict[str, Any]]) -> str:
                 "change_from_parent": item["change_from_parent"],
                 "model_yaml": item["files"].get("model_yaml") or "",
                 "train_entrypoint": item["files"].get("train_entrypoint") or "",
+                "test_entrypoint": item["files"].get("test_entrypoint") or "",
                 "migration_script": item["files"].get("migration_script") or "",
                 "init_checkpoint": item["files"].get("init_checkpoint") or "",
                 "trainer_class": item["training"].get("trainer_class") or "",
@@ -890,13 +978,15 @@ def _print_list(manifests: Sequence[Dict[str, Any]], family: Optional[str]) -> N
     selected = [item for item in manifests if family is None or str(item["family"]).lower() == family.lower()]
     if not selected:
         raise RegistryError(f"no experiments found for family {family!r}")
-    headers = ("ID", "STATUS", "EPOCH", "TEST", "PARENT", "ARCHITECTURE")
+    headers = ("ID", "DATASET", "TASK/SCALE", "STATUS", "EPOCH", "TEST", "PARENT", "ARCHITECTURE")
     rows = []
     for item in selected:
         snapshot = artifact_snapshot(item)
         rows.append(
             (
                 item["id"],
+                _dataset_name(item),
+                _task_and_scale(item),
                 snapshot["status"],
                 _epoch_progress(snapshot),
                 _metric(snapshot["test_map50_95"]),

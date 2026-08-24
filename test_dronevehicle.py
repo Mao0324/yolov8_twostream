@@ -1,6 +1,61 @@
 from pathlib import Path
 import argparse
+import subprocess
 #python test_dronevehicle.py --weights /home/biiteam/Storage-4T/biiteam/MCONG/TwoStream_Yolov8_2/dronevehicle_runs_assa_ir_to_rgb2/train/weights/best.pt --project /home/biiteam/Storage-4T/biiteam/MCONG/TwoStream_Yolov8_2/dronevehicle_runs_assa_ir_to_rgb2/train  --name test_result
+
+
+def query_gpu_free_memory(timeout=5):
+    """Return ``[(physical_index, free_mib), ...]`` without importing CUDA/PyTorch."""
+    command = [
+        "nvidia-smi",
+        "--query-gpu=index,memory.free",
+        "--format=csv,noheader,nounits",
+    ]
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
+    except FileNotFoundError as exc:
+        raise RuntimeError("--device auto requires nvidia-smi, but it was not found") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"nvidia-smi did not respond within {timeout} seconds") from exc
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip()
+        raise RuntimeError(f"nvidia-smi failed while selecting a test GPU: {detail}")
+
+    gpus = []
+    for line in result.stdout.splitlines():
+        fields = [field.strip() for field in line.split(",")]
+        if len(fields) != 2:
+            continue
+        try:
+            gpus.append((int(fields[0]), int(fields[1])))
+        except ValueError:
+            continue
+    if not gpus:
+        raise RuntimeError("nvidia-smi returned no parseable GPU memory rows")
+    return gpus
+
+
+def resolve_test_device(requested, min_free_mib=8192):
+    """Resolve ``auto`` to the physical GPU with the most currently free memory."""
+    requested = str(requested).strip().lower()
+    if requested not in {"", "auto"}:
+        return requested
+
+    gpus = sorted(query_gpu_free_memory(), key=lambda item: (-item[1], item[0]))
+    selected_index, selected_free = gpus[0]
+    snapshot = ", ".join(f"GPU {index}: {free_mib} MiB free" for index, free_mib in sorted(gpus))
+    if selected_free < min_free_mib:
+        raise RuntimeError(
+            "No GPU has enough free memory for safe DroneVehicle validation: "
+            f"required >= {min_free_mib} MiB; {snapshot}. "
+            "Wait for a training job to finish, lower --batch together with --min-free-mib, "
+            "or explicitly use --device cpu."
+        )
+    print(
+        f"Auto-selected CUDA device {selected_index} with {selected_free} MiB free "
+        f"(minimum {min_free_mib} MiB). Current snapshot: {snapshot}"
+    )
+    return str(selected_index)
 
 
 def save_test_report(validator, cli_args):
@@ -78,7 +133,18 @@ def parse_args():
     parser.add_argument("--imgsz", type=int, default=640, help="Validation image size")
     parser.add_argument("--batch", type=int, default=16, help="Validation batch size")
     parser.add_argument("--workers", type=int, default=0, help="Validation dataloader workers")
-    parser.add_argument("--device", type=str, default="0", help="CUDA device, e.g. 0 or 0,1")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        help="CUDA device, e.g. 0; default auto selects the GPU with most free memory",
+    )
+    parser.add_argument(
+        "--min-free-mib",
+        type=int,
+        default=8192,
+        help="Minimum free GPU memory required by --device auto (default: 8192 MiB)",
+    )
     parser.add_argument("--project", type=str, default=None, help="Output project directory")
     parser.add_argument("--name", type=str, default="test_dronevehicle", help="Run name")
     parser.add_argument("--conf", type=float, default=0.001, help="Confidence threshold")
@@ -88,6 +154,12 @@ def parse_args():
 
 def main():
     args = parse_args()
+    if args.min_free_mib <= 0:
+        raise ValueError(f"--min-free-mib must be positive, got {args.min_free_mib}")
+    args.device = resolve_test_device(args.device, args.min_free_mib)
+
+    # Device selection must finish before importing Ultralytics/PyTorch so
+    # select_device() can safely set CUDA_VISIBLE_DEVICES to the chosen card.
     from ultralytics import YOLO
     import ultralytics.nn.tasks  # noqa: F401
 

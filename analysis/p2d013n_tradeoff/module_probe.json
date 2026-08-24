@@ -1,0 +1,136 @@
+{
+  "weights": "DroneVehicle_OBB_FusionTransfer/P2D-013N_IRPrompt-AsymIdentityGDER-P4-NoStaticMAA_PostC2f_v13_scalen/weights/best.pt",
+  "sample_ids": [
+    "00001",
+    "00002",
+    "00003",
+    "00004",
+    "00005",
+    "00006",
+    "00007",
+    "00008"
+  ],
+  "sample_size": 8,
+  "module_probe": [
+    {
+      "stage": "P3",
+      "prompt_mean": 0.06401851773262024,
+      "prompt_std": 0.15644598007202148,
+      "ir_rms": 0.5124312043190002,
+      "prompt_embedding_rms": 0.017178714275360107,
+      "prompt_embedding_to_ir_pct": 3.352394259086916,
+      "fused_base_rms": 0.9636619091033936,
+      "has_gder": false
+    },
+    {
+      "stage": "P4",
+      "prompt_mean": 0.05208760127425194,
+      "prompt_std": 0.15574900805950165,
+      "ir_rms": 0.4698154032230377,
+      "prompt_embedding_rms": 0.0034737081732600927,
+      "prompt_embedding_to_ir_pct": 0.739377242514759,
+      "fused_base_rms": 0.7836752533912659,
+      "has_gder": true,
+      "gder_modality_weight_mean": 0.49450719356536865,
+      "gder_attention_weight_mean": 0.5054928064346313,
+      "gder_gate_std": 0.013438229449093342,
+      "modality_expert_rms": 0.022854212671518326,
+      "attention_expert_rms": 0.23062394559383392,
+      "weighted_modality_to_fused_pct": 1.43784881074825,
+      "weighted_attention_to_fused_pct": 15.07222186010241
+    },
+    {
+      "stage": "P5",
+      "prompt_mean": 0.09958817809820175,
+      "prompt_std": 0.00012743991101160645,
+      "ir_rms": 0.4340146780014038,
+      "prompt_embedding_rms": 0.0004594884521793574,
+      "prompt_embedding_to_ir_pct": 0.10586933471818462,
+      "fused_base_rms": 0.6281759738922119,
+      "has_gder": false
+    }
+  ],
+  "parameter_probe": [
+    {
+      "parameter": "model.11.ir_prompt_embed.projection.weight",
+      "shape": [
+        64,
+        1,
+        1,
+        1
+      ],
+      "l2": 0.8130125999450684,
+      "abs_mean": 0.07619498670101166,
+      "abs_max": 0.38037109375
+    },
+    {
+      "parameter": "model.17.ir_prompt_embed.projection.weight",
+      "shape": [
+        128,
+        1,
+        1,
+        1
+      ],
+      "l2": 0.23930449783802032,
+      "abs_mean": 0.016673818230628967,
+      "abs_max": 0.06085205078125
+    },
+    {
+      "parameter": "model.17.modality_expert.fusion.3.weight",
+      "shape": [
+        128,
+        16,
+        1,
+        1
+      ],
+      "l2": 0.03678548336029053,
+      "abs_mean": 0.000557352788746357,
+      "abs_max": 0.005290985107421875
+    },
+    {
+      "parameter": "model.17.attention_expert.projection.weight",
+      "shape": [
+        128,
+        128,
+        1,
+        1
+      ],
+      "l2": 4.0094451904296875,
+      "abs_mean": 0.02356458455324173,
+      "abs_max": 0.2440185546875
+    },
+    {
+      "parameter": "model.17.expert_gate.body.2.weight",
+      "shape": [
+        256,
+        32,
+        1,
+        1
+      ],
+      "l2": 0.08540575951337814,
+      "abs_mean": 0.0005367163103073835,
+      "abs_max": 0.01493072509765625
+    },
+    {
+      "parameter": "model.17.expert_gate.body.2.bias",
+      "shape": [
+        256
+      ],
+      "l2": 0.4159957766532898,
+      "abs_mean": 0.01697382517158985,
+      "abs_max": 0.12548828125
+    },
+    {
+      "parameter": "model.25.ir_prompt_embed.projection.weight",
+      "shape": [
+        256,
+        1,
+        1,
+        1
+      ],
+      "l2": 0.07382211089134216,
+      "abs_mean": 0.0011980151757597923,
+      "abs_max": 0.054718017578125
+    }
+  ]
+}

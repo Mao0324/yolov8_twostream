@@ -26,6 +26,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED_TRAINERS = {
+    "ultralytics.models.yolo.detect.train:DetectionTrainer",
     "ultralytics.models.yolo.obb.train:OBBTrainer",
     "ultralytics.models.yolo.obb.target_saliency_train:SoftCenternessTargetSaliencyOBBTrainer",
     "ultralytics.models.yolo.obb.target_saliency_train:TargetSaliencyOBBTrainer",
@@ -157,7 +158,7 @@ def _architecture_hash(value: Mapping[str, Any]) -> str:
 def _load_and_check_model(resolved: Mapping[str, Any]):
     _patch_trusted_torch_load()
     from ultralytics import YOLO
-    from ultralytics.nn.tasks import OBBModel
+    from ultralytics.nn.tasks import DetectionModel, OBBModel
 
     launch_mode = resolved["launch_mode"]
     checkpoint = resolved.get("init_checkpoint")
@@ -170,9 +171,14 @@ def _load_and_check_model(resolved: Mapping[str, Any]):
     if not checkpoint or not Path(checkpoint).is_file():
         raise RegistryError(f"checkpoint launch requires an existing init checkpoint: {checkpoint}")
     model = YOLO(checkpoint, task=resolved["task"])
-    if resolved["task"] != "obb" or model.task != "obb" or not isinstance(model.model, OBBModel):
+    expected_models = {"detect": DetectionModel, "obb": OBBModel}
+    expected_model = expected_models.get(resolved["task"])
+    if expected_model is None:
+        raise RegistryError(f"unsupported checkpoint task: {resolved['task']!r}")
+    if model.task != resolved["task"] or not isinstance(model.model, expected_model):
         raise RegistryError(
-            f"checkpoint task/model mismatch: expected OBBModel task=obb, "
+            f"checkpoint task/model mismatch: expected {expected_model.__name__} "
+            f"task={resolved['task']}, "
             f"got {type(model.model).__name__} task={model.task!r}"
         )
 
@@ -254,6 +260,7 @@ def _declared_source_paths(manifest: Mapping[str, Any], resolved: Mapping[str, A
         manifest["training"].get("profile"),
         files.get("model_yaml"),
         files.get("train_entrypoint"),
+        files.get("test_entrypoint"),
         files.get("migration_script"),
     ]
     values.extend(files.get("module_files") or [])

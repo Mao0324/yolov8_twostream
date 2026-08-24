@@ -6,7 +6,7 @@
 
 - 模型结构的可执行真源：`files.model_yaml`。
 - 实验身份、父子关系、文件链路和运行规则的真源：对应的 Manifest。
-- `INDEX.md`、各论文族的 `README.md` 和 `registry.csv` 均由 Manifest 自动生成，不手工修改。
+- `INDEX.md`、各方法族的 `README.md` 和 `registry.csv` 均由 Manifest 自动生成，不手工修改。
 - 历史训练目录只作为只读证据，由 `legacy.run_dir` 链接。
 - 通用入口创建的新运行通过 `provenance/resolved_manifest.yaml` 中的永久 ID 自动归档；`name2`、`name3` 等重跑不会变成新的实验。
 
@@ -18,6 +18,13 @@ id: DA-001
 family: DarkAct
 title: 人类可读标题
 parent_id: null
+dataset:
+  id: flir_align
+  name: FLIR aligned
+  task: detect
+  annotation_type: HBB
+  modalities: [visible, thermal]
+  classes: [car, person, bicycle]
 lifecycle:
   status: auto
   recovery_confidence: confirmed
@@ -35,6 +42,7 @@ architecture:
 files:
   model_yaml: yaml/model.yaml
   train_entrypoint: train_xxx.py
+  test_entrypoint: test_xxx.py
   migration_script: tools/migrate_xxx.py
   init_checkpoint: pre-pth/model.pt
   module_files: []
@@ -51,6 +59,14 @@ legacy:
 reports: []
 notes: []
 ```
+
+## 目录和命名层级
+
+- `family` 表示方法族，例如 `DarkAct`、`Baseline`、`ASSANet`。
+- `dataset` 显式表示数据集、标注类型、模态和类别；`task: detect` + `annotation_type: HBB` 表示水平框检测。
+- 方法为主的历史 Manifest 保留在 `experiments/<family>/manifests/`。
+- 特定数据集的跨方法实验放在 `experiments/datasets/<dataset>/manifests/`，方法归属仍由 `family` 决定。注册器会递归发现两种路径。
+- 实验 ID 是永久主键；数据集+方法型实验可使用 `FLIRDA-001` 这样的前缀，其中 `FLIR` 是数据集、`DA` 是 DarkAct。
 
 ## 状态规则
 

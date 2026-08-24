@@ -15,6 +15,8 @@ from ultralytics.utils import RANK
 from ultralytics.utils.loss import v8OBBLoss
 from ultralytics.utils.torch_utils import de_parallel
 
+from .prompt_utils import rasterize_rotated_soft_centerness
+
 
 class TargetSaliencyOBBLoss(v8OBBLoss):
     """Add lightweight BCE+Dice supervision from normalized OBBs to S maps."""
@@ -213,40 +215,7 @@ class SoftCenternessTargetSaliencyOBBLoss(TargetSaliencyOBBLoss):
         The heatmap is one at the box center, decays smoothly toward its edges,
         is zero outside the OBB, and crowded boxes are merged with pointwise max.
         """
-        batch_size, _, height, width = logits.shape
-        device = logits.device
-        masks = torch.zeros((batch_size, 1, height, width), device=device, dtype=torch.float32)
-        boxes = batch["bboxes"].view(-1, 5).to(device=device, dtype=torch.float32)
-        batch_idx = batch["batch_idx"].view(-1).to(device=device, dtype=torch.long)
-        if boxes.numel() == 0:
-            return masks
-
-        grid_y, grid_x = self._normalized_grid(height, width, device)
-        epsilon = torch.finfo(torch.float32).eps
-        with torch.no_grad():
-            for image_index in range(batch_size):
-                image_boxes = boxes[batch_idx == image_index]
-                if not image_boxes.numel():
-                    continue
-                image_heatmap = torch.zeros((height, width), device=device, dtype=torch.float32)
-                for box_chunk in image_boxes.split(64):
-                    cx, cy, box_w, box_h, angle = box_chunk.unbind(dim=1)
-                    dx = grid_x.unsqueeze(0) - cx[:, None, None]
-                    dy = grid_y.unsqueeze(0) - cy[:, None, None]
-                    cosine = angle.cos()[:, None, None]
-                    sine = angle.sin()[:, None, None]
-                    local_x = cosine * dx + sine * dy
-                    local_y = -sine * dx + cosine * dy
-                    normalized_x = 2.0 * local_x / box_w.clamp_min(epsilon)[:, None, None]
-                    normalized_y = 2.0 * local_y / box_h.clamp_min(epsilon)[:, None, None]
-                    inside = (normalized_x.abs() <= 1.0) & (normalized_y.abs() <= 1.0)
-                    squared_radius = (normalized_x / self.soft_sigma).square() + (
-                        normalized_y / self.soft_sigma
-                    ).square()
-                    centerness = torch.exp(-0.5 * squared_radius) * inside
-                    image_heatmap = torch.maximum(image_heatmap, centerness.amax(dim=0))
-                masks[image_index, 0] = image_heatmap
-        return masks
+        return rasterize_rotated_soft_centerness(logits, batch, sigma=self.soft_sigma)
 
     def _one_stage_loss_from_target(self, logits, target):
         """Use continuous foreground weighting with BCE+Soft-Dice."""
