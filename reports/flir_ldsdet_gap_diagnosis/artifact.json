@@ -1,0 +1,299 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "FLIR 与 LDSDet 结果差距诊断",
+    "description": "对 FLIR Align HBB2 测试结果与 LDSDet 论文 FLIR HBB 结果的可比口径、类别贡献、模型配置和训练曲线诊断。",
+    "generatedAt": "2026-08-23T00:00:00+08:00",
+    "cards": [
+      {
+        "id": "current_map_card",
+        "description": "当前 4 类 HBB2 评测。",
+        "dataset": "gap_comparison",
+        "sourceId": "gap_metrics",
+        "filter": {"protocol": "当前评测（4类）"},
+        "metrics": [{"label": "mAP50-95（%）", "field": "map_pct", "format": "number"}]
+      },
+      {
+        "id": "adjusted_map_card",
+        "description": "根据已输出的分类 AP 剔除 dog 后的近似宏平均。",
+        "dataset": "gap_comparison",
+        "sourceId": "gap_metrics",
+        "filter": {"protocol": "近似对齐（3类）"},
+        "metrics": [{"label": "3类 mAP50-95（%）", "field": "map_pct", "format": "number"}]
+      },
+      {
+        "id": "paper_map_card",
+        "description": "LDSDet 论文 Table 4 的 FLIR HBB 结果。",
+        "dataset": "gap_comparison",
+        "sourceId": "gap_metrics",
+        "filter": {"protocol": "论文 LDSDet"},
+        "metrics": [{"label": "论文 mAP50-95（%）", "field": "map_pct", "format": "number"}]
+      }
+    ],
+    "charts": [
+      {
+        "id": "gap_chart",
+        "title": "类别口径对齐后，大部分表面差距消失",
+        "subtitle": "3 类数值由当前报告的分类 AP 重新宏平均，是近似值，不是重新评测。",
+        "type": "bar",
+        "dataset": "gap_comparison",
+        "sourceId": "gap_metrics",
+        "encodings": {
+          "x": {"field": "protocol", "type": "nominal", "label": "评测口径"},
+          "y": {"fields": ["map_pct", "map50_pct"], "type": "quantitative", "label": "AP（%）", "unit": "%"},
+          "tooltip": [
+            {"field": "class_count", "type": "quantitative", "label": "类别数"},
+            {"field": "note", "type": "text", "label": "说明"}
+          ]
+        },
+        "valueFormat": "number",
+        "unit": "%",
+        "yAxisTitle": "AP（%）",
+        "layout": "wide"
+      },
+      {
+        "id": "training_curve_chart",
+        "title": "100 epoch 内已出现平台与局部过拟合",
+        "subtitle": "mAP50-95 在 epoch 64 达到峰值 30.835%；mAP50 在 epoch 92 达到峰值 57.927%。",
+        "type": "line",
+        "dataset": "training_curve",
+        "sourceId": "training_curve_source",
+        "encodings": {
+          "x": {"field": "epoch", "type": "quantitative", "label": "Epoch"},
+          "y": {"fields": ["map_pct", "map50_pct"], "type": "quantitative", "label": "AP（%）", "unit": "%"},
+          "tooltip": [
+            {"field": "val_box", "type": "quantitative", "label": "val box loss"},
+            {"field": "val_dfl", "type": "quantitative", "label": "val DFL loss"}
+          ]
+        },
+        "valueFormat": "number",
+        "unit": "%",
+        "yAxisTitle": "AP（%）",
+        "layout": "wide"
+      }
+    ],
+    "tables": [
+      {
+        "id": "class_metrics_table",
+        "title": "当前测试的分类结果",
+        "subtitle": "dog 仅 13 个实例，但与其他类别等权进入宏平均。",
+        "dataset": "class_metrics",
+        "sourceId": "class_result_source",
+        "defaultSort": {"field": "map50_pct", "direction": "desc"},
+        "columns": [
+          {"field": "class_name", "label": "类别", "type": "text"},
+          {"field": "instances", "label": "实例数", "format": "number"},
+          {"field": "precision_pct", "label": "Precision（%）", "format": "number"},
+          {"field": "recall_pct", "label": "Recall（%）", "format": "number"},
+          {"field": "map50_pct", "label": "mAP50（%）", "format": "number"},
+          {"field": "map_pct", "label": "mAP50-95（%）", "format": "number"},
+          {"field": "miss_to_background_pct", "label": "漏检到背景（%）", "format": "number"}
+        ],
+        "layout": "wide"
+      },
+      {
+        "id": "config_comparison_table",
+        "title": "当前实验与论文设置并不等价",
+        "subtitle": "论文模型为 YOLOv11/CSPDarkNet-S 上的 LDSDet；当前实验是 YOLOv8n 派生的 DarkAct + SemanticDisagreementLAF 结构。",
+        "dataset": "config_comparison",
+        "sourceId": "config_source",
+        "columns": [
+          {"field": "dimension", "label": "维度", "type": "text"},
+          {"field": "current_run", "label": "当前 HBB2", "type": "text"},
+          {"field": "paper_setup", "label": "论文 LDSDet", "type": "text"},
+          {"field": "impact", "label": "诊断影响", "type": "text"}
+        ],
+        "layout": "wide"
+      }
+    ],
+    "sources": [
+      {"id": "gap_metrics", "label": "论文 Table 4 与当前 test.txt 的对齐计算"},
+      {"id": "class_result_source", "label": "HBB2 test_result/test.txt 及混淆矩阵"},
+      {"id": "config_source", "label": "论文实验设置、HBB2 args.yaml 和本地模型检查"},
+      {"id": "training_curve_source", "label": "HBB2 results.csv"},
+      {"id": "dataset_source", "label": "FLIR 注释 JSON、数据集说明和对齐 manifest"}
+    ],
+    "blocks": [
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## 技术结论\n\n差距是真的，但不是一个原因。当前四类评测为 **30.9 mAP / 57.4 mAP50**，论文 LDSDet 为 **45.3 / 82.9**；全部表面差距是 14.4 和 25.5 个点。但当前报告包含仅 13 个测试实例的 dog 类，它的 AP 接近 0；剔除 dog 后按已输出的分类 AP 近似重算，结果是 **39.7 / 73.5**。因此约 **61%–63%** 的表面差距是类别口径造成的。\n\n对齐三类口径后，仍剩约 **5.6 mAP / 9.4 mAP50** 的模型与训练差距。当前模型只有约 4.17M 参数，是 YOLOv8n 系的自定义融合模型；论文报告的 LDSDet 约 22.8M 参数，使用 YOLOv11/CSPDarkNet-S 及 LARC、DACF、SSG。当前 100 epoch、全局 batch 64 的更新次数约为 6,500；论文 200 epoch、batch 16 约为 51,800，假定论文 batch 为全局 batch 且无隐式累积，后者约为 8 倍。",
+        "sourceId": "gap_metrics"
+      },
+      {"id": "metric_strip", "type": "metric-strip", "cardIds": ["current_map_card", "adjusted_map_card", "paper_map_card"]},
+      {
+        "id": "protocol_heading",
+        "type": "markdown",
+        "body": "## 六成表面差距来自 dog 类口径\n\n当前 4 类 mAP50-95 为 30.9%，去除 dog 后的近似 3 类宏平均为 39.7%，口径本身解释 8.9 个点，占与论文 14.4 点总差距的约 61%。mAP50 从 57.4% 近似升至 73.5%，解释 16.2 个点，占 25.5 点总差距的约 63%。\n\n严格可比的做法是用三类注释重新训练和评测；本报告的 3 类数值只是由四类模型的分类 AP 重算，受原报告显示精度限制。",
+        "sourceId": "gap_metrics"
+      },
+      {"id": "gap_chart_block", "type": "chart", "chartId": "gap_chart"},
+      {
+        "id": "tail_class_heading",
+        "type": "markdown",
+        "body": "## 剩余误差集中在尾类召回与定位\n\ncar 已达到 60.0% mAP，person 为 40.3%，说明 RGB–红外对齐链路并非整体失效。主要短板是 bicycle（18.8% mAP，约 37% 真实样本落入背景）和 dog（4.25% mAP，约 92% 落入背景）。dog 训练集只有 95 个实例，测试集只有 13 个，却在 mAP 中与 4,123 个 car 等权。",
+        "sourceId": "class_result_source"
+      },
+      {"id": "class_table_block", "type": "table", "tableId": "class_metrics_table"},
+      {
+        "id": "config_heading",
+        "type": "markdown",
+        "body": "## 这不是 LDSDet 的同配置复现\n\n当前实验的名称和模型配置都表明它是 **FLIR + DarkAct + SemanticDisagreementLAF + P34 + R4 + NoStaticMAA + scale-n**，而不是论文的 LDSDet。因此论文结果应当被当作另一架构、另一容量档和另一训练预算下的参考上限，不是当前实验应自动到达的复现值。",
+        "sourceId": "config_source"
+      },
+      {"id": "config_table_block", "type": "table", "tableId": "config_comparison_table"},
+      {
+        "id": "curve_heading",
+        "type": "markdown",
+        "body": "## 当前配方在 100 epoch 内已平台化\n\nmAP50-95 的最高点在 epoch 64（30.835%），mAP50 的最高点在 epoch 92（57.927%）；epoch 100 分别回落到 29.504% 和 55.939%。val box loss 在 epoch 55 最低为 1.3913，最终上升到 1.4522，而训练 loss 仍在下降。这符合轻度过拟合或定位瓶颈，不支持“只把同一配方机械延长到 200 epoch 就能追平论文”的判断。",
+        "sourceId": "training_curve_source"
+      },
+      {"id": "curve_chart_block", "type": "chart", "chartId": "training_curve_chart"},
+      {
+        "id": "data_integrity",
+        "type": "markdown",
+        "body": "## 数据整体性不像首要故障\n\n当前划分是 4,129 张训练对和 1,013 张测试对，与论文报告数量一致。可见光与热红外列表的文件名一一对应。当前转换仅去掉 2 个训练重复框和 3 个测试重复框，对测试实例数的影响约 0.035%，无法解释数十个 AP 点的差距。本诊断没有完成全量像素尺寸与成对内容的视觉审核，因此不把“数据完全无问题”当作已证明结论。",
+        "sourceId": "dataset_source"
+      },
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## 诊断方法\n\n本报告把观测差距分成三层：（1）按类别 AP 重算三类宏平均，估计类别口径影响；（2）用分类召回、AP 和混淆矩阵定位误差集中处；（3）对比参数量、架构、epoch、batch 和近似优化更新数。带“近似”的结果是基于已打印的分类数值，未代替严格重训/重测。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## 限制与待确认项\n\n- 论文正文给出了 FLIR 划分和 Table 4 指标，但未在已检查段落中明确说明 FLIR 究竟按 3 类还是 4 类评测，也没有提及 dog。本报告根据当地数据集说明“部分工作排除 dog”和指标分解提出口径假设，仍应向论文代码/作者确认。\n- 论文的精确预训练权重、数据增强全部细节和随机种子未被当前证据完全复原。\n- 当前报告没有 AP75，无法与论文的 41.6% AP75 直接对比。\n- 更新数 8× 的对比假定论文 batch 16 是全局 batch，且没有未披露的梯度累积。"
+      },
+      {
+        "id": "verification_order",
+        "type": "markdown",
+        "body": "## 建议的验证顺序\n\n1. **先锁定类别口径**：确认论文是否使用 car/person/bicycle 三类。先对现有权重做一次严格三类评测作为快速检查，再用 `train_new.json/test_new.json` 构建 `nc=3` 的训练配置重训作为最终可比实验。\n2. **做同预算基线**：保持三类数据不变，将 scale-n 与 scale-s、100/200 epoch、batch 64/16 分开成受控对照，不要一次同时改所有因素。\n3. **再比架构**：在类别和预算对齐后，才把 DarkAct/SemanticDisagreementLAF 与 LDSDet 的 LARC/DACF/SSG 当作方法差异。\n4. **报告稳健性**：至少 3 个随机种子，同时报告 mAP、mAP50、AP75 和分类 AP，并固定同一 test split。"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-23T00:00:00+08:00",
+    "status": "ready",
+    "datasets": {
+      "gap_comparison": [
+        {"protocol": "当前评测（4类）", "map_pct": 30.9, "map50_pct": 57.4, "class_count": 4, "gap_map_to_paper": 14.4, "gap_map50_to_paper": 25.5, "note": "test.txt 全类宏平均"},
+        {"protocol": "近似对齐（3类）", "map_pct": 39.7, "map50_pct": 73.5, "class_count": 3, "gap_map_to_paper": 5.6, "gap_map50_to_paper": 9.4, "note": "由 car/person/bicycle 分类 AP 重算"},
+        {"protocol": "论文 Deyolo 基线", "map_pct": 44.0, "map50_pct": 81.1, "class_count": 3, "gap_map_to_paper": 1.3, "gap_map50_to_paper": 1.8, "note": "LDSDet Table 4"},
+        {"protocol": "论文 LDSDet", "map_pct": 45.3, "map50_pct": 82.9, "class_count": 3, "gap_map_to_paper": 0.0, "gap_map50_to_paper": 0.0, "note": "LDSDet Table 4；类别数是待确认假设"}
+      ],
+      "class_metrics": [
+        {"class_name": "car", "instances": 4123, "precision_pct": 83.4, "recall_pct": 83.0, "map50_pct": 89.4, "map_pct": 60.0, "miss_to_background_pct": 10.0, "train_instances": 20608, "test_share_pct": 47.94},
+        {"class_name": "person", "instances": 4106, "precision_pct": 82.4, "recall_pct": 71.6, "map50_pct": 81.1, "map_pct": 40.3, "miss_to_background_pct": 17.0, "train_instances": 8987, "test_share_pct": 47.74},
+        {"class_name": "bicycle", "instances": 359, "precision_pct": 63.7, "recall_pct": 45.0, "map50_pct": 50.1, "map_pct": 18.8, "miss_to_background_pct": 37.0, "train_instances": 2566, "test_share_pct": 4.17},
+        {"class_name": "dog", "instances": 13, "precision_pct": 55.2, "recall_pct": 7.69, "map50_pct": 8.75, "map_pct": 4.25, "miss_to_background_pct": 92.0, "train_instances": 95, "test_share_pct": 0.15}
+      ],
+      "config_comparison": [
+        {"dimension": "模型/方法", "current_run": "YOLOv8n 派生；DarkAct + SemanticDisagreementLAF + P34/R4/NoStaticMAA", "paper_setup": "YOLOv11/CSPDarkNet-S；LARC + DACF + SSG", "impact": "非同架构复现，无法直接对标"},
+        {"dimension": "参数量", "current_run": "约 4.17M", "paper_setup": "论文完整 LDSDet 约 22.8M", "impact": "论文模型约 5.46× 更大（Table 5 来自论文消融配置）"},
+        {"dimension": "训练轮数", "current_run": "100 epoch", "paper_setup": "200 epoch", "impact": "当前预算较小，但本地曲线已有平台"},
+        {"dimension": "全局 batch", "current_run": "64", "paper_setup": "16", "impact": "每 epoch 优化步数约相差 4×"},
+        {"dimension": "近似更新数", "current_run": "ceil(4129/64)×100 ≈ 6,500", "paper_setup": "ceil(4129/16)×200 ≈ 51,800", "impact": "论文约 8×；取决于 batch/累积的披露口径"},
+        {"dimension": "优化器主要参数", "current_run": "SGD, lr 0.01, momentum 0.937, wd 5e-4", "paper_setup": "SGD, lr 0.01→1e-4, momentum 0.937, wd 5e-4", "impact": "主要起点参数基本一致"},
+        {"dimension": "预训练迁移", "current_run": "RGB 共享层部分迁移；热红外 90 项复制、72 项缺失；4 类检测分支重置", "paper_setup": "当前证据未完整披露", "impact": "新融合层和分类头需更充分优化"},
+        {"dimension": "类别", "current_run": "car/person/bicycle/dog（4 类）", "paper_setup": "正文未明确；指标表现与本地说明支持优先核查 3 类口径", "impact": "这是最大的表面差距来源"}
+      ],
+      "training_curve": [
+        {"epoch": 1, "map50_pct": 28.029, "map_pct": 14.532, "val_box": 1.6697, "val_dfl": 1.1926},
+        {"epoch": 5, "map50_pct": 39.497, "map_pct": 20.381, "val_box": 1.6142, "val_dfl": 1.2229},
+        {"epoch": 10, "map50_pct": 48.432, "map_pct": 25.956, "val_box": 1.4856, "val_dfl": 1.1565},
+        {"epoch": 20, "map50_pct": 51.006, "map_pct": 27.012, "val_box": 1.4701, "val_dfl": 1.1293},
+        {"epoch": 30, "map50_pct": 51.572, "map_pct": 27.921, "val_box": 1.4249, "val_dfl": 1.1176},
+        {"epoch": 40, "map50_pct": 52.152, "map_pct": 27.820, "val_box": 1.4548, "val_dfl": 1.1309},
+        {"epoch": 50, "map50_pct": 54.639, "map_pct": 29.282, "val_box": 1.4251, "val_dfl": 1.1072},
+        {"epoch": 55, "map50_pct": 54.501, "map_pct": 29.849, "val_box": 1.3913, "val_dfl": 1.0966},
+        {"epoch": 60, "map50_pct": 55.511, "map_pct": 29.733, "val_box": 1.4218, "val_dfl": 1.1026},
+        {"epoch": 64, "map50_pct": 57.276, "map_pct": 30.835, "val_box": 1.4237, "val_dfl": 1.1047},
+        {"epoch": 70, "map50_pct": 54.843, "map_pct": 28.830, "val_box": 1.4469, "val_dfl": 1.1243},
+        {"epoch": 80, "map50_pct": 55.486, "map_pct": 29.890, "val_box": 1.4442, "val_dfl": 1.1197},
+        {"epoch": 90, "map50_pct": 56.204, "map_pct": 29.331, "val_box": 1.4370, "val_dfl": 1.1189},
+        {"epoch": 92, "map50_pct": 57.927, "map_pct": 30.095, "val_box": 1.4541, "val_dfl": 1.1236},
+        {"epoch": 95, "map50_pct": 55.965, "map_pct": 29.576, "val_box": 1.4485, "val_dfl": 1.1248},
+        {"epoch": 100, "map50_pct": 55.939, "map_pct": 29.504, "val_box": 1.4522, "val_dfl": 1.1257}
+      ],
+      "dataset_integrity": [
+        {"split": "train", "pairs": 4129, "annotations_original": 32256, "annotations_manifest": 32254, "duplicate_boxes_removed": 2, "car": 20608, "person": 8987, "bicycle": 2566, "dog": 95},
+        {"split": "test", "pairs": 1013, "annotations_original": 8604, "annotations_manifest": 8601, "duplicate_boxes_removed": 3, "car": 4124, "person": 4107, "bicycle": 360, "dog": 13}
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "gap_metrics",
+      "label": "指标对齐计算",
+      "query": {
+        "engine": "reviewed-constants",
+        "sql": "SELECT '当前评测（4类）' AS protocol, 30.9 AS map_pct, 57.4 AS map50_pct, 4 AS class_count UNION ALL SELECT '近似对齐（3类）', 39.7, 73.5, 3 UNION ALL SELECT '论文 Deyolo 基线', 44.0, 81.1, 3 UNION ALL SELECT '论文 LDSDet', 45.3, 82.9, 3",
+        "description": "合并 HBB2 当前测试指标、根据分类 AP 近似重算的三类指标，以及 LDSDet Table 4 数值。",
+        "tables_used": ["HBB2 test_result/test.txt", "LDSDet paper Table 4"],
+        "filters": ["FLIR test split", "HBB detection", "640x640"],
+        "metric_definitions": ["mAP50-95=类别 AP@[.50:.95] 的宏平均", "3类近似=(car+person+bicycle)/3", "口径贡献=(3类近似-4类当前)/(论文-当前)"],
+        "executed_at": "2026-08-23T00:00:00+08:00"
+      }
+    },
+    {
+      "id": "class_result_source",
+      "label": "HBB2 分类测试结果",
+      "query": {
+        "engine": "reviewed-constants",
+        "sql": "SELECT 'car' AS class_name, 4123 AS instances, 83.4 AS precision_pct, 83.0 AS recall_pct, 89.4 AS map50_pct, 60.0 AS map_pct, 10.0 AS miss_to_background_pct UNION ALL SELECT 'person',4106,82.4,71.6,81.1,40.3,17.0 UNION ALL SELECT 'bicycle',359,63.7,45.0,50.1,18.8,37.0 UNION ALL SELECT 'dog',13,55.2,7.69,8.75,4.25,92.0",
+        "description": "转录 HBB2 test.txt 分类指标，并从归一化混淆矩阵读取各类落入背景的近似比例。",
+        "tables_used": ["HBB2 test_result/test.txt", "HBB2 test_result/confusion_matrix_normalized.png"],
+        "filters": ["split=test", "task=detect"],
+        "metric_definitions": ["miss_to_background_pct=归一化混淆矩阵中真实类被预测为背景的百分比"],
+        "executed_at": "2026-08-23T00:00:00+08:00"
+      }
+    },
+    {
+      "id": "config_source",
+      "label": "实验配置对比",
+      "query": {
+        "engine": "reviewed-constants",
+        "sql": "SELECT '模型/方法' AS dimension, 'YOLOv8n 派生 DarkAct/SemanticDisagreementLAF' AS current_run, 'YOLOv11/CSPDarkNet-S LDSDet' AS paper_setup UNION ALL SELECT '参数量','4.17M','22.8M' UNION ALL SELECT 'epoch','100','200' UNION ALL SELECT 'batch','64','16' UNION ALL SELECT '近似更新数','6500','51800'",
+        "description": "对比当前 args.yaml/模型检查与论文第 4.2 节、Table 5 的设置。",
+        "tables_used": ["HBB2 args.yaml", "HBB2 best.pt model inspection", "LDSDet paper section 4.2", "LDSDet paper Table 5", "pretrained-weight migration metadata"],
+        "filters": ["FLIR", "scale-n current run", "LDSDet full model paper reference"],
+        "metric_definitions": ["近似更新数=ceil(训练对数/全局batch)×epoch", "参数倍数=22.8M/4.173067M"],
+        "executed_at": "2026-08-23T00:00:00+08:00"
+      }
+    },
+    {
+      "id": "training_curve_source",
+      "label": "HBB2 训练曲线",
+      "query": {
+        "engine": "reviewed-csv",
+        "sql": "SELECT epoch, 100*\"metrics/mAP50(B)\" AS map50_pct, 100*\"metrics/mAP50-95(B)\" AS map_pct, \"val/box_loss\" AS val_box, \"val/dfl_loss\" AS val_dfl FROM hbb2_results ORDER BY epoch",
+        "description": "读取 HBB2 results.csv 的 100 个 epoch；图中使用 16 个代表点保持可读性。",
+        "tables_used": ["HBB2 results.csv"],
+        "filters": ["epochs 1-100"],
+        "metric_definitions": ["map_pct=100×metrics/mAP50-95(B)", "map50_pct=100×metrics/mAP50(B)"],
+        "executed_at": "2026-08-23T00:00:00+08:00"
+      }
+    },
+    {
+      "id": "dataset_source",
+      "label": "FLIR 数据集完整性检查",
+      "query": {
+        "engine": "reviewed-constants",
+        "sql": "SELECT 'train' AS split, 4129 AS pairs, 32256 AS annotations_original, 32254 AS annotations_manifest, 2 AS duplicate_boxes_removed UNION ALL SELECT 'test',1013,8604,8601,3",
+        "description": "核对论文划分、原始 COCO JSON、当前 manifest 和可见光/热红外文件名列表。",
+        "tables_used": ["LDSDet paper section 4.1", "FLIR train/test JSON", "FLIR dataset README", "flir_align_manifest.json", "visible/thermal split lists"],
+        "filters": ["FLIR aligned train/test splits"],
+        "metric_definitions": ["pairs=可见光–热红外成对样本数", "removed=原始注释数-manifest注释数"],
+        "executed_at": "2026-08-23T00:00:00+08:00"
+      }
+    }
+  ],
+  "package_info": {
+    "originUrl": "artifact://flir-ldsdet-gap-diagnosis",
+    "controls": {"edit": false, "refresh": false}
+  }
+}
