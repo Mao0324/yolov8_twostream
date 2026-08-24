@@ -30,9 +30,33 @@ def _bootstrap_monitor_imports() -> None:
 
 _bootstrap_monitor_imports()
 
+from monitored_detection_trainer import MonitoredDetectionTrainer  # noqa: E402
 from monitored_obb_trainer import MonitoredOBBTrainer  # noqa: E402
-from monitored_target_saliency_trainer import MonitoredTargetSaliencyOBBTrainer  # noqa: E402
 from yolo_monitor import RemoteMonitorTrainerMixin, YoloExperimentMonitor  # noqa: E402
+
+
+_TARGET_SALIENCY_EXPORTS = {
+    "MonitoredSoftCenternessTargetSaliencyOBBTrainer",
+    "MonitoredTargetSaliencyOBBTrainer",
+}
+
+
+def __getattr__(name: str):
+    """Load optional target-saliency OBB trainers only when requested."""
+
+    if name not in _TARGET_SALIENCY_EXPORTS:
+        raise AttributeError(name)
+    from monitored_target_saliency_trainer import (
+        MonitoredSoftCenternessTargetSaliencyOBBTrainer,
+        MonitoredTargetSaliencyOBBTrainer,
+    )
+
+    exports = {
+        "MonitoredSoftCenternessTargetSaliencyOBBTrainer": MonitoredSoftCenternessTargetSaliencyOBBTrainer,
+        "MonitoredTargetSaliencyOBBTrainer": MonitoredTargetSaliencyOBBTrainer,
+    }
+    globals().update(exports)
+    return exports[name]
 
 
 def create_monitor(experiment_name: str) -> YoloExperimentMonitor:
@@ -43,7 +67,9 @@ def create_monitor(experiment_name: str) -> YoloExperimentMonitor:
 
 
 __all__ = (
+    "MonitoredDetectionTrainer",
     "MonitoredOBBTrainer",
+    "MonitoredSoftCenternessTargetSaliencyOBBTrainer",
     "MonitoredTargetSaliencyOBBTrainer",
     "RemoteMonitorTrainerMixin",
     "YoloExperimentMonitor",
