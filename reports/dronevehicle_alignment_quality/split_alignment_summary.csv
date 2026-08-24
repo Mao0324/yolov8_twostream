@@ -1,0 +1,4 @@
+split,samples,trusted_samples,trusted_rate_pct,median_shift_px,p90_shift_px,within_2px_pct
+train,200,156,78.0,1.719,6.513,53.85
+val,50,33,66.0,3.008,8.081,48.48
+test,150,104,69.33,1.719,5.786,56.73

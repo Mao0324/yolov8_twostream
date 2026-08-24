@@ -1,0 +1,16 @@
+schema_version: 1
+id: flir_hbb_100e
+description: FLIR aligned RGB/thermal 三类双流 HBB 的统一 100 epoch 训练配置（排除 dog）
+task: detect
+data: data/flir_align.yaml
+environment:
+  WANDB_MODE: disabled
+  COMET_MODE: DISABLED
+args:
+  batch: 64
+  epochs: 100
+  imgsz: 640
+  workers: 8
+  seed: 0
+  deterministic: true
+  task: detect

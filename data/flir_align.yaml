@@ -1,0 +1,30 @@
+# FLIR aligned RGB/thermal three-class dataset for horizontal bounding-box detection.
+#
+# Run `python tools/prepare_flir_align_hbb.py` once before training. The
+# preparation step converts the COCO boxes to YOLO HBB labels and creates a
+# lightweight paired layout (directory symlinks; images are not copied):
+#
+#   flir_align_hbb/
+#     images/{train,test} -> flir_align/visible/{train,test}
+#     image/{train,test}  -> flir_align/thermal/{train,test}
+#     labels/{train,test}/*.txt
+#
+# This fork loads the second modality by replacing `images` with `image` in
+# each visible image path, so these singular/plural directory names matter.
+
+path: /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/data/flir_align_hbb
+
+train: train
+val: val
+test: val
+
+train_ir: train_ir
+val_ir: val_ir
+
+# train_new.json/test_new.json retain all paired images and omit the sparse dog
+# category. Class IDs remain contiguous: car=0, person=1, bicycle=2.
+nc: 3
+names:
+  0: car
+  1: person
+  2: bicycle
