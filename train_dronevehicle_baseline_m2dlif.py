@@ -43,7 +43,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from train_dronevehicle_darkact_semantic_disagreement_laf_p34_m2dlif import (
+from tools.dronevehicle_m2dlif import (
     install_trusted_torch_load,
     prepare_temporary_dataset,
 )
