@@ -1,0 +1,18 @@
+weights: /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/runs/FLIR_Align_HBB_FusionTransfer/FLIR_DarkAct_SemanticDisagreementLAF_P34_R4_NoStaticMAA_scales_3Class_HBB/weights/best.pt
+data: /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/data/flir_align.yaml
+split: test
+task: detect
+annotation_type: HBB
+imgsz: 640
+batch: 16
+device: 1
+
+                 Class     Images  Instances      Box(P          R      mAP50  mAP50-95)
+                   all       1013       8588      0.807      0.689      0.776      0.422
+                   car       1013       4123      0.868      0.834      0.902      0.607
+                person       1013       4106      0.865      0.725      0.843      0.437
+               bicycle       1013        359      0.688      0.509      0.583      0.222
+
+Speed: 0.2ms preprocess, 4.3ms inference, 0.0ms loss, 0.7ms postprocess per image
+前向传播 FPS: 232.87
+Results saved to /media/biiteam/新加卷1/biiteam/MCONG/Yolov8_TwoStream/runs/FLIR_Align_HBB_FusionTransfer/FLIR_DarkAct_SemanticDisagreementLAF_P34_R4_NoStaticMAA_scales_3Class_HBB/test_result
