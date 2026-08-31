@@ -1,0 +1,317 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DA016-parent A/B/C 严格消融结果分析",
+    "description": "基于三个完整实验的 M2D-LIF 测试结果、100 轮验证曲线、逐类别指标、Prompt 诊断和残差增益的技术分析。",
+    "generatedAt": "2026-08-27T00:38:08+08:00",
+    "cards": [
+      {
+        "id": "test_winner",
+        "description": "按 test.txt 的三位小数打印值；仅一次训练。",
+        "dataset": "headline_metrics",
+        "sourceId": "test_results",
+        "metrics": [
+          { "label": "C 测试 Δ mAP50-95", "field": "c_test_delta", "format": "percent", "signed": true },
+          { "label": "C 测试 mAP50-95", "field": "c_test_map5095", "format": "percent" }
+        ]
+      },
+      {
+        "id": "validation_winner",
+        "description": "相对 A 的最后 30 轮验证均值差。",
+        "dataset": "headline_metrics",
+        "sourceId": "training_results",
+        "metrics": [
+          { "label": "B 晚期验证 Δ", "field": "b_late30_delta", "format": "percent", "signed": true },
+          { "label": "C 相对 B", "field": "c_vs_b_late30", "format": "percent", "signed": true }
+        ]
+      },
+      {
+        "id": "prompt_signal",
+        "description": "最佳验证轮次，P3/P4 范围。",
+        "dataset": "headline_metrics",
+        "sourceId": "prompt_results",
+        "metrics": [
+          { "label": "Prompt 平衡准确率", "field": "prompt_balanced_accuracy", "format": "percent" },
+          { "label": "Prompt 相关性", "field": "prompt_correlation" }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "overall_delta_chart",
+        "title": "测试集：相对原始 DA016 的指标变化",
+        "subtitle": "C 是本次单次测试的最佳值，但幅度只有 0.003 mAP50-95。",
+        "type": "bar",
+        "dataset": "test_overall",
+        "sourceId": "test_results",
+        "valueFormat": "percent",
+        "encodings": {
+          "x": { "field": "model", "type": "nominal", "label": "实验" },
+          "y": { "field": "delta_map5095", "type": "quantitative", "label": "Δ mAP50-95 vs A" },
+          "tooltip": [
+            { "field": "map5095", "type": "quantitative", "label": "mAP50-95", "format": "percent" },
+            { "field": "map50", "type": "quantitative", "label": "mAP50", "format": "percent" },
+            { "field": "precision", "type": "quantitative", "label": "Precision", "format": "percent" },
+            { "field": "recall", "type": "quantitative", "label": "Recall", "format": "percent" }
+          ]
+        }
+      },
+      {
+        "id": "class_delta_chart",
+        "title": "测试集：逐类别 mAP50-95 变化",
+        "subtitle": "C 的收益集中在 freight_car 与 truck，并非五类全面改善。",
+        "type": "bar",
+        "dataset": "class_deltas",
+        "sourceId": "test_results",
+        "valueFormat": "percent",
+        "encodings": {
+          "x": { "field": "class", "type": "nominal", "label": "类别" },
+          "y": { "field": "delta_map5095", "type": "quantitative", "label": "Δ mAP50-95 vs A" },
+          "color": { "field": "model", "type": "nominal", "label": "实验" },
+          "tooltip": [
+            { "field": "model", "type": "nominal", "label": "实验" },
+            { "field": "map5095", "type": "quantitative", "label": "mAP50-95", "format": "percent" },
+            { "field": "instances", "type": "quantitative", "label": "测试实例数" }
+          ]
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "overall_table",
+        "title": "三个实验的测试集总体结果",
+        "subtitle": "均使用 8980 张图、159618 个实例和 M2D-LIF 测试标注。速度测试设备不同，不据此排名。",
+        "dataset": "test_overall",
+        "sourceId": "test_results",
+        "defaultSort": { "field": "map5095", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "实验", "type": "text" },
+          { "field": "precision", "label": "P", "format": "percent" },
+          { "field": "recall", "label": "R", "format": "percent" },
+          { "field": "map50", "label": "mAP50", "format": "percent" },
+          { "field": "map5095", "label": "mAP50-95", "format": "percent" },
+          { "field": "delta_map5095", "label": "Δ vs A", "format": "percent", "signed": true },
+          { "field": "inference_ms", "label": "推理 ms" },
+          { "field": "test_device", "label": "测试 GPU", "type": "text" }
+        ]
+      },
+      {
+        "id": "validation_table",
+        "title": "验证曲线的稳定性",
+        "subtitle": "B 在最后 30 轮每一轮都高于 A 和 C；C 在最后 30 轮没有一轮超过 B。",
+        "dataset": "validation_summary",
+        "sourceId": "training_results",
+        "defaultSort": { "field": "best_val_map5095", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "实验", "type": "text" },
+          { "field": "best_epoch", "label": "最佳 epoch" },
+          { "field": "best_val_map5095", "label": "最佳 Val mAP50-95", "format": "percent" },
+          { "field": "late30_mean", "label": "末 30 轮均值", "format": "percent" },
+          { "field": "late30_delta_vs_a", "label": "末 30 轮 Δ vs A", "format": "percent", "signed": true },
+          { "field": "last_val_map5095", "label": "末轮", "format": "percent" },
+          { "field": "test_map5095", "label": "Test", "format": "percent" }
+        ]
+      },
+      {
+        "id": "prompt_table",
+        "title": "最佳验证轮次的逐目标 Prompt 诊断",
+        "subtitle": "平衡准确率与相关性显示有逐目标信号；预测 RGB 均值高于 teacher 软目标，存在轻微 RGB 高估。",
+        "dataset": "prompt_diagnostics",
+        "sourceId": "prompt_results",
+        "defaultSort": { "field": "correlation", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "实验", "type": "text" },
+          { "field": "level", "label": "层级", "type": "text" },
+          { "field": "hard_accuracy", "label": "硬准确率", "format": "percent" },
+          { "field": "balanced_accuracy", "label": "平衡准确率", "format": "percent" },
+          { "field": "correlation", "label": "相关性" },
+          { "field": "predicted_rgb", "label": "预测 RGB", "format": "percent" },
+          { "field": "target_rgb", "label": "目标 RGB", "format": "percent" },
+          { "field": "rgb_bias", "label": "RGB 偏差", "format": "percent", "signed": true }
+        ]
+      },
+      {
+        "id": "residual_table",
+        "title": "C 的 Prompt 残差增益",
+        "subtitle": "理论有界范围为 ±0.25；P3 启用明显，P4 接近关闭并轻微反向。",
+        "dataset": "residual_diagnostics",
+        "sourceId": "training_results",
+        "defaultSort": { "field": "level", "direction": "asc" },
+        "columns": [
+          { "field": "level", "label": "层级", "type": "text" },
+          { "field": "best_gain", "label": "最佳验证轮次 gain", "signed": true },
+          { "field": "last_gain", "label": "末轮 gain", "signed": true },
+          { "field": "late10_mean", "label": "末 10 轮均值", "signed": true },
+          { "field": "share_of_bound", "label": "占正向上界", "format": "percent" }
+        ]
+      }
+    ],
+    "sources": [
+      { "id": "test_results", "label": "A/B/C 的 test_m2dlif/test.txt", "path": "runs/DroneVehicle_OBB_FusionTransfer/DA016-parent-ABC-test-results" },
+      { "id": "training_results", "label": "A/B/C 的 results.csv", "path": "runs/DroneVehicle_OBB_FusionTransfer/DA016-parent-ABC-training-results" },
+      { "id": "prompt_results", "label": "B/C results.csv 中的 Prompt 诊断列", "path": "runs/DroneVehicle_OBB_FusionTransfer/DA016-parent-BC-prompt-columns" }
+    ],
+    "blocks": [
+      { "id": "title", "type": "markdown", "body": "# DA016-parent A/B/C 严格消融结果分析" },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## Technical summary\n\n这组三实验得出了一个比单看 test 排名更重要的结论：**双 Prompt 辅助监督本身有稳定的正向作用，但让 Prompt 残差直接调制融合，当前还没有得到稳定收益。**\n\n- B 对 A：最佳验证 mAP50-95 提升 0.00371，末 30 轮均值提升 0.00444，而且 30/30 轮均高于 A；测试只提升 0.001。说明 teacher reliability target 含有可用信息，主要表现为训练正则化和验证泛化改善。\n- C 对 B：末 30 轮验证均值下降 0.00248，0/30 轮超过 B；但测试反而高 0.002。这个反转说明 C 的单次测试领先暂时不能解释为稳定结构收益。\n- C 对 A：测试 mAP50-95 从 0.667 到 0.670，确实是本次三组最高，但提升主要来自 freight_car（+0.013）和 truck（+0.005），并非普遍提升。"
+      },
+      { "id": "headline_metrics_block", "type": "metric-strip", "cardIds": ["test_winner", "validation_winner", "prompt_signal"] },
+      {
+        "id": "key_findings",
+        "type": "markdown",
+        "body": "## Key findings and visual evidence\n\n### 1. 测试集把 C 排第一，但证据强度仍有限\n\nC 的 P/R/mAP50/mAP50-95 为 0.803/0.790/0.822/0.670；相对 A 分别是 +0.004/+0.001/+0.003/+0.003。B 则为 0.794/0.793/0.818/0.668。由于 `test.txt` 只打印到约三位小数，且每个实验只有一个 seed，0.001–0.003 的差异仍可能受随机性和四舍五入影响。"
+      },
+      { "id": "overall_delta_chart_block", "type": "chart", "chartId": "overall_delta_chart" },
+      { "id": "overall_table_block", "type": "table", "tableId": "overall_table" },
+      {
+        "id": "class_findings",
+        "type": "markdown",
+        "body": "### 2. C 的测试增益具有明显类别集中性\n\n相对 A，C 的 freight_car mAP50-95 提升 0.013、truck 提升 0.005、bus 提升 0.001；car 下降 0.001、van 下降 0.002。因为 mAP 对类别做宏平均，只有 5064 个实例的 freight_car 与 137148 个实例的 car 在总体 mAP 中权重相同。因此 C 的 +0.003 总体增益不能理解为绝大多数目标都更好。"
+      },
+      { "id": "class_delta_chart_block", "type": "chart", "chartId": "class_delta_chart" },
+      {
+        "id": "validation_findings",
+        "type": "markdown",
+        "body": "### 3. 验证曲线明确支持 B，而不是 C\n\nB 的最佳验证 mAP50-95 为 0.72366，高于 A 的 0.71995 和 C 的 0.72181。更关键的是，末 30 轮 B-A 的平均差为 +0.00444，30/30 轮为正；C-A 为 +0.00196，30/30 为正；C-B 为 -0.00248，0/30 为正。这说明 Prompt 辅助监督带来的改善是稳定的，而额外残差在验证分布上持续削弱了 B 的优势。"
+      },
+      { "id": "validation_table_block", "type": "table", "tableId": "validation_table" },
+      {
+        "id": "prompt_findings",
+        "type": "markdown",
+        "body": "### 4. Prompt 学到的是中等强度的逐目标可靠性，不是简单复制全局 IR prior\n\nTeacher 的 RGB 硬胜率约 0.27，因此“永远猜 IR”的硬类别基线约 0.73。Prompt 的普通硬准确率约 0.68，单独看会误导；训练目标同时包含软值、平衡项与排序信息。P3/P4 的 RGB/IR 平衡准确率约 0.67–0.69，相关性约 0.42–0.45，明显高于无逐目标区分的 0.5/0。这表明 Prompt 会随目标变化，而不仅是输出一张图统一的 IR prior。\n\n不过它还不够强：相关性只有中等，预测 RGB 平均值约 0.445，而 teacher 软目标约 0.412，存在约 +0.033 至 +0.036 的 RGB 高估。"
+      },
+      { "id": "prompt_table_block", "type": "table", "tableId": "prompt_table" },
+      {
+        "id": "residual_findings",
+        "type": "markdown",
+        "body": "### 5. C 真正启用的是 P3 残差，P4 基本自行关闭\n\nC 的 `alpha = 0.25*tanh(raw_alpha)` 从 0 开始。最佳验证附近 P3 gain 约 +0.109，达到正向上界的约 44%；P4 约 -0.014，只占上界绝对值约 5%。末 10 轮也保持约 +0.099/-0.016。网络没有选择在 P3/P4 同时使用可靠性调制，而是显著启用 P3、几乎关闭并轻微反转 P4。最直接的解释是：当前 Prompt 残差对小目标/高分辨率 P3 更有用，P4 不值得承担这个调制。"
+      },
+      { "id": "residual_table_block", "type": "table", "tableId": "residual_table" },
+      {
+        "id": "scope",
+        "type": "markdown",
+        "body": "## Scope, data, and metric definitions\n\n- 完整实验目录：A 使用 `v1`，B/C 使用 `v12`；B/C 的空 `v1` 目录没有完整结果，已排除。\n- 三组均训练 100 epoch，batch=64，imgsz=640，seed=0，双卡训练策略一致。\n- 测试均使用 M2D-LIF 的 `DroneVehicle_test_labels/labels/val`，8980 对 RGB/IR 图像，共 159618 个实例，类别映射一致。\n- `best validation` 指每个 `results.csv` 中验证 mAP50-95 的最大值；`late-30 mean` 指最后 30 个 epoch 的验证 mAP50-95 平均值。\n- 测试差值基于 `test.txt` 已打印值，因此精度约为 0.001。"
+      },
+      {
+        "id": "methodology",
+        "type": "markdown",
+        "body": "## Methodology\n\n先核对每个候选目录是否同时具有 100 轮 `results.csv`、`weights/best.pt` 与 `test_m2dlif/test.txt`，再核对测试标签、图像目录、类别映射、图像数量和实例数量。总体指标直接解析测试输出；验证稳定性同时比较最佳值、末 10/20/30 轮均值以及逐 epoch 胜负；Prompt 诊断取各实验自身最佳验证轮次；C 的残差增益同时检查训练轨迹、最佳轮次、末轮和末 10 轮均值。全部计算可由同目录的已执行 notebook 重现。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## Limitations and robustness\n\n- 只有 seed=0，尚无多 seed 均值、标准差或置信区间；不能把 C 的 +0.003 视为已证实的结构优势。\n- 测试输出只保留约三位小数；高精度差值不可恢复。\n- A 在 GPU 1 测试，B/C 在 GPU 4 测试，因此当前 243/151/149 FPS 不是受控速度对比。B/C 的 Prompt 计算可能有额外开销，但确切幅度必须同卡复测。\n- 多次用同一 test split 做版本选择会造成测试集泄漏；下一步结构选择应以 validation 和多 seed 为主，锁定后再测试。\n- Prompt 指标来自 teacher 代理目标，证明的是对 teacher 相对质量的拟合，不是对真实融合因果收益的直接测量。"
+      },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "body": "## Recommendations\n\n1. **当前结论选 B，不选 C 作为已确认改进。** B 是最稳定的验证提升；C 只能标记为“单次测试最优候选”。\n2. **下一组最有信息量的结构消融是 C-P3-only：** P3 保留 zero-init Prompt 残差，P4 仅保留辅助监督、不进融合。不要同时增加新专家、GDER 或符号强制。\n3. **至少补 3 seeds。** A/B/C 或至少 B/C 使用相同 seeds；报告均值、标准差及配对 seed 差。结构选择只看 validation。\n4. **测试脚本增加高精度 JSON/CSV。** 保留至少 6 位小数、逐类别 AP、checkpoint 哈希和设备信息。\n5. **速度同卡复测。** 同一空闲 GPU、固定 batch/imgsz、足够 warm-up 和重复次数。B 在部署评估时可额外测试关闭未参与推理融合的 Prompt 头，以区分训练期正则化与推理开销。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## Further questions\n\n下一步需要回答的不是“C 的测试数是不是最高”，而是：P3-only 残差能否在多个 seed 上保留 C 对 truck/freight_car 的收益，同时恢复 B 的验证稳定性；以及 teacher 相对质量 target 经按模态/类别校准后，Prompt 相关性能否从约 0.45 明显提高。"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-27T00:38:08+08:00",
+    "status": "ready",
+    "datasets": {
+      "headline_metrics": [
+        {
+          "c_test_delta": 0.003,
+          "c_test_map5095": 0.670,
+          "b_late30_delta": 0.004442,
+          "c_vs_b_late30": -0.002481,
+          "prompt_balanced_accuracy": 0.68818,
+          "prompt_correlation": 0.45426
+        }
+      ],
+      "test_overall": [
+        { "model": "A · 原始 DA016", "precision": 0.799, "recall": 0.789, "map50": 0.819, "map5095": 0.667, "delta_map5095": 0.000, "inference_ms": 4.1, "fps": 242.53, "test_device": "GPU 1", "images": 8980, "instances": 159618 },
+        { "model": "B · Prompt 辅助", "precision": 0.794, "recall": 0.793, "map50": 0.818, "map5095": 0.668, "delta_map5095": 0.001, "inference_ms": 6.6, "fps": 151.29, "test_device": "GPU 4", "images": 8980, "instances": 159618 },
+        { "model": "C · Prompt 残差", "precision": 0.803, "recall": 0.790, "map50": 0.822, "map5095": 0.670, "delta_map5095": 0.003, "inference_ms": 6.7, "fps": 148.67, "test_device": "GPU 4", "images": 8980, "instances": 159618 }
+      ],
+      "class_deltas": [
+        { "model": "B", "class": "car", "instances": 137148, "map5095": 0.799, "delta_map5095": 0.000 },
+        { "model": "B", "class": "truck", "instances": 8657, "map5095": 0.648, "delta_map5095": -0.002 },
+        { "model": "B", "class": "bus", "instances": 4467, "map5095": 0.793, "delta_map5095": 0.003 },
+        { "model": "B", "class": "van", "instances": 4282, "map5095": 0.545, "delta_map5095": -0.003 },
+        { "model": "B", "class": "freight_car", "instances": 5064, "map5095": 0.552, "delta_map5095": 0.005 },
+        { "model": "C", "class": "car", "instances": 137148, "map5095": 0.798, "delta_map5095": -0.001 },
+        { "model": "C", "class": "truck", "instances": 8657, "map5095": 0.655, "delta_map5095": 0.005 },
+        { "model": "C", "class": "bus", "instances": 4467, "map5095": 0.791, "delta_map5095": 0.001 },
+        { "model": "C", "class": "van", "instances": 4282, "map5095": 0.546, "delta_map5095": -0.002 },
+        { "model": "C", "class": "freight_car", "instances": 5064, "map5095": 0.560, "delta_map5095": 0.013 }
+      ],
+      "validation_summary": [
+        { "model": "A · 原始 DA016", "best_epoch": 66, "best_val_map5095": 0.71995, "late30_mean": 0.718262, "late30_delta_vs_a": 0.000000, "last_val_map5095": 0.71743, "test_map5095": 0.667 },
+        { "model": "B · Prompt 辅助", "best_epoch": 80, "best_val_map5095": 0.72366, "late30_mean": 0.722704, "late30_delta_vs_a": 0.004442, "last_val_map5095": 0.72164, "test_map5095": 0.668 },
+        { "model": "C · Prompt 残差", "best_epoch": 71, "best_val_map5095": 0.72181, "late30_mean": 0.720222, "late30_delta_vs_a": 0.001961, "last_val_map5095": 0.71888, "test_map5095": 0.670 }
+      ],
+      "prompt_diagnostics": [
+        { "model": "B", "level": "P3", "hard_accuracy": 0.68324, "balanced_accuracy": 0.67281, "correlation": 0.41954, "predicted_rgb": 0.44429, "target_rgb": 0.41139, "rgb_bias": 0.03290 },
+        { "model": "B", "level": "P4", "hard_accuracy": 0.68686, "balanced_accuracy": 0.68818, "correlation": 0.45426, "predicted_rgb": 0.44720, "target_rgb": 0.41139, "rgb_bias": 0.03581 },
+        { "model": "C", "level": "P3", "hard_accuracy": 0.68143, "balanced_accuracy": 0.67150, "correlation": 0.42237, "predicted_rgb": 0.44539, "target_rgb": 0.41363, "rgb_bias": 0.03176 },
+        { "model": "C", "level": "P4", "hard_accuracy": 0.68586, "balanced_accuracy": 0.68516, "correlation": 0.45406, "predicted_rgb": 0.44656, "target_rgb": 0.41363, "rgb_bias": 0.03293 }
+      ],
+      "residual_diagnostics": [
+        { "level": "P3", "best_gain": 0.10895, "last_gain": 0.098849, "late10_mean": 0.09949, "share_of_bound": 0.4358 },
+        { "level": "P4", "best_gain": -0.013505, "last_gain": -0.016218, "late10_mean": -0.01649, "share_of_bound": -0.0540 }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "test_results",
+      "label": "三个完整实验的 M2D-LIF 测试输出",
+      "query": {
+        "engine": "local-file-review",
+        "language": "text",
+        "sql": "SELECT experiment, class, precision, recall, map50, map5095, inference_ms, device FROM parsed_da016_parent_abc_test_results",
+        "description": "读取 A v1、B v12、C v12 的 test_m2dlif/test.txt，核对数据路径与样本数，并计算相对 A 的总体和逐类别差值。",
+        "executed_at": "2026-08-27T00:38:08+08:00",
+        "tables_used": [
+          "DA016-A_OriginalSemanticDisagreementLAF-P34_M2DLIFLabels_v1/test_m2dlif/test.txt",
+          "DA016-B_DualReliabilityPromptAuxOnly-P34_M2DLIFLabels_v12/test_m2dlif/test.txt",
+          "DA016-C_DualReliabilityPrompt-ZeroInitBoundedResidual-P34_M2DLIFLabels_v12/test_m2dlif/test.txt"
+        ],
+        "filters": ["仅纳入具有完整 results.csv、best.pt 与 test.txt 的运行", "split=test", "imgsz=640", "batch=16"],
+        "metric_definitions": ["delta_map5095 = experiment test mAP50-95 - A test mAP50-95", "测试值保留 test.txt 的打印精度"]
+      }
+    },
+    {
+      "id": "training_results",
+      "label": "A/B/C 的 100 轮验证曲线和 C 残差日志",
+      "query": {
+        "engine": "local-file-review",
+        "language": "csv",
+        "sql": "SELECT experiment, epoch, val_map5095, p3_prompt_residual_gain, p4_prompt_residual_gain FROM parsed_da016_parent_abc_training_results",
+        "description": "读取三组 results.csv，计算最佳验证值、末 10/20/30 轮均值和逐 epoch 配对差；读取 C 的残差增益轨迹。",
+        "executed_at": "2026-08-27T00:38:08+08:00",
+        "tables_used": ["A v1/results.csv", "B v12/results.csv", "C v12/results.csv"],
+        "metric_definitions": ["best_val_map5095 = max over epoch", "late30_delta_vs_a = mean(last 30 val mAP50-95 of experiment - A)"]
+      }
+    },
+    {
+      "id": "prompt_results",
+      "label": "B/C 的 Prompt 诊断字段",
+      "query": {
+        "engine": "local-file-review",
+        "language": "csv",
+        "sql": "SELECT experiment, level, prompt_accuracy, rgb_win_recall, ir_win_recall, prompt_correlation, predicted_rgb, target_rgb FROM parsed_prompt_diagnostics_at_best_epoch",
+        "description": "在各实验自身最佳验证轮次读取 P3/P4 Prompt 指标，并计算平衡准确率与 RGB 均值偏差。",
+        "executed_at": "2026-08-27T00:38:08+08:00",
+        "tables_used": ["B v12/results.csv Prompt columns", "C v12/results.csv Prompt columns"],
+        "metric_definitions": ["balanced_accuracy = (rgb_win_recall + ir_win_recall) / 2", "rgb_bias = predicted_rgb - target_rgb"]
+      }
+    }
+  ]
+}

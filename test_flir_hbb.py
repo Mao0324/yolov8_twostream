@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Evaluate a three-class two-stream model on the aligned FLIR HBB test split."""
-
+#python test_flir_hbb.py --weights "runs/FLIR_Align_HBB_FusionTransfer/FLIR_DarkAct_SemanticDisagreementLAF_P34_R4_NoStaticMAA_scales_3Class_HBB/weights/best.pt"
 from __future__ import annotations
 
 import argparse

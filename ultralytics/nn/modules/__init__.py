@@ -117,6 +117,22 @@ from .p2det_prompt_gder import (
     P2IRPromptAttExpertMergeFeedback2D,
     P2IRSpatialRGBGlobalLAFMergeFeedback2D,
 )
+from .p2det_reliability import (
+    DA016_PROMPT_ABLATION_MODULES,
+    DA016DualPromptAuxSemanticLAFMergeFeedback2D,
+    DA016DualPromptResidualSemanticLAFMergeFeedback2D,
+    DarkACTDualPromptAuxLAFMergeFeedback2D,
+    DarkACTDualPromptResidualLAFMergeFeedback2D,
+    MonotonicPriorConditionedLAFMerge2D,
+    P2_OBJECT_RELIABILITY_PROMPT_MODULES,
+    P2_RELIABILITY_PROMPT_MODULES,
+    P2_TRUE_OBJECT_RELIABILITY_PROMPT_MODULES,
+    P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+    P2DualReliabilityPriorLAFMergeFeedback2D,
+    P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+    PriorConditionedLAFMerge2D,
+    SignPreservingPromptConditionedLAFMerge2D,
+)
 from .zero_init_refine import ZeroInitResidualRefine2D
 from .conv import (
     CBAM,
@@ -242,5 +258,19 @@ __all__ = (
     "P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D",
     "P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D",
     "P2_SECOND_GEN_PROMPT_MODULES",
+    "P2DualReliabilityPriorLAFMergeFeedback2D",
+    "PriorConditionedLAFMerge2D",
+    "P2_RELIABILITY_PROMPT_MODULES",
+    "P2DualObjectReliabilityMonotonicLAFMergeFeedback2D",
+    "MonotonicPriorConditionedLAFMerge2D",
+    "P2_OBJECT_RELIABILITY_PROMPT_MODULES",
+    "P2DualTrueObjectReliabilityLAFMergeFeedback2D",
+    "SignPreservingPromptConditionedLAFMerge2D",
+    "P2_TRUE_OBJECT_RELIABILITY_PROMPT_MODULES",
+    "DA016DualPromptAuxSemanticLAFMergeFeedback2D",
+    "DA016DualPromptResidualSemanticLAFMergeFeedback2D",
+    "DarkACTDualPromptAuxLAFMergeFeedback2D",
+    "DarkACTDualPromptResidualLAFMergeFeedback2D",
+    "DA016_PROMPT_ABLATION_MODULES",
     "ZeroInitResidualRefine2D",
 )

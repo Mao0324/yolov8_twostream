@@ -32,9 +32,14 @@ _bootstrap_monitor_imports()
 
 from monitored_detection_trainer import MonitoredDetectionTrainer  # noqa: E402
 from monitored_obb_trainer import MonitoredOBBTrainer  # noqa: E402
+from monitored_single_modality_obb_trainer import MonitoredSingleModalityOBBTrainer  # noqa: E402
 from monitored_p2det_trainer import (  # noqa: E402
+    MonitoredDA016PromptAblationOBBTrainer,
+    MonitoredP2ObjectReliabilityOBBTrainer,
     MonitoredP2PromptOBBTrainer,
+    MonitoredP2ReliabilityOBBTrainer,
     MonitoredP2SecondGenOBBTrainer,
+    MonitoredP2TrueObjectReliabilityOBBTrainer,
 )
 from yolo_monitor import RemoteMonitorTrainerMixin, YoloExperimentMonitor  # noqa: E402
 
@@ -73,8 +78,13 @@ def create_monitor(experiment_name: str) -> YoloExperimentMonitor:
 __all__ = (
     "MonitoredDetectionTrainer",
     "MonitoredOBBTrainer",
+    "MonitoredSingleModalityOBBTrainer",
     "MonitoredP2PromptOBBTrainer",
+    "MonitoredP2ObjectReliabilityOBBTrainer",
+    "MonitoredP2TrueObjectReliabilityOBBTrainer",
+    "MonitoredP2ReliabilityOBBTrainer",
     "MonitoredP2SecondGenOBBTrainer",
+    "MonitoredDA016PromptAblationOBBTrainer",
     "MonitoredSoftCenternessTargetSaliencyOBBTrainer",
     "MonitoredTargetSaliencyOBBTrainer",
     "RemoteMonitorTrainerMixin",

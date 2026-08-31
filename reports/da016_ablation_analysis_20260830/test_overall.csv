@@ -1,0 +1,10 @@
+experiment,parent,structure,precision_pct,recall_pct,map50_pct,map5095_pct,delta_vs_a_pp
+A,基线,原始 DA016,79.9,78.9,81.9,66.7,0.0
+B,A,A + P3/P4 双 Prompt 辅助监督,79.4,79.3,81.8,66.8,0.1
+C,B,B + P3/P4 zero-init 有界 residual,80.3,79.0,82.2,67.0,0.3
+D,B,B + 仅 P3 residual；P4 辅助监督,80.5,78.3,81.3,66.4,-0.3
+E,C,C + P5 Prompt 辅助监督,80.4,79.4,82.2,67.0,0.3
+F,E,E + P5 zero-init 有界 residual,79.7,79.4,81.8,66.8,0.1
+G,B,B + P5 Prompt 辅助监督,79.2,79.3,81.6,66.6,-0.1
+B-Detach,B,B 的 Prompt 特征 detach 因果对照,80.3,78.9,81.9,66.8,0.1
+H,B,B + 类别×teacher-winner 平衡辅助监督,79.8,79.6,82.6,67.0,0.3

@@ -1,0 +1,929 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "DA016 A–H 严格消融实验结果分析",
+    "description": "M2D-LIF labels、同一 DroneVehicle test split 下的双 Prompt、残差与 P5 消融诊断。",
+    "generatedAt": "2026-08-30T18:55:59+08:00",
+    "cards": [
+      {
+        "id": "h_quality",
+        "description": "H 是辅助监督路线的最好结果，并与 C 并列最高 test mAP50–95。",
+        "dataset": "summary",
+        "sourceId": "test_metrics",
+        "metrics": [
+          {
+            "label": "H test mAP50–95 (%)",
+            "field": "h_map5095_pct",
+            "format": "number"
+          },
+          {
+            "label": "H − B (pp)",
+            "field": "h_vs_b_map5095_pp",
+            "format": "number",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "h_map50",
+        "description": "H 的 mAP50 为所有实验最高。",
+        "dataset": "summary",
+        "sourceId": "test_metrics",
+        "metrics": [
+          {
+            "label": "H test mAP50 (%)",
+            "field": "h_map50_pct",
+            "format": "number"
+          },
+          {
+            "label": "H − B (pp)",
+            "field": "h_vs_b_map50_pp",
+            "format": "number",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "p5_aux",
+        "description": "在 B 上增加 P5 Prompt 辅助监督的直接效果。",
+        "dataset": "summary",
+        "sourceId": "test_metrics",
+        "metrics": [
+          {
+            "label": "G − B mAP50–95 (pp)",
+            "field": "g_vs_b_map5095_pp",
+            "format": "number",
+            "signed": true
+          }
+        ]
+      },
+      {
+        "id": "p5_residual",
+        "description": "在 E 上启用 P5 residual 的直接效果。",
+        "dataset": "summary",
+        "sourceId": "test_metrics",
+        "metrics": [
+          {
+            "label": "F − E mAP50–95 (pp)",
+            "field": "f_vs_e_map5095_pp",
+            "format": "number",
+            "signed": true
+          }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "overall_delta",
+        "title": "各实验相对 A 的 test mAP50–95 差值",
+        "subtitle": "单位为百分点；0 代表与原始 DA016 相同。",
+        "intent": "comparison",
+        "question": "哪些 Prompt、残差与 P5 组合真正超过原始 DA016 基线？",
+        "rationale": "水平条形图适合比较九个离散实验相对同一基线的小幅正负变化。",
+        "type": "horizontalBar",
+        "dataset": "test_overall",
+        "sourceId": "test_metrics",
+        "encodings": {
+          "x": {
+            "field": "experiment",
+            "type": "nominal",
+            "label": "实验"
+          },
+          "y": {
+            "field": "delta_vs_a_pp",
+            "type": "quantitative",
+            "label": "Δ mAP50–95",
+            "unit": "pp"
+          },
+          "tooltip": [
+            {
+              "field": "map5095_pct",
+              "type": "quantitative",
+              "label": "mAP50–95",
+              "unit": "%"
+            },
+            {
+              "field": "parent",
+              "type": "nominal",
+              "label": "直接父实验"
+            }
+          ]
+        },
+        "xAxisTitle": "相对 A 的 mAP50–95 差值 (pp)",
+        "valueFormat": "number",
+        "unit": "pp",
+        "referenceLines": [
+          {
+            "value": 0,
+            "label": "A baseline"
+          }
+        ],
+        "layout": "full"
+      },
+      {
+        "id": "h_class_delta_chart",
+        "title": "H 相对 B 的逐类别 test mAP50–95 差值",
+        "subtitle": "类别×teacher-winner 平衡监督主要改善 truck、van 与 freight_car。",
+        "intent": "comparison",
+        "question": "H 的总体收益来自哪些类别，又牺牲了哪些类别？",
+        "rationale": "逐类水平条形图直接暴露少数类收益与 bus 退化，避免总体均值掩盖方向相反的变化。",
+        "type": "horizontalBar",
+        "dataset": "h_class_delta",
+        "sourceId": "test_metrics",
+        "encodings": {
+          "x": {
+            "field": "class",
+            "type": "nominal",
+            "label": "类别"
+          },
+          "y": {
+            "field": "delta_map5095_pp",
+            "type": "quantitative",
+            "label": "H − B",
+            "unit": "pp"
+          },
+          "tooltip": [
+            {
+              "field": "instances",
+              "type": "quantitative",
+              "label": "实例数"
+            },
+            {
+              "field": "b_map5095_pct",
+              "type": "quantitative",
+              "label": "B mAP50–95",
+              "unit": "%"
+            },
+            {
+              "field": "h_map5095_pct",
+              "type": "quantitative",
+              "label": "H mAP50–95",
+              "unit": "%"
+            }
+          ]
+        },
+        "xAxisTitle": "H − B mAP50–95 (pp)",
+        "valueFormat": "number",
+        "unit": "pp",
+        "referenceLines": [
+          {
+            "value": 0,
+            "label": "no change"
+          }
+        ],
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "overall_table",
+        "title": "九个实验的 test 指标",
+        "subtitle": "全部取自相同设置的 test_m2dlif 评估。",
+        "dataset": "test_overall",
+        "sourceId": "test_metrics",
+        "defaultSort": {
+          "field": "map5095_pct",
+          "direction": "desc"
+        },
+        "density": "compact",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "experiment",
+            "label": "实验",
+            "type": "text"
+          },
+          {
+            "field": "parent",
+            "label": "父实验",
+            "type": "text"
+          },
+          {
+            "field": "precision_pct",
+            "label": "P (%)",
+            "format": "number"
+          },
+          {
+            "field": "recall_pct",
+            "label": "R (%)",
+            "format": "number"
+          },
+          {
+            "field": "map50_pct",
+            "label": "mAP50 (%)",
+            "format": "number"
+          },
+          {
+            "field": "map5095_pct",
+            "label": "mAP50–95 (%)",
+            "format": "number"
+          },
+          {
+            "field": "delta_vs_a_pp",
+            "label": "vs A (pp)",
+            "format": "number",
+            "movement": true
+          }
+        ]
+      },
+      {
+        "id": "comparison_table",
+        "title": "严格父子对照的直接增量",
+        "subtitle": "每一行只比较一个新增机制。",
+        "dataset": "direct_comparisons",
+        "sourceId": "test_metrics",
+        "defaultSort": {
+          "field": "delta_map5095_pp",
+          "direction": "desc"
+        },
+        "density": "compact",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "comparison",
+            "label": "对照",
+            "type": "text"
+          },
+          {
+            "field": "change",
+            "label": "唯一新增机制",
+            "type": "text"
+          },
+          {
+            "field": "delta_precision_pp",
+            "label": "ΔP (pp)",
+            "format": "number",
+            "movement": true
+          },
+          {
+            "field": "delta_recall_pp",
+            "label": "ΔR (pp)",
+            "format": "number",
+            "movement": true
+          },
+          {
+            "field": "delta_map50_pp",
+            "label": "ΔmAP50 (pp)",
+            "format": "number",
+            "movement": true
+          },
+          {
+            "field": "delta_map5095_pp",
+            "label": "ΔmAP50–95 (pp)",
+            "format": "number",
+            "movement": true
+          }
+        ]
+      },
+      {
+        "id": "prompt_table",
+        "title": "最佳 validation epoch 与 Prompt 诊断",
+        "subtitle": "A 无 Prompt；B 与 B-Detach 用于判断辅助梯度是否真正改变 Prompt 表征。",
+        "dataset": "prompt_summary",
+        "sourceId": "training_metrics",
+        "defaultSort": {
+          "field": "best_val_map5095_pct",
+          "direction": "desc"
+        },
+        "density": "compact",
+        "layout": "full",
+        "columns": [
+          {
+            "field": "experiment",
+            "label": "实验",
+            "type": "text"
+          },
+          {
+            "field": "best_val_epoch",
+            "label": "epoch",
+            "format": "number"
+          },
+          {
+            "field": "best_val_map5095_pct",
+            "label": "best val (%)",
+            "format": "number"
+          },
+          {
+            "field": "p3_accuracy_pct",
+            "label": "P3 acc (%)",
+            "format": "number"
+          },
+          {
+            "field": "p3_correlation",
+            "label": "P3 corr",
+            "format": "number"
+          },
+          {
+            "field": "p4_accuracy_pct",
+            "label": "P4 acc (%)",
+            "format": "number"
+          },
+          {
+            "field": "p4_correlation",
+            "label": "P4 corr",
+            "format": "number"
+          },
+          {
+            "field": "p5_accuracy_pct",
+            "label": "P5 acc (%)",
+            "format": "number"
+          },
+          {
+            "field": "p5_correlation",
+            "label": "P5 corr",
+            "format": "number"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "test_metrics",
+        "label": "DA016 A-H test_m2dlif 评估结果",
+        "path": "queries/test_metrics.sql",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT dataset, row_json FROM test_metrics_export ORDER BY dataset, row_json;",
+          "description": "逐个解析九个实验的 test_m2dlif/test.txt，并校验数据集、标签、split、imgsz 与 batch 一致。",
+          "executed_at": "2026-08-30T18:55:59+08:00",
+          "tables_used": [
+            "test_metrics_export"
+          ],
+          "filters": [
+            "仅使用各实验 test_m2dlif/test.txt 的 test split",
+            "imgsz=640，batch=16，M2D-LIF labels，8980 images",
+            "不比较不同 GPU 上的推理速度"
+          ],
+          "metric_definitions": [
+            "mAP50-95 为 IoU 0.50:0.95 上的 OBB AP 均值；报告中的百分数为原始小数乘 100。",
+            "差值单位为 percentage point（pp），计算为 (child - parent) × 100。",
+            "测试集包含 8980 张图像与 159618 个实例。"
+          ]
+        }
+      },
+      {
+        "id": "training_metrics",
+        "label": "DA016 A-H 训练与 Prompt 诊断指标",
+        "path": "queries/training_metrics.sql",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "SELECT dataset, row_json FROM training_metrics_export ORDER BY dataset, row_json;",
+          "description": "解析每个 results.csv；best validation epoch 由 metrics/mAP50-95(B) 最大值确定。",
+          "executed_at": "2026-08-30T18:55:59+08:00",
+          "tables_used": [
+            "training_metrics_export"
+          ],
+          "filters": [
+            "仅使用各实验 test_m2dlif/test.txt 的 test split",
+            "imgsz=640，batch=16，M2D-LIF labels，8980 images",
+            "不比较不同 GPU 上的推理速度"
+          ],
+          "metric_definitions": [
+            "Prompt accuracy 为目标级 RGB/IR winner 分类准确率。",
+            "Prompt correlation 为预测相对可靠性与 teacher 相对目标的相关性。",
+            "best validation 仅用于训练诊断，不用于替代 test_m2dlif 的最终比较。"
+          ]
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# DA016 A–H 严格消融实验结果分析"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "sourceId": "test_metrics",
+        "body": "## 结论：H 与 C 并列第一，但两条路线解决的是不同问题\n\n**C 与 H 的 test mAP50–95 都是 67.0%，相对 A 提升 0.3 pp。** C 证明 P3/P4 的 Prompt 条件残差可能有益；H 则在完全不让 Prompt 进入融合的前提下，把 mAP50 提到最高的 82.6%。\n\n**B 与 B-Detach 的 test mAP50–95 同为 66.8%。** 因而 B 相对 A 的 0.1 pp 不能被解释为 Prompt 辅助梯度带来的因果检测收益。\n\n**P5 路线没有通过消融。** G−B 和 F−E 均为 −0.2 pp；E−C 为 0.0 pp。当前证据支持停止继续给 P5 加 Prompt 或 residual。"
+      },
+      {
+        "id": "key_metrics",
+        "type": "metric-strip",
+        "cardIds": [
+          "h_quality",
+          "h_map50",
+          "p5_aux",
+          "p5_residual"
+        ]
+      },
+      {
+        "id": "ranking_headline",
+        "type": "markdown",
+        "sourceId": "test_metrics",
+        "body": "## 总体结果：只有 C、E、H 达到 67.0%，但 E 没有提供 P5 增量\n\nC、E、H 相对 A 都是 +0.3 pp；不过 E 与其直接父实验 C 完全相同，所以不能把 E 的成绩归因于 P5 Prompt。D、F、G 分别验证了仅 P3 residual、P5 residual、P5 auxiliary 的负结果。"
+      },
+      {
+        "id": "overall_delta_block",
+        "type": "chart",
+        "chartId": "overall_delta",
+        "layout": "full"
+      },
+      {
+        "id": "overall_table_block",
+        "type": "table",
+        "tableId": "overall_table",
+        "layout": "full"
+      },
+      {
+        "id": "h_class_headline",
+        "type": "markdown",
+        "sourceId": "test_metrics",
+        "body": "## H 的收益集中在少数类，但 bus 明显退化\n\n相对 B，H 的 truck、van、freight_car mAP50–95 分别提高 0.9、0.7、0.6 pp；car 基本不变（−0.1 pp），bus 下降 0.7 pp。这个分布与类别×winner 平衡监督的设计目标一致，但也说明当前平衡强度可能过大。"
+      },
+      {
+        "id": "h_class_delta_block",
+        "type": "chart",
+        "chartId": "h_class_delta_chart",
+        "layout": "full"
+      },
+      {
+        "id": "causal_headline",
+        "type": "markdown",
+        "sourceId": "training_metrics",
+        "body": "## B 的 Prompt 学到了可靠性，但这次没有转化成检测 AP\n\nB 在最佳 validation epoch 的 P3/P4 Prompt accuracy 为 68.3%/68.7%，高于 B-Detach 的 66.0%/65.4%；相关性也分别由 0.388/0.407 提高到 0.420/0.454。\n\n这说明辅助梯度确实改善了 Prompt 的 teacher-winner 表征，不是简单复制固定 prior。"
+      },
+      {
+        "id": "causal_detection_result",
+        "type": "markdown",
+        "sourceId": "test_metrics",
+        "body": "### 但检测收益没有通过因果对照\n\nB 与 B-Detach 的 test mAP50–95 都是 66.8%，所以不能声称 Prompt 辅助梯度已经改善 detector；B 相对 A 的 +0.1 pp 也可能只是单次训练波动。"
+      },
+      {
+        "id": "prompt_table_block",
+        "type": "table",
+        "tableId": "prompt_table",
+        "layout": "full"
+      },
+      {
+        "id": "p5_diagnosis",
+        "type": "markdown",
+        "sourceId": "training_metrics",
+        "body": "## P5 的问题不是 Prompt 没学会，而是信号与检测目标不对齐\n\nG 的 P5 Prompt accuracy/correlation 已达到 70.7%/0.453，F 的 P5 residual gain 也已从 zero-init 学到约 0.024。说明 P5 Prompt head 与 residual 都实际激活了，并非没有训练到。"
+      },
+      {
+        "id": "p5_detection_counterevidence",
+        "type": "markdown",
+        "sourceId": "test_metrics",
+        "body": "### 但 P5 的检测结果反向\n\nG−B 与 F−E 的 test mAP50–95 都下降 0.2 pp，而 E−C 为 0.0 pp。因此，继续加大 P5 参数或监督权重不太可能直接解决问题；更合理的假设是 P5 的粗空间尺度与当前逐目标可靠性监督存在梯度冲突或目标混叠。"
+      },
+      {
+        "id": "scope",
+        "type": "markdown",
+        "body": "## 范围、数据与指标定义\n\n九个实验全部使用同一 M2D-LIF 标注、同一 DroneVehicle RGB/IR test split、imgsz 640、batch 16；测试集共 8980 张图像和 159618 个实例。类别映射一致。\n\nmAP50–95 指 OBB 在 IoU 0.50:0.95 上的平均 AP；报告中的 pp 是 mAP 小数差乘 100。由于各 test.txt 只保留三位小数，0.1 pp 量级的差异仅可视为方向性证据。",
+        "sourceId": "test_metrics"
+      },
+      {
+        "id": "design",
+        "type": "markdown",
+        "body": "## 实验设计：必须按直接父实验解释增量\n\nA 是原始 DA016；B 只加 P3/P4 Prompt 辅助监督；C 在 B 上给 P3/P4 加 residual；D 只给 P3 加 residual；E 在 C 上加 P5 auxiliary；F 再给 P5 加 residual；G 在 B 上单独加 P5 auxiliary；B-Detach 隔断 Prompt 辅助梯度；H 在 B 上改为类别×winner 平衡监督。\n\n因此，E 的绝对成绩不能被当作 P5 的收益，必须看 E−C；同理，H 必须优先看 H−B，而不是只看 H−A。"
+      },
+      {
+        "id": "comparison_table_block",
+        "type": "table",
+        "tableId": "comparison_table",
+        "layout": "full"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "sourceId": "training_metrics",
+        "body": "## 不确定性：validation 与 test 排序不一致\n\n每个结构目前只有一个训练运行。H 的最佳 validation mAP50–95 只有 71.9%，低于 B 的 72.4% 与 E 的 72.6%。这表明单次运行的 checkpoint 与数据划分波动不可忽略。"
+      },
+      {
+        "id": "test_precision_limit",
+        "type": "markdown",
+        "sourceId": "test_metrics",
+        "body": "### 三位小数不足以证明微小提升\n\n测试文本只保留三位小数，且缺少逐图预测与 paired bootstrap 区间。因此 +0.1 至 +0.3 pp 目前只能作为方向性证据，不能构成统计稳健的优越性声明。"
+      },
+      {
+        "id": "next_steps",
+        "type": "markdown",
+        "body": "## 下一步：先验证 H，再隔离 P4，不再扩展 P5\n\n1. **最高优先级：复跑 A、B、B-Detach、H、C 至少 3 个 seed。** 核心问题是 H−B 是否稳定为正，以及 B−B-Detach 是否仍接近零。\n2. **对 H 做平衡强度扫描。** 建议 0.25、0.50、0.75，相对于当前 1.0；目标是保留 truck/van/freight_car 收益，同时追回 bus。\n3. **新增 P4-only residual。** D 证明 P3-only 为负，C 的 P3+P4 为正；必须用 `J = B + P4 residual only` 才能判断真正贡献是否来自 P4 或跨尺度交互。\n4. **停止 P5 auxiliary/residual 扩展。** 除非先改成尺度感知的目标分配或显式梯度冲突控制。\n5. **保存未四舍五入的评估 JSON 和逐图预测。** 后续用 paired bootstrap 给出置信区间，不再仅凭三位小数排名。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## 仍需回答的问题\n\n- H 的 bus 下降是平衡系数过强，还是 teacher 在 bus 上的 winner 标签噪声更大？\n- C 的收益主要来自 P4，还是 P3/P4 residual 的联合优化？\n- Prompt accuracy 提升但 AP 不变时，梯度冲突发生在 backbone、融合层还是检测 head？\n- H 的 best.pt 与 last.pt 是否保持同样的 test 排序？"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-30T18:55:59+08:00",
+    "status": "ready",
+    "datasets": {
+      "summary": [
+        {
+          "h_map5095_pct": 67.0,
+          "h_vs_b_map5095_pp": 0.2,
+          "h_map50_pct": 82.6,
+          "h_vs_b_map50_pp": 0.8,
+          "c_map5095_pct": 67.0,
+          "g_vs_b_map5095_pp": -0.2,
+          "f_vs_e_map5095_pp": -0.2
+        }
+      ],
+      "test_overall": [
+        {
+          "experiment": "A",
+          "parent": "基线",
+          "structure": "原始 DA016",
+          "precision_pct": 79.9,
+          "recall_pct": 78.9,
+          "map50_pct": 81.9,
+          "map5095_pct": 66.7,
+          "delta_vs_a_pp": 0.0
+        },
+        {
+          "experiment": "B",
+          "parent": "A",
+          "structure": "A + P3/P4 双 Prompt 辅助监督",
+          "precision_pct": 79.4,
+          "recall_pct": 79.3,
+          "map50_pct": 81.8,
+          "map5095_pct": 66.8,
+          "delta_vs_a_pp": 0.1
+        },
+        {
+          "experiment": "C",
+          "parent": "B",
+          "structure": "B + P3/P4 zero-init 有界 residual",
+          "precision_pct": 80.3,
+          "recall_pct": 79.0,
+          "map50_pct": 82.2,
+          "map5095_pct": 67.0,
+          "delta_vs_a_pp": 0.3
+        },
+        {
+          "experiment": "D",
+          "parent": "B",
+          "structure": "B + 仅 P3 residual；P4 辅助监督",
+          "precision_pct": 80.5,
+          "recall_pct": 78.3,
+          "map50_pct": 81.3,
+          "map5095_pct": 66.4,
+          "delta_vs_a_pp": -0.3
+        },
+        {
+          "experiment": "E",
+          "parent": "C",
+          "structure": "C + P5 Prompt 辅助监督",
+          "precision_pct": 80.4,
+          "recall_pct": 79.4,
+          "map50_pct": 82.2,
+          "map5095_pct": 67.0,
+          "delta_vs_a_pp": 0.3
+        },
+        {
+          "experiment": "F",
+          "parent": "E",
+          "structure": "E + P5 zero-init 有界 residual",
+          "precision_pct": 79.7,
+          "recall_pct": 79.4,
+          "map50_pct": 81.8,
+          "map5095_pct": 66.8,
+          "delta_vs_a_pp": 0.1
+        },
+        {
+          "experiment": "G",
+          "parent": "B",
+          "structure": "B + P5 Prompt 辅助监督",
+          "precision_pct": 79.2,
+          "recall_pct": 79.3,
+          "map50_pct": 81.6,
+          "map5095_pct": 66.6,
+          "delta_vs_a_pp": -0.1
+        },
+        {
+          "experiment": "B-Detach",
+          "parent": "B",
+          "structure": "B 的 Prompt 特征 detach 因果对照",
+          "precision_pct": 80.3,
+          "recall_pct": 78.9,
+          "map50_pct": 81.9,
+          "map5095_pct": 66.8,
+          "delta_vs_a_pp": 0.1
+        },
+        {
+          "experiment": "H",
+          "parent": "B",
+          "structure": "B + 类别×teacher-winner 平衡辅助监督",
+          "precision_pct": 79.8,
+          "recall_pct": 79.6,
+          "map50_pct": 82.6,
+          "map5095_pct": 67.0,
+          "delta_vs_a_pp": 0.3
+        }
+      ],
+      "direct_comparisons": [
+        {
+          "comparison": "B − A",
+          "change": "双 Prompt 辅助监督",
+          "delta_precision_pp": -0.5,
+          "delta_recall_pp": 0.4,
+          "delta_map50_pp": -0.1,
+          "delta_map5095_pp": 0.1
+        },
+        {
+          "comparison": "B-Detach − B",
+          "change": "辅助梯度因果对照",
+          "delta_precision_pp": 0.9,
+          "delta_recall_pp": -0.4,
+          "delta_map50_pp": 0.1,
+          "delta_map5095_pp": 0.0
+        },
+        {
+          "comparison": "C − B",
+          "change": "P3/P4 residual",
+          "delta_precision_pp": 0.9,
+          "delta_recall_pp": -0.3,
+          "delta_map50_pp": 0.4,
+          "delta_map5095_pp": 0.2
+        },
+        {
+          "comparison": "D − B",
+          "change": "仅 P3 residual",
+          "delta_precision_pp": 1.1,
+          "delta_recall_pp": -1.0,
+          "delta_map50_pp": -0.5,
+          "delta_map5095_pp": -0.4
+        },
+        {
+          "comparison": "E − C",
+          "change": "P5 Prompt（P3/P4 residual 背景）",
+          "delta_precision_pp": 0.1,
+          "delta_recall_pp": 0.4,
+          "delta_map50_pp": 0.0,
+          "delta_map5095_pp": 0.0
+        },
+        {
+          "comparison": "F − E",
+          "change": "P5 residual",
+          "delta_precision_pp": -0.7,
+          "delta_recall_pp": 0.0,
+          "delta_map50_pp": -0.4,
+          "delta_map5095_pp": -0.2
+        },
+        {
+          "comparison": "G − B",
+          "change": "P5 Prompt（无 residual 背景）",
+          "delta_precision_pp": -0.2,
+          "delta_recall_pp": 0.0,
+          "delta_map50_pp": -0.2,
+          "delta_map5095_pp": -0.2
+        },
+        {
+          "comparison": "H − B",
+          "change": "类别×winner 平衡监督",
+          "delta_precision_pp": 0.4,
+          "delta_recall_pp": 0.3,
+          "delta_map50_pp": 0.8,
+          "delta_map5095_pp": 0.2
+        }
+      ],
+      "h_class_delta": [
+        {
+          "class": "car",
+          "instances": 137148,
+          "b_map50_pct": 96.0,
+          "h_map50_pct": 96.1,
+          "delta_map50_pp": 0.1,
+          "b_map5095_pct": 79.9,
+          "h_map5095_pct": 79.8,
+          "delta_map5095_pp": -0.1
+        },
+        {
+          "class": "truck",
+          "instances": 8657,
+          "b_map50_pct": 81.7,
+          "h_map50_pct": 83.3,
+          "delta_map50_pp": 1.6,
+          "b_map5095_pct": 64.8,
+          "h_map5095_pct": 65.7,
+          "delta_map5095_pp": 0.9
+        },
+        {
+          "class": "bus",
+          "instances": 4467,
+          "b_map50_pct": 95.0,
+          "h_map50_pct": 94.9,
+          "delta_map50_pp": -0.1,
+          "b_map5095_pct": 79.3,
+          "h_map5095_pct": 78.6,
+          "delta_map5095_pp": -0.7
+        },
+        {
+          "class": "van",
+          "instances": 4282,
+          "b_map50_pct": 66.8,
+          "h_map50_pct": 68.0,
+          "delta_map50_pp": 1.2,
+          "b_map5095_pct": 54.5,
+          "h_map5095_pct": 55.2,
+          "delta_map5095_pp": 0.7
+        },
+        {
+          "class": "freight_car",
+          "instances": 5064,
+          "b_map50_pct": 69.3,
+          "h_map50_pct": 70.7,
+          "delta_map50_pp": 1.4,
+          "b_map5095_pct": 55.2,
+          "h_map5095_pct": 55.8,
+          "delta_map5095_pp": 0.6
+        }
+      ],
+      "prompt_summary": [
+        {
+          "experiment": "A",
+          "best_val_epoch": 66,
+          "best_val_map5095_pct": 71.995,
+          "p3_accuracy_pct": null,
+          "p3_correlation": null,
+          "p3_residual_gain": null,
+          "p4_accuracy_pct": null,
+          "p4_correlation": null,
+          "p4_residual_gain": null,
+          "p5_accuracy_pct": null,
+          "p5_correlation": null,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "B",
+          "best_val_epoch": 80,
+          "best_val_map5095_pct": 72.366,
+          "p3_accuracy_pct": 68.324,
+          "p3_correlation": 0.4195,
+          "p3_residual_gain": null,
+          "p4_accuracy_pct": 68.686,
+          "p4_correlation": 0.4543,
+          "p4_residual_gain": null,
+          "p5_accuracy_pct": null,
+          "p5_correlation": null,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "C",
+          "best_val_epoch": 71,
+          "best_val_map5095_pct": 72.181,
+          "p3_accuracy_pct": 68.143,
+          "p3_correlation": 0.4224,
+          "p3_residual_gain": 0.109,
+          "p4_accuracy_pct": 68.586,
+          "p4_correlation": 0.4541,
+          "p4_residual_gain": -0.0135,
+          "p5_accuracy_pct": null,
+          "p5_correlation": null,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "D",
+          "best_val_epoch": 99,
+          "best_val_map5095_pct": 71.998,
+          "p3_accuracy_pct": 68.748,
+          "p3_correlation": 0.4306,
+          "p3_residual_gain": 0.0887,
+          "p4_accuracy_pct": 69.225,
+          "p4_correlation": 0.4632,
+          "p4_residual_gain": null,
+          "p5_accuracy_pct": null,
+          "p5_correlation": null,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "E",
+          "best_val_epoch": 80,
+          "best_val_map5095_pct": 72.558,
+          "p3_accuracy_pct": 68.408,
+          "p3_correlation": 0.4219,
+          "p3_residual_gain": 0.0998,
+          "p4_accuracy_pct": 68.853,
+          "p4_correlation": 0.4549,
+          "p4_residual_gain": -0.012,
+          "p5_accuracy_pct": 69.479,
+          "p5_correlation": 0.4492,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "F",
+          "best_val_epoch": 78,
+          "best_val_map5095_pct": 72.216,
+          "p3_accuracy_pct": 68.596,
+          "p3_correlation": 0.4216,
+          "p3_residual_gain": 0.0991,
+          "p4_accuracy_pct": 69.054,
+          "p4_correlation": 0.4532,
+          "p4_residual_gain": 0.003,
+          "p5_accuracy_pct": 70.813,
+          "p5_correlation": 0.4471,
+          "p5_residual_gain": 0.0239
+        },
+        {
+          "experiment": "G",
+          "best_val_epoch": 85,
+          "best_val_map5095_pct": 72.18,
+          "p3_accuracy_pct": 68.519,
+          "p3_correlation": 0.4278,
+          "p3_residual_gain": null,
+          "p4_accuracy_pct": 68.956,
+          "p4_correlation": 0.46,
+          "p4_residual_gain": null,
+          "p5_accuracy_pct": 70.707,
+          "p5_correlation": 0.4527,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "B-Detach",
+          "best_val_epoch": 77,
+          "best_val_map5095_pct": 72.051,
+          "p3_accuracy_pct": 66.028,
+          "p3_correlation": 0.3879,
+          "p3_residual_gain": null,
+          "p4_accuracy_pct": 65.355,
+          "p4_correlation": 0.407,
+          "p4_residual_gain": null,
+          "p5_accuracy_pct": null,
+          "p5_correlation": null,
+          "p5_residual_gain": null
+        },
+        {
+          "experiment": "H",
+          "best_val_epoch": 84,
+          "best_val_map5095_pct": 71.869,
+          "p3_accuracy_pct": 68.691,
+          "p3_correlation": 0.3995,
+          "p3_residual_gain": null,
+          "p4_accuracy_pct": 68.383,
+          "p4_correlation": 0.4345,
+          "p4_residual_gain": null,
+          "p5_accuracy_pct": null,
+          "p5_correlation": null,
+          "p5_residual_gain": null
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "test_metrics",
+      "label": "DA016 A-H test_m2dlif 评估结果",
+      "path": "queries/test_metrics.sql",
+      "query": {
+        "engine": "sqlite",
+        "language": "sql",
+        "sql": "SELECT dataset, row_json FROM test_metrics_export ORDER BY dataset, row_json;",
+        "description": "逐个解析九个实验的 test_m2dlif/test.txt，并校验数据集、标签、split、imgsz 与 batch 一致。",
+        "executed_at": "2026-08-30T18:55:59+08:00",
+        "tables_used": [
+          "test_metrics_export"
+        ],
+        "filters": [
+          "仅使用各实验 test_m2dlif/test.txt 的 test split",
+          "imgsz=640，batch=16，M2D-LIF labels，8980 images",
+          "不比较不同 GPU 上的推理速度"
+        ],
+        "metric_definitions": [
+          "mAP50-95 为 IoU 0.50:0.95 上的 OBB AP 均值；报告中的百分数为原始小数乘 100。",
+          "差值单位为 percentage point（pp），计算为 (child - parent) × 100。",
+          "测试集包含 8980 张图像与 159618 个实例。"
+        ]
+      }
+    },
+    {
+      "id": "training_metrics",
+      "label": "DA016 A-H 训练与 Prompt 诊断指标",
+      "path": "queries/training_metrics.sql",
+      "query": {
+        "engine": "sqlite",
+        "language": "sql",
+        "sql": "SELECT dataset, row_json FROM training_metrics_export ORDER BY dataset, row_json;",
+        "description": "解析每个 results.csv；best validation epoch 由 metrics/mAP50-95(B) 最大值确定。",
+        "executed_at": "2026-08-30T18:55:59+08:00",
+        "tables_used": [
+          "training_metrics_export"
+        ],
+        "filters": [
+          "仅使用各实验 test_m2dlif/test.txt 的 test split",
+          "imgsz=640，batch=16，M2D-LIF labels，8980 images",
+          "不比较不同 GPU 上的推理速度"
+        ],
+        "metric_definitions": [
+          "Prompt accuracy 为目标级 RGB/IR winner 分类准确率。",
+          "Prompt correlation 为预测相对可靠性与 teacher 相对目标的相关性。",
+          "best validation 仅用于训练诊断，不用于替代 test_m2dlif 的最终比较。"
+        ]
+      }
+    }
+  ],
+  "package_info": {
+    "root": "da016_ablation_analysis_20260830",
+    "manifestPath": "artifact.json",
+    "snapshotPath": "artifact.json"
+  }
+}

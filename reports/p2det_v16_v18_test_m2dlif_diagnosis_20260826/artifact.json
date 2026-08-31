@@ -1,0 +1,335 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "P2Det V16–V18 与 DarkACT 的 M2D-LIF 测试诊断",
+    "description": "基于四个实验 test_m2dlif/test.txt、训练结果和结构元数据的技术诊断。",
+    "generatedAt": "2026-08-26T11:15:05+08:00",
+    "cards": [
+      {
+        "id": "v18_test_delta",
+        "description": "按 test.txt 已打印值计算；文件只保留约 3 位有效数字。",
+        "dataset": "headline_metrics",
+        "sourceId": "test_m2dlif_results",
+        "metrics": [
+          { "label": "V18 Δ mAP50-95", "field": "v18_delta_map5095", "format": "percent", "signed": true },
+          { "label": "Δ mAP50", "field": "v18_delta_map50", "format": "percent", "signed": true }
+        ]
+      },
+      {
+        "id": "v18_gate_alignment",
+        "description": "最佳验证轮次上，P4 gate 与 Prompt 的方向一致率。",
+        "dataset": "headline_metrics",
+        "sourceId": "reliability_training_logs",
+        "metrics": [
+          { "label": "V18 P4 gate–Prompt", "field": "v18_p4_gate_prompt_agreement", "format": "percent" },
+          { "label": "V17", "field": "v17_p4_gate_prompt_agreement", "format": "percent" }
+        ]
+      },
+      {
+        "id": "teacher_imbalance",
+        "description": "两个独立单模态 teacher 的最佳验证 mAP50-95 差距。",
+        "dataset": "headline_metrics",
+        "sourceId": "teacher_training_logs",
+        "metrics": [
+          { "label": "IR teacher 优势", "field": "teacher_map5095_gap", "format": "percent", "signed": true },
+          { "label": "RGB 目标胜率", "field": "teacher_rgb_win_rate", "format": "percent" }
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "test_delta_chart",
+        "title": "相对 DarkACT 的测试集 mAP50-95 变化",
+        "subtitle": "V18 的表面提升仅为 0.1 个百分点，低于当前输出精度可支持的稳健结论。",
+        "type": "bar",
+        "dataset": "test_overall",
+        "sourceId": "test_m2dlif_results",
+        "valueFormat": "percent",
+        "encodings": {
+          "x": { "field": "model", "type": "nominal", "label": "模型" },
+          "y": { "field": "delta_map5095", "type": "quantitative", "label": "相对 DarkACT 的 Δ mAP50-95" },
+          "tooltip": [
+            { "field": "map5095", "type": "quantitative", "label": "mAP50-95", "format": "percent" },
+            { "field": "map50", "type": "quantitative", "label": "mAP50", "format": "percent" },
+            { "field": "precision", "type": "quantitative", "label": "Precision", "format": "percent" },
+            { "field": "recall", "type": "quantitative", "label": "Recall", "format": "percent" },
+            { "field": "fps", "type": "quantitative", "label": "FPS" }
+          ]
+        }
+      }
+    ],
+    "tables": [
+      {
+        "id": "overall_table",
+        "title": "统一 test_m2dlif 口径下的总体结果",
+        "subtitle": "8980 张图、159618 个实例；同一标签目录、RGB/IR 图像目录、类别映射、imgsz=640 和 batch=16。",
+        "dataset": "test_overall",
+        "sourceId": "test_m2dlif_results",
+        "defaultSort": { "field": "map5095", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "模型", "type": "text" },
+          { "field": "precision", "label": "P", "format": "percent" },
+          { "field": "recall", "label": "R", "format": "percent" },
+          { "field": "map50", "label": "mAP50", "format": "percent" },
+          { "field": "map5095", "label": "mAP50-95", "format": "percent" },
+          { "field": "delta_map5095", "label": "Δ vs DarkACT", "format": "percent", "signed": true },
+          { "field": "inference_ms", "label": "推理 ms" },
+          { "field": "fps", "label": "FPS" }
+        ]
+      },
+      {
+        "id": "class_delta_table",
+        "title": "分类别 mAP50-95 变化",
+        "subtitle": "差值均相对 DarkACT；V18 的收益集中在 truck、bus、van，freight 和 car 没有改善。",
+        "dataset": "class_results",
+        "sourceId": "test_m2dlif_results",
+        "defaultSort": { "field": "delta_map5095", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "模型", "type": "text" },
+          { "field": "class", "label": "类别", "type": "text" },
+          { "field": "map50", "label": "mAP50", "format": "percent" },
+          { "field": "map5095", "label": "mAP50-95", "format": "percent" },
+          { "field": "delta_map5095", "label": "Δ vs DarkACT", "format": "percent", "signed": true }
+        ]
+      },
+      {
+        "id": "val_generalization_table",
+        "title": "最佳验证轮次与测试结果的迁移",
+        "subtitle": "验证集用于解释，不用于改写 test_m2dlif 的胜负判断。",
+        "dataset": "val_test_selection",
+        "sourceId": "training_results",
+        "defaultSort": { "field": "best_val_map5095", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "模型", "type": "text" },
+          { "field": "best_epoch", "label": "最佳 epoch" },
+          { "field": "best_val_map50", "label": "Val mAP50", "format": "percent" },
+          { "field": "best_val_map5095", "label": "Val mAP50-95", "format": "percent" },
+          { "field": "test_map5095", "label": "Test mAP50-95", "format": "percent" },
+          { "field": "val_delta_vs_darkact", "label": "Val Δ", "format": "percent", "signed": true },
+          { "field": "test_delta_vs_darkact", "label": "Test Δ", "format": "percent", "signed": true }
+        ]
+      },
+      {
+        "id": "architecture_table",
+        "title": "结构对比中的关键混杂变量",
+        "subtitle": "P2D 版本没有以 DA016 语义分歧融合结构作为不变父模型。",
+        "dataset": "architecture_comparison",
+        "sourceId": "architecture_metadata",
+        "defaultSort": { "field": "params", "direction": "desc" },
+        "columns": [
+          { "field": "model", "label": "模型", "type": "text" },
+          { "field": "p3_p4_merge", "label": "P3/P4 融合模块", "type": "text" },
+          { "field": "initialization_carrier", "label": "结构载体", "type": "text" },
+          { "field": "params", "label": "参数量" },
+          { "field": "delta_params_vs_darkact", "label": "参数差" }
+        ]
+      },
+      {
+        "id": "reliability_table",
+        "title": "V18 修复了 gate 路径，但没有证明可靠性目标有效",
+        "subtitle": "最佳验证轮次；Prompt 准确率和相关性只达到中等水平。",
+        "dataset": "reliability_diagnostics",
+        "sourceId": "reliability_training_logs",
+        "defaultSort": { "field": "version", "direction": "asc" },
+        "columns": [
+          { "field": "version", "label": "版本", "type": "text" },
+          { "field": "level", "label": "层级", "type": "text" },
+          { "field": "prompt_accuracy", "label": "Prompt acc", "format": "percent" },
+          { "field": "prompt_correlation", "label": "Prompt corr" },
+          { "field": "gate_accuracy", "label": "Gate acc", "format": "percent" },
+          { "field": "gate_prompt_agreement", "label": "Gate–Prompt", "format": "percent" }
+        ]
+      }
+    ],
+    "sources": [
+      { "id": "test_m2dlif_results", "label": "四个实验的 test_m2dlif/test.txt", "path": "runs/DroneVehicle_OBB_FusionTransfer/test_m2dlif-four-runs" },
+      { "id": "training_results", "label": "四个实验的 results.csv", "path": "runs/DroneVehicle_OBB_FusionTransfer/training-results-four-runs" },
+      { "id": "reliability_training_logs", "label": "V17/V18 results.csv 中的可靠性诊断列", "path": "runs/DroneVehicle_OBB_FusionTransfer/p2det-v17-v18-reliability-columns" },
+      { "id": "teacher_training_logs", "label": "RGB-only 与 IR-only teacher 训练结果", "path": "runs/DroneVehicle_OBB_SingleModalityTeachers/results-csv" },
+      { "id": "architecture_metadata", "label": "模型 YAML、训练参数和 checkpoint 元数据", "path": "models-and-runs/p2det-darkact-architecture-metadata" }
+    ],
+    "blocks": [
+      { "id": "title", "type": "markdown", "body": "# P2Det V16–V18 与 DarkACT 的 M2D-LIF 测试诊断" },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n你的判断基本正确：**V16 明确退步，V17 只追平，V18 只有 test.txt 打印精度下的 +0.001 mAP50-95，不能视为可靠超过 DarkACT**。V18 的确修复了 V17 的 P4 gate 反向问题，但修好的只是“gate 是否服从 Prompt”；并未证明 teacher 生成的 Prompt 是对检测真正有用的逐目标可靠性。\n\n目前最主要的问题不是继续调 gate 系数，而是实验没有做成单变量对照：P2D 把 DA016 的语义分歧融合分支换掉了，且两个独立 teacher 存在明显能力与置信度尺度差异。结果同时混合了**基础融合能力下降、teacher target 偏置、Prompt 监督和 gate 约束**四种效应。"
+      },
+      { "id": "headline_metrics_block", "type": "metric-strip", "cardIds": ["v18_test_delta", "v18_gate_alignment", "teacher_imbalance"] },
+      {
+        "id": "test_findings",
+        "type": "markdown",
+        "sourceId": "test_m2dlif_results",
+        "body": "## Test-set findings\n\n- DarkACT：mAP50=0.820，mAP50-95=0.666。\n- V16：0.817 / 0.664，分别下降 0.003 / 0.002。\n- V17：0.820 / 0.666，在当前打印精度下追平。\n- V18：0.820 / 0.667，mAP50 不变，mAP50-95 仅高 0.001；Precision 提高 0.006、Recall 下降 0.001，更像略微保守的预测，而不是全面增强。\n\n四个测试使用同一批 8980 张图和 159618 个实例，测试口径可比。"
+      },
+      { "id": "test_delta_chart_block", "type": "chart", "chartId": "test_delta_chart" },
+      { "id": "overall_table_block", "type": "table", "tableId": "overall_table" },
+      { "id": "class_delta_table_block", "type": "table", "tableId": "class_delta_table" },
+      {
+        "id": "diagnosis",
+        "type": "markdown",
+        "body": "## Root-cause diagnosis\n\n### 1. 最大问题：不是在最强 DarkACT 上做单变量增量\n\nDA016 的 P3/P4 使用 `SemanticDisagreementLAFMergeFeedback2D`，显式保留 shared、RGB-specific、IR-specific 和 disagreement 表征。V16–V18 则从另一个 `darkact_laffeedback2d_p345` 结构载体构建，并以 Prompt-conditioned RGB/IR 加权替换 P3/P4。也就是说，Prompt 版本在加入新监督的同时，拿掉了基线最强的语义分歧融合能力。\n\n### 2. teacher target 回答的是代理问题，不是因果问题\n\n当前 target 由两个独立单模态 detector 的匹配置信度与定位质量形成。它回答“哪个独立 teacher 给这个 GT 更高分”，并不等价于“在当前融合 student 的这个位置，提高哪个模态权重会降低检测损失”。\n\n### 3. 两个 teacher 的尺度不平衡\n\nIR-only teacher 最佳验证 mAP50-95 为 0.701，RGB-only 为 0.562，差 0.139；训练中 RGB 仅约 26.8% 的目标胜出。独立网络的 raw confidence 也未必跨模型可比，因此 `softmax([q_rgb,q_ir]/T)` 很容易混入全局 IR 强势和校准差，而不是真正的逐目标相对可靠性。\n\n### 4. V18 只证明约束生效\n\nV18 的 P3/P4 gate–Prompt 一致率达到约 97.0%/98.6%，说明符号保持 gate 成功阻止 feature gate 覆盖 Prompt；但 Prompt 与 teacher target 的相关性仍约 0.41，且最终测试几乎不涨。约束生效不等于监督目标有效。"
+      },
+      { "id": "architecture_table_block", "type": "table", "tableId": "architecture_table" },
+      { "id": "reliability_table_block", "type": "table", "tableId": "reliability_table" },
+      {
+        "id": "generalization",
+        "type": "markdown",
+        "sourceId": "training_results",
+        "body": "## Validation-to-test generalization\n\nV16/V17 的最佳验证 mAP50-95 比 DarkACT 分别高约 0.0013/0.0022，但到了 test_m2dlif 分别变成 -0.002/持平。V18 的最佳验证值本来就低约 0.0043，测试只出现打印值上的 +0.001。说明当前增益小于划分差异、checkpoint 选择和随机波动能够轻易改变的量级。"
+      },
+      { "id": "val_generalization_table_block", "type": "table", "tableId": "val_generalization_table" },
+      {
+        "id": "recommendations",
+        "type": "markdown",
+        "body": "## Recommended next experiment\n\n不要继续在 V18 上盲调 temperature 或 gate 系数。先做严格的 DA016-parent 消融：\n\n1. **A：DA016 原版**，完全不动语义分歧融合。\n2. **B：DA016 + 双 Prompt 辅助头**，只训练可靠性监督，但 Prompt 不进入 gate，用来验证 target 是否可学且是否影响 backbone。\n3. **C：DA016 + 双 Prompt + zero-init 小残差调制**，保留原语义分歧融合，只让 Prompt 做有界增量；先不要符号强制。\n\nA/B/C 必须使用同一结构父权重、seed、数据、增强、训练轮次和 checkpoint 选择规则。若 B 的 Prompt 指标不错而 C 不涨，说明 target 与检测效用不一致；若 C 才涨，才有资格讨论更强的逐目标 gate。\n\nteacher 侧至少要先做按 teacher、类别的置信度校准。更干净的方案是使用**同一个共享检测头/同一个冻结融合模型的 RGB-only 与 IR-only 遮蔽反事实损失差**定义 target，使两个 q 在同一尺度上，并直接测量对当前 detector 的边际价值。"
+      },
+      {
+        "id": "limitations",
+        "type": "markdown",
+        "body": "## Limitations and decision rule\n\n- `test.txt` 使用约 3 位有效数字输出，无法确认 0.001 的精确差值；后续应额外保存高精度 JSON/CSV。\n- 当前只有单次训练，未做多 seed 方差或 bootstrap 置信区间。\n- 多个版本反复查看同一 test split 会逐步把测试集变成调参集；后续结构选择应只看 validation，锁定方案后再测一次 test。\n- 在有高精度、多 seed 结果之前，建议把“超过 DarkACT”的最低判定门槛设为：平均 mAP50-95 明显提升、置信区间不跨 0，并且没有显著速度退化。按这个标准，V16–V18 都没有胜出。"
+      },
+      {
+        "id": "further_questions",
+        "type": "markdown",
+        "body": "## Further questions\n\n下一步最有价值的工程动作，是把 V19 改为 **DA016 原融合分支保持不变 + Prompt 旁路消融**，并给测试脚本增加高精度机器可读输出。"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-26T11:15:05+08:00",
+    "status": "ready",
+    "datasets": {
+      "headline_metrics": [
+        {
+          "v18_delta_map5095": 0.001,
+          "v18_delta_map50": 0.0,
+          "v18_p4_gate_prompt_agreement": 0.98619,
+          "v17_p4_gate_prompt_agreement": 0.38374,
+          "teacher_map5095_gap": 0.13948,
+          "teacher_rgb_win_rate": 0.26837
+        }
+      ],
+      "test_overall": [
+        { "model": "DarkACT DA016", "precision": 0.798, "recall": 0.790, "map50": 0.820, "map5095": 0.666, "delta_map50": 0.000, "delta_map5095": 0.000, "inference_ms": 4.1, "postprocess_ms": 2.0, "fps": 243.11, "images": 8980, "instances": 159618, "rank_printed": 2 },
+        { "model": "P2Det V16", "precision": 0.796, "recall": 0.792, "map50": 0.817, "map5095": 0.664, "delta_map50": -0.003, "delta_map5095": -0.002, "inference_ms": 4.1, "postprocess_ms": 2.2, "fps": 241.62, "images": 8980, "instances": 159618, "rank_printed": 4 },
+        { "model": "P2Det V17", "precision": 0.797, "recall": 0.790, "map50": 0.820, "map5095": 0.666, "delta_map50": 0.000, "delta_map5095": 0.000, "inference_ms": 4.1, "postprocess_ms": 2.2, "fps": 242.59, "images": 8980, "instances": 159618, "rank_printed": 2 },
+        { "model": "P2Det V18", "precision": 0.804, "recall": 0.789, "map50": 0.820, "map5095": 0.667, "delta_map50": 0.000, "delta_map5095": 0.001, "inference_ms": 4.2, "postprocess_ms": 2.1, "fps": 239.70, "images": 8980, "instances": 159618, "rank_printed": 1 }
+      ],
+      "class_results": [
+        { "model": "P2Det V16", "class": "car", "map50": 0.961, "map5095": 0.797, "darkact_map50": 0.960, "darkact_map5095": 0.798, "delta_map50": 0.001, "delta_map5095": -0.001 },
+        { "model": "P2Det V16", "class": "truck", "map50": 0.823, "map5095": 0.648, "darkact_map50": 0.824, "darkact_map5095": 0.649, "delta_map50": -0.001, "delta_map5095": -0.001 },
+        { "model": "P2Det V16", "class": "bus", "map50": 0.948, "map5095": 0.788, "darkact_map50": 0.949, "darkact_map5095": 0.787, "delta_map50": -0.001, "delta_map5095": 0.001 },
+        { "model": "P2Det V16", "class": "van", "map50": 0.665, "map5095": 0.540, "darkact_map50": 0.665, "darkact_map5095": 0.541, "delta_map50": 0.000, "delta_map5095": -0.001 },
+        { "model": "P2Det V16", "class": "freight", "map50": 0.691, "map5095": 0.546, "darkact_map50": 0.702, "darkact_map5095": 0.554, "delta_map50": -0.011, "delta_map5095": -0.008 },
+        { "model": "P2Det V17", "class": "car", "map50": 0.961, "map5095": 0.798, "darkact_map50": 0.960, "darkact_map5095": 0.798, "delta_map50": 0.001, "delta_map5095": 0.000 },
+        { "model": "P2Det V17", "class": "truck", "map50": 0.820, "map5095": 0.647, "darkact_map50": 0.824, "darkact_map5095": 0.649, "delta_map50": -0.004, "delta_map5095": -0.002 },
+        { "model": "P2Det V17", "class": "bus", "map50": 0.948, "map5095": 0.789, "darkact_map50": 0.949, "darkact_map5095": 0.787, "delta_map50": -0.001, "delta_map5095": 0.002 },
+        { "model": "P2Det V17", "class": "van", "map50": 0.665, "map5095": 0.540, "darkact_map50": 0.665, "darkact_map5095": 0.541, "delta_map50": 0.000, "delta_map5095": -0.001 },
+        { "model": "P2Det V17", "class": "freight", "map50": 0.705, "map5095": 0.558, "darkact_map50": 0.702, "darkact_map5095": 0.554, "delta_map50": 0.003, "delta_map5095": 0.004 },
+        { "model": "P2Det V18", "class": "car", "map50": 0.960, "map5095": 0.797, "darkact_map50": 0.960, "darkact_map5095": 0.798, "delta_map50": 0.000, "delta_map5095": -0.001 },
+        { "model": "P2Det V18", "class": "truck", "map50": 0.824, "map5095": 0.651, "darkact_map50": 0.824, "darkact_map5095": 0.649, "delta_map50": 0.000, "delta_map5095": 0.002 },
+        { "model": "P2Det V18", "class": "bus", "map50": 0.951, "map5095": 0.790, "darkact_map50": 0.949, "darkact_map5095": 0.787, "delta_map50": 0.002, "delta_map5095": 0.003 },
+        { "model": "P2Det V18", "class": "van", "map50": 0.669, "map5095": 0.544, "darkact_map50": 0.665, "darkact_map5095": 0.541, "delta_map50": 0.004, "delta_map5095": 0.003 },
+        { "model": "P2Det V18", "class": "freight", "map50": 0.696, "map5095": 0.553, "darkact_map50": 0.702, "darkact_map5095": 0.554, "delta_map50": -0.006, "delta_map5095": -0.001 }
+      ],
+      "val_test_selection": [
+        { "model": "DarkACT DA016", "best_epoch": 46, "best_val_map50": 0.87153, "best_val_map5095": 0.72317, "last_val_map5095": 0.71605, "test_map5095": 0.666, "val_delta_vs_darkact": 0.00000, "test_delta_vs_darkact": 0.000 },
+        { "model": "P2Det V16", "best_epoch": 46, "best_val_map50": 0.87486, "best_val_map5095": 0.72446, "last_val_map5095": 0.71529, "test_map5095": 0.664, "val_delta_vs_darkact": 0.00129, "test_delta_vs_darkact": -0.002 },
+        { "model": "P2Det V17", "best_epoch": 47, "best_val_map50": 0.87336, "best_val_map5095": 0.72532, "last_val_map5095": 0.71872, "test_map5095": 0.666, "val_delta_vs_darkact": 0.00215, "test_delta_vs_darkact": 0.000 },
+        { "model": "P2Det V18", "best_epoch": 58, "best_val_map50": 0.86652, "best_val_map5095": 0.71889, "last_val_map5095": 0.71334, "test_map5095": 0.667, "val_delta_vs_darkact": -0.00428, "test_delta_vs_darkact": 0.001 }
+      ],
+      "architecture_comparison": [
+        { "model": "DarkACT DA016", "p3_p4_merge": "SemanticDisagreementLAFMergeFeedback2D", "initialization_carrier": "DA016 semantic-disagreement structure", "params": 16032977, "delta_params_vs_darkact": 0, "keeps_semantic_disagreement": "yes" },
+        { "model": "P2Det V16", "p3_p4_merge": "DualReliabilityPrompt + PriorLAF", "initialization_carrier": "darkact_laffeedback2d_p345", "params": 15727071, "delta_params_vs_darkact": -305906, "keeps_semantic_disagreement": "no" },
+        { "model": "P2Det V17", "p3_p4_merge": "ObjectPrompt + MonotonicPriorLAF", "initialization_carrier": "darkact_laffeedback2d_p345", "params": 15704761, "delta_params_vs_darkact": -328216, "keeps_semantic_disagreement": "no" },
+        { "model": "P2Det V18", "p3_p4_merge": "ObjectPrompt + SignPreservingLAF", "initialization_carrier": "darkact_laffeedback2d_p345", "params": 15704759, "delta_params_vs_darkact": -328218, "keeps_semantic_disagreement": "no" }
+      ],
+      "reliability_diagnostics": [
+        { "version": "V17", "level": "P3", "prompt_accuracy": 0.64398, "prompt_correlation": 0.38540, "gate_accuracy": 0.73543, "gate_prompt_agreement": 0.61851, "teacher_rgb_win_rate": 0.26457, "target_rgb_share": 0.40971, "prompt_rgb_share": 0.43735 },
+        { "version": "V17", "level": "P4", "prompt_accuracy": 0.65642, "prompt_correlation": 0.42293, "gate_accuracy": 0.27356, "gate_prompt_agreement": 0.38374, "teacher_rgb_win_rate": 0.26457, "target_rgb_share": 0.40971, "prompt_rgb_share": 0.43550 },
+        { "version": "V18", "level": "P3", "prompt_accuracy": 0.71815, "prompt_correlation": 0.40991, "gate_accuracy": 0.72702, "gate_prompt_agreement": 0.97049, "teacher_rgb_win_rate": 0.26409, "target_rgb_share": 0.41045, "prompt_rgb_share": 0.40164 },
+        { "version": "V18", "level": "P4", "prompt_accuracy": 0.69682, "prompt_correlation": 0.41241, "gate_accuracy": 0.69729, "gate_prompt_agreement": 0.98619, "teacher_rgb_win_rate": 0.26409, "target_rgb_share": 0.41045, "prompt_rgb_share": 0.44487 }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "test_m2dlif_results",
+      "label": "四个模型的 M2D-LIF 测试输出",
+      "query": {
+        "engine": "local-file-review",
+        "language": "text",
+        "sql": "SELECT model, class, precision, recall, map50, map5095, inference_ms FROM parsed_test_m2dlif_four_runs",
+        "description": "读取四个实验各自 test_m2dlif/test.txt 的总体、分类别和速度行，并按 DarkACT 计算差值。",
+        "executed_at": "2026-08-26T11:15:05+08:00",
+        "tables_used": [
+          "DarkAct_DA016_SemanticDisagreementLAF_P34_H2-4-8_R4-NoStaticMAA_M2DLIFLabels_v1/test_m2dlif/test.txt",
+          "P2D-016_DualReliabilityPrompt-P34-PriorLAF-NoGDER_v16_M2DLIFLabels_v12/test_m2dlif/test.txt",
+          "P2D-017_ObjectReliabilityPrompt-P34-MonotonicPriorLAF-NoGDER_v17_M2DLIFLabels_v22/test_m2dlif/test.txt",
+          "P2D-018_TrueObjectReliabilityPrompt-P34-SignPreservingLAF-NoGDER_v18_M2DLIFLabels_v12/test_m2dlif/test.txt"
+        ],
+        "filters": ["仅使用各实验的 test_m2dlif 子目录", "split=test", "imgsz=640", "batch=16"],
+        "metric_definitions": [
+          "delta_map5095 = experiment test mAP50-95 - DarkACT test mAP50-95",
+          "FPS = 1000 / inference_ms，仅用于报告已打印推理速度的等价表示"
+        ]
+      }
+    },
+    {
+      "id": "training_results",
+      "label": "训练过程验证指标",
+      "query": {
+        "engine": "local-file-review",
+        "language": "csv",
+        "sql": "SELECT model, best_epoch, best_val_map50, best_val_map5095, last_val_map5095 FROM parsed_training_results_at_best_epoch",
+        "description": "读取四个实验 results.csv，按验证 mAP50-95 选出最佳轮次，并连接相应 test_m2dlif 打印值。",
+        "executed_at": "2026-08-26T11:15:05+08:00",
+        "tables_used": ["DarkACT results.csv", "P2Det V16 results.csv", "P2Det V17 results.csv", "P2Det V18 results.csv"],
+        "metric_definitions": ["best_val_map5095 = max over epoch of validation mAP50-95"]
+      }
+    },
+    {
+      "id": "reliability_training_logs",
+      "label": "V17/V18 Prompt 与 gate 诊断列",
+      "query": {
+        "engine": "local-file-review",
+        "language": "csv",
+        "sql": "SELECT version, level, prompt_accuracy, prompt_correlation, gate_accuracy, gate_prompt_agreement FROM parsed_reliability_columns_at_best_epoch",
+        "description": "从 V17/V18 results.csv 读取各自最佳验证轮次的 teacher、Prompt 和 gate 诊断字段。",
+        "executed_at": "2026-08-26T11:15:05+08:00",
+        "tables_used": ["P2Det V17 results.csv", "P2Det V18 results.csv"],
+        "metric_definitions": ["gate_prompt_agreement = 目标区域内 gate 偏好方向与预测 Prompt 偏好方向的一致比例"]
+      }
+    },
+    {
+      "id": "teacher_training_logs",
+      "label": "单模态 teacher 训练结果",
+      "query": {
+        "engine": "local-file-review",
+        "language": "csv",
+        "sql": "SELECT modality, best_val_map5095, target_win_rate FROM parsed_single_modality_teacher_results",
+        "description": "读取 RGB-only 和 IR-only teacher 的最佳验证检测指标，并汇总相对 target 的 RGB 胜率。",
+        "executed_at": "2026-08-26T11:15:05+08:00",
+        "tables_used": ["RGB-only teacher results.csv", "IR-only teacher results.csv", "P2Det teacher-quality diagnostics"],
+        "metric_definitions": ["teacher_map5095_gap = IR-only best validation mAP50-95 - RGB-only best validation mAP50-95"]
+      }
+    },
+    {
+      "id": "architecture_metadata",
+      "label": "DarkACT 与 P2Det 结构元数据",
+      "query": {
+        "engine": "local-code-and-checkpoint-review",
+        "language": "yaml-python",
+        "sql": "SELECT model, p3_p4_merge, initialization_carrier, params FROM reviewed_architecture_metadata",
+        "description": "核对模型 YAML、构建脚本、args.yaml 和 checkpoint 中的模块名称、初始化结构载体及参数量。",
+        "executed_at": "2026-08-26T11:15:05+08:00",
+        "tables_used": ["DA016 model YAML", "P2Det V16 model YAML", "P2Det V17 model YAML", "P2Det V18 model YAML", "run args.yaml", "checkpoint metadata"],
+        "metric_definitions": ["delta_params_vs_darkact = model parameters - DarkACT DA016 parameters"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,385 @@
+{
+  "generated_at": "2026-08-30T18:55:58+08:00",
+  "test_files": {
+    "A": "runs/DroneVehicle_OBB_FusionTransfer/DA016-A_OriginalSemanticDisagreementLAF-P34_M2DLIFLabels_v1/test_m2dlif/test.txt",
+    "B": "runs/DroneVehicle_OBB_FusionTransfer/DA016-B_DualReliabilityPromptAuxOnly-P34_M2DLIFLabels_v12/test_m2dlif/test.txt",
+    "C": "runs/DroneVehicle_OBB_FusionTransfer/DA016-C_DualReliabilityPrompt-ZeroInitBoundedResidual-P34_M2DLIFLabels_v12/test_m2dlif/test.txt",
+    "D": "runs/DroneVehicle_OBB_FusionTransfer/DA016-D_DualReliabilityPrompt-P3ZeroInitBoundedResidual-P4AuxOnly_M2DLIFLabels_v1/test_m2dlif/test.txt",
+    "E": "runs/DroneVehicle_OBB_FusionTransfer/DA016-E_DualReliabilityPrompt-P34Residual-P5AuxOnly_M2DLIFLabels_v1/test_m2dlif/test.txt",
+    "F": "runs/DroneVehicle_OBB_FusionTransfer/DA016-F_EPlusP5ZeroInitBoundedResidual_M2DLIFLabels_v1/test_m2dlif/test.txt",
+    "G": "runs/DroneVehicle_OBB_FusionTransfer/DA016-G_BPlusP5DualReliabilityPromptAuxOnly_M2DLIFLabels_v1/test_m2dlif/test.txt",
+    "B-Detach": "runs/DroneVehicle_OBB_FusionTransfer/DA016-BDetach_PromptGradientCausalControl-P34_M2DLIFLabels_v1/test_m2dlif/test.txt",
+    "H": "runs/DroneVehicle_OBB_FusionTransfer/DA016-H_BPlusClassWinnerBalancedPromptAux-P34_M2DLIFLabels_v1/test_m2dlif/test.txt"
+  },
+  "training_files": {
+    "A": "runs/DroneVehicle_OBB_FusionTransfer/DA016-A_OriginalSemanticDisagreementLAF-P34_M2DLIFLabels_v1/results.csv",
+    "B": "runs/DroneVehicle_OBB_FusionTransfer/DA016-B_DualReliabilityPromptAuxOnly-P34_M2DLIFLabels_v12/results.csv",
+    "C": "runs/DroneVehicle_OBB_FusionTransfer/DA016-C_DualReliabilityPrompt-ZeroInitBoundedResidual-P34_M2DLIFLabels_v12/results.csv",
+    "D": "runs/DroneVehicle_OBB_FusionTransfer/DA016-D_DualReliabilityPrompt-P3ZeroInitBoundedResidual-P4AuxOnly_M2DLIFLabels_v1/results.csv",
+    "E": "runs/DroneVehicle_OBB_FusionTransfer/DA016-E_DualReliabilityPrompt-P34Residual-P5AuxOnly_M2DLIFLabels_v1/results.csv",
+    "F": "runs/DroneVehicle_OBB_FusionTransfer/DA016-F_EPlusP5ZeroInitBoundedResidual_M2DLIFLabels_v1/results.csv",
+    "G": "runs/DroneVehicle_OBB_FusionTransfer/DA016-G_BPlusP5DualReliabilityPromptAuxOnly_M2DLIFLabels_v1/results.csv",
+    "B-Detach": "runs/DroneVehicle_OBB_FusionTransfer/DA016-BDetach_PromptGradientCausalControl-P34_M2DLIFLabels_v1/results.csv",
+    "H": "runs/DroneVehicle_OBB_FusionTransfer/DA016-H_BPlusClassWinnerBalancedPromptAux-P34_M2DLIFLabels_v1/results.csv"
+  },
+  "comparability": {
+    "labels": "/media/biiteam/新加卷1/biiteam/MCONG/datasets/M2D-LIFlabels/DroneVehicle_test_labels/labels/val",
+    "rgb": "/media/biiteam/新加卷1/biiteam/MCONG/datasets/DroneVehicle_twostream_3/images/test",
+    "ir": "/media/biiteam/新加卷1/biiteam/MCONG/datasets/DroneVehicle_twostream_3/image/test",
+    "class_map": "M2D-LIF 0->0, 1->1, 2->4, 3->2, 4->3",
+    "split": "test",
+    "imgsz": "640",
+    "batch": "16"
+  },
+  "datasets": {
+    "summary": [
+      {
+        "h_map5095_pct": 67.0,
+        "h_vs_b_map5095_pp": 0.2,
+        "h_map50_pct": 82.6,
+        "h_vs_b_map50_pp": 0.8,
+        "c_map5095_pct": 67.0,
+        "g_vs_b_map5095_pp": -0.2,
+        "f_vs_e_map5095_pp": -0.2
+      }
+    ],
+    "test_overall": [
+      {
+        "experiment": "A",
+        "parent": "基线",
+        "structure": "原始 DA016",
+        "precision_pct": 79.9,
+        "recall_pct": 78.9,
+        "map50_pct": 81.9,
+        "map5095_pct": 66.7,
+        "delta_vs_a_pp": 0.0
+      },
+      {
+        "experiment": "B",
+        "parent": "A",
+        "structure": "A + P3/P4 双 Prompt 辅助监督",
+        "precision_pct": 79.4,
+        "recall_pct": 79.3,
+        "map50_pct": 81.8,
+        "map5095_pct": 66.8,
+        "delta_vs_a_pp": 0.1
+      },
+      {
+        "experiment": "C",
+        "parent": "B",
+        "structure": "B + P3/P4 zero-init 有界 residual",
+        "precision_pct": 80.3,
+        "recall_pct": 79.0,
+        "map50_pct": 82.2,
+        "map5095_pct": 67.0,
+        "delta_vs_a_pp": 0.3
+      },
+      {
+        "experiment": "D",
+        "parent": "B",
+        "structure": "B + 仅 P3 residual；P4 辅助监督",
+        "precision_pct": 80.5,
+        "recall_pct": 78.3,
+        "map50_pct": 81.3,
+        "map5095_pct": 66.4,
+        "delta_vs_a_pp": -0.3
+      },
+      {
+        "experiment": "E",
+        "parent": "C",
+        "structure": "C + P5 Prompt 辅助监督",
+        "precision_pct": 80.4,
+        "recall_pct": 79.4,
+        "map50_pct": 82.2,
+        "map5095_pct": 67.0,
+        "delta_vs_a_pp": 0.3
+      },
+      {
+        "experiment": "F",
+        "parent": "E",
+        "structure": "E + P5 zero-init 有界 residual",
+        "precision_pct": 79.7,
+        "recall_pct": 79.4,
+        "map50_pct": 81.8,
+        "map5095_pct": 66.8,
+        "delta_vs_a_pp": 0.1
+      },
+      {
+        "experiment": "G",
+        "parent": "B",
+        "structure": "B + P5 Prompt 辅助监督",
+        "precision_pct": 79.2,
+        "recall_pct": 79.3,
+        "map50_pct": 81.6,
+        "map5095_pct": 66.6,
+        "delta_vs_a_pp": -0.1
+      },
+      {
+        "experiment": "B-Detach",
+        "parent": "B",
+        "structure": "B 的 Prompt 特征 detach 因果对照",
+        "precision_pct": 80.3,
+        "recall_pct": 78.9,
+        "map50_pct": 81.9,
+        "map5095_pct": 66.8,
+        "delta_vs_a_pp": 0.1
+      },
+      {
+        "experiment": "H",
+        "parent": "B",
+        "structure": "B + 类别×teacher-winner 平衡辅助监督",
+        "precision_pct": 79.8,
+        "recall_pct": 79.6,
+        "map50_pct": 82.6,
+        "map5095_pct": 67.0,
+        "delta_vs_a_pp": 0.3
+      }
+    ],
+    "direct_comparisons": [
+      {
+        "comparison": "B − A",
+        "change": "双 Prompt 辅助监督",
+        "delta_precision_pp": -0.5,
+        "delta_recall_pp": 0.4,
+        "delta_map50_pp": -0.1,
+        "delta_map5095_pp": 0.1
+      },
+      {
+        "comparison": "B-Detach − B",
+        "change": "辅助梯度因果对照",
+        "delta_precision_pp": 0.9,
+        "delta_recall_pp": -0.4,
+        "delta_map50_pp": 0.1,
+        "delta_map5095_pp": 0.0
+      },
+      {
+        "comparison": "C − B",
+        "change": "P3/P4 residual",
+        "delta_precision_pp": 0.9,
+        "delta_recall_pp": -0.3,
+        "delta_map50_pp": 0.4,
+        "delta_map5095_pp": 0.2
+      },
+      {
+        "comparison": "D − B",
+        "change": "仅 P3 residual",
+        "delta_precision_pp": 1.1,
+        "delta_recall_pp": -1.0,
+        "delta_map50_pp": -0.5,
+        "delta_map5095_pp": -0.4
+      },
+      {
+        "comparison": "E − C",
+        "change": "P5 Prompt（P3/P4 residual 背景）",
+        "delta_precision_pp": 0.1,
+        "delta_recall_pp": 0.4,
+        "delta_map50_pp": 0.0,
+        "delta_map5095_pp": 0.0
+      },
+      {
+        "comparison": "F − E",
+        "change": "P5 residual",
+        "delta_precision_pp": -0.7,
+        "delta_recall_pp": 0.0,
+        "delta_map50_pp": -0.4,
+        "delta_map5095_pp": -0.2
+      },
+      {
+        "comparison": "G − B",
+        "change": "P5 Prompt（无 residual 背景）",
+        "delta_precision_pp": -0.2,
+        "delta_recall_pp": 0.0,
+        "delta_map50_pp": -0.2,
+        "delta_map5095_pp": -0.2
+      },
+      {
+        "comparison": "H − B",
+        "change": "类别×winner 平衡监督",
+        "delta_precision_pp": 0.4,
+        "delta_recall_pp": 0.3,
+        "delta_map50_pp": 0.8,
+        "delta_map5095_pp": 0.2
+      }
+    ],
+    "h_class_delta": [
+      {
+        "class": "car",
+        "instances": 137148,
+        "b_map50_pct": 96.0,
+        "h_map50_pct": 96.1,
+        "delta_map50_pp": 0.1,
+        "b_map5095_pct": 79.9,
+        "h_map5095_pct": 79.8,
+        "delta_map5095_pp": -0.1
+      },
+      {
+        "class": "truck",
+        "instances": 8657,
+        "b_map50_pct": 81.7,
+        "h_map50_pct": 83.3,
+        "delta_map50_pp": 1.6,
+        "b_map5095_pct": 64.8,
+        "h_map5095_pct": 65.7,
+        "delta_map5095_pp": 0.9
+      },
+      {
+        "class": "bus",
+        "instances": 4467,
+        "b_map50_pct": 95.0,
+        "h_map50_pct": 94.9,
+        "delta_map50_pp": -0.1,
+        "b_map5095_pct": 79.3,
+        "h_map5095_pct": 78.6,
+        "delta_map5095_pp": -0.7
+      },
+      {
+        "class": "van",
+        "instances": 4282,
+        "b_map50_pct": 66.8,
+        "h_map50_pct": 68.0,
+        "delta_map50_pp": 1.2,
+        "b_map5095_pct": 54.5,
+        "h_map5095_pct": 55.2,
+        "delta_map5095_pp": 0.7
+      },
+      {
+        "class": "freight_car",
+        "instances": 5064,
+        "b_map50_pct": 69.3,
+        "h_map50_pct": 70.7,
+        "delta_map50_pp": 1.4,
+        "b_map5095_pct": 55.2,
+        "h_map5095_pct": 55.8,
+        "delta_map5095_pp": 0.6
+      }
+    ],
+    "prompt_summary": [
+      {
+        "experiment": "A",
+        "best_val_epoch": 66,
+        "best_val_map5095_pct": 71.995,
+        "p3_accuracy_pct": null,
+        "p3_correlation": null,
+        "p3_residual_gain": null,
+        "p4_accuracy_pct": null,
+        "p4_correlation": null,
+        "p4_residual_gain": null,
+        "p5_accuracy_pct": null,
+        "p5_correlation": null,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "B",
+        "best_val_epoch": 80,
+        "best_val_map5095_pct": 72.366,
+        "p3_accuracy_pct": 68.324,
+        "p3_correlation": 0.4195,
+        "p3_residual_gain": null,
+        "p4_accuracy_pct": 68.686,
+        "p4_correlation": 0.4543,
+        "p4_residual_gain": null,
+        "p5_accuracy_pct": null,
+        "p5_correlation": null,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "C",
+        "best_val_epoch": 71,
+        "best_val_map5095_pct": 72.181,
+        "p3_accuracy_pct": 68.143,
+        "p3_correlation": 0.4224,
+        "p3_residual_gain": 0.109,
+        "p4_accuracy_pct": 68.586,
+        "p4_correlation": 0.4541,
+        "p4_residual_gain": -0.0135,
+        "p5_accuracy_pct": null,
+        "p5_correlation": null,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "D",
+        "best_val_epoch": 99,
+        "best_val_map5095_pct": 71.998,
+        "p3_accuracy_pct": 68.748,
+        "p3_correlation": 0.4306,
+        "p3_residual_gain": 0.0887,
+        "p4_accuracy_pct": 69.225,
+        "p4_correlation": 0.4632,
+        "p4_residual_gain": null,
+        "p5_accuracy_pct": null,
+        "p5_correlation": null,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "E",
+        "best_val_epoch": 80,
+        "best_val_map5095_pct": 72.558,
+        "p3_accuracy_pct": 68.408,
+        "p3_correlation": 0.4219,
+        "p3_residual_gain": 0.0998,
+        "p4_accuracy_pct": 68.853,
+        "p4_correlation": 0.4549,
+        "p4_residual_gain": -0.012,
+        "p5_accuracy_pct": 69.479,
+        "p5_correlation": 0.4492,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "F",
+        "best_val_epoch": 78,
+        "best_val_map5095_pct": 72.216,
+        "p3_accuracy_pct": 68.596,
+        "p3_correlation": 0.4216,
+        "p3_residual_gain": 0.0991,
+        "p4_accuracy_pct": 69.054,
+        "p4_correlation": 0.4532,
+        "p4_residual_gain": 0.003,
+        "p5_accuracy_pct": 70.813,
+        "p5_correlation": 0.4471,
+        "p5_residual_gain": 0.0239
+      },
+      {
+        "experiment": "G",
+        "best_val_epoch": 85,
+        "best_val_map5095_pct": 72.18,
+        "p3_accuracy_pct": 68.519,
+        "p3_correlation": 0.4278,
+        "p3_residual_gain": null,
+        "p4_accuracy_pct": 68.956,
+        "p4_correlation": 0.46,
+        "p4_residual_gain": null,
+        "p5_accuracy_pct": 70.707,
+        "p5_correlation": 0.4527,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "B-Detach",
+        "best_val_epoch": 77,
+        "best_val_map5095_pct": 72.051,
+        "p3_accuracy_pct": 66.028,
+        "p3_correlation": 0.3879,
+        "p3_residual_gain": null,
+        "p4_accuracy_pct": 65.355,
+        "p4_correlation": 0.407,
+        "p4_residual_gain": null,
+        "p5_accuracy_pct": null,
+        "p5_correlation": null,
+        "p5_residual_gain": null
+      },
+      {
+        "experiment": "H",
+        "best_val_epoch": 84,
+        "best_val_map5095_pct": 71.869,
+        "p3_accuracy_pct": 68.691,
+        "p3_correlation": 0.3995,
+        "p3_residual_gain": null,
+        "p4_accuracy_pct": 68.383,
+        "p4_correlation": 0.4345,
+        "p4_residual_gain": null,
+        "p5_accuracy_pct": null,
+        "p5_correlation": null,
+        "p5_residual_gain": null
+      }
+    ]
+  }
+}

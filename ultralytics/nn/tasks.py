@@ -112,6 +112,13 @@ from ultralytics.nn.modules import (
     P2DualPromptRGBGlobalIdentityGDERMergeFeedback2D,
     P2DualPromptRGBGlobalIdentityGDERFactorizedMergeFeedback2D,
     P2DualSpatialLAFMergeFeedback2D,
+    P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+    P2DualReliabilityPriorLAFMergeFeedback2D,
+    P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+    DA016DualPromptAuxSemanticLAFMergeFeedback2D,
+    DA016DualPromptResidualSemanticLAFMergeFeedback2D,
+    DarkACTDualPromptAuxLAFMergeFeedback2D,
+    DarkACTDualPromptResidualLAFMergeFeedback2D,
     ZeroInitResidualRefine2D,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -253,6 +260,11 @@ class BaseModel(nn.Module):
                         P2IRPromptAsymIdentityGDERMergeFeedback2D,
                         P2IRPromptAsymModExpertMergeFeedback2D,
                         P2IRPromptAttExpertMergeFeedback2D,
+                        P2DualReliabilityPriorLAFMergeFeedback2D,
+                        P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+                        P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+                        DarkACTDualPromptAuxLAFMergeFeedback2D,
+                        DarkACTDualPromptResidualLAFMergeFeedback2D,
                     ),
                 ):
                     route = "feedback"
@@ -1206,6 +1218,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             P2IRPromptAsymIdentityGDERMergeFeedback2D,
             P2IRPromptAsymModExpertMergeFeedback2D,
             P2IRPromptAttExpertMergeFeedback2D,
+            P2DualReliabilityPriorLAFMergeFeedback2D,
+            P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+            P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+            DA016DualPromptAuxSemanticLAFMergeFeedback2D,
+            DA016DualPromptResidualSemanticLAFMergeFeedback2D,
+            DarkACTDualPromptAuxLAFMergeFeedback2D,
+            DarkACTDualPromptResidualLAFMergeFeedback2D,
         }:
             if isinstance(f, int) and m in {
                 LAFMergeFeedback2D,
@@ -1226,6 +1245,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 P2IRPromptAsymIdentityGDERMergeFeedback2D,
                 P2IRPromptAsymModExpertMergeFeedback2D,
                 P2IRPromptAttExpertMergeFeedback2D,
+                P2DualReliabilityPriorLAFMergeFeedback2D,
+                P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+                P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+                DA016DualPromptAuxSemanticLAFMergeFeedback2D,
+                DA016DualPromptResidualSemanticLAFMergeFeedback2D,
+                DarkACTDualPromptAuxLAFMergeFeedback2D,
+                DarkACTDualPromptResidualLAFMergeFeedback2D,
             }:
                 # A saved StaticMAA2D layer carries the (RGB, IR) pair as one
                 # graph source. Existing two-source LAF configurations retain
@@ -1405,6 +1431,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
                 P2IRPromptAsymIdentityGDERMergeFeedback2D,
                 P2IRPromptAsymModExpertMergeFeedback2D,
                 P2IRPromptAttExpertMergeFeedback2D,
+                P2DualReliabilityPriorLAFMergeFeedback2D,
+                P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+                P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+                DA016DualPromptAuxSemanticLAFMergeFeedback2D,
+                DA016DualPromptResidualSemanticLAFMergeFeedback2D,
+                DarkACTDualPromptAuxLAFMergeFeedback2D,
+                DarkACTDualPromptResidualLAFMergeFeedback2D,
             }:
                 m_.twostream_route = "feedback"
             elif m in {ADD, LAFMerge2D, FTCrossMerge, ProtoHypergraphFusion}:
@@ -1449,6 +1482,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             P2IRPromptAsymIdentityGDERMergeFeedback2D,
             P2IRPromptAsymModExpertMergeFeedback2D,
             P2IRPromptAttExpertMergeFeedback2D,
+            P2DualReliabilityPriorLAFMergeFeedback2D,
+            P2DualObjectReliabilityMonotonicLAFMergeFeedback2D,
+            P2DualTrueObjectReliabilityLAFMergeFeedback2D,
+            DA016DualPromptAuxSemanticLAFMergeFeedback2D,
+            DA016DualPromptResidualSemanticLAFMergeFeedback2D,
+            DarkACTDualPromptAuxLAFMergeFeedback2D,
+            DarkACTDualPromptResidualLAFMergeFeedback2D,
         }:
             rgb_stream_ch = ir_stream_ch = c2
         
