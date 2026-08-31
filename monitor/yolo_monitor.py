@@ -712,6 +712,33 @@ class RemoteMonitorTrainerMixin:
         super().__init__(*args, **kwargs)
         attach_monitor_to_trainer(self)
 
+    def train(self):
+        """Preserve each DDP child's real traceback before the parent exits."""
+        try:
+            return super().train()
+        except BaseException as exc:
+            local_rank = os.getenv("LOCAL_RANK")
+            trace = traceback.format_exc()
+            if local_rank is not None:
+                try:
+                    save_dir = Path(getattr(self, "save_dir", Path.cwd()))
+                    save_dir.mkdir(parents=True, exist_ok=True)
+                    (save_dir / f"ddp_error_rank{local_rank}.log").write_text(trace, encoding="utf-8")
+                except OSError:
+                    pass
+
+            monitor = getattr(self, "_remote_experiment_monitor", None)
+            if monitor is not None:
+                try:
+                    monitor.finish(
+                        "failed",
+                        error=f"{type(exc).__name__}: {exc}",
+                        log_tail=trace,
+                    )
+                finally:
+                    monitor.restore_console_capture()
+            raise
+
 
 def monitored_train(model, experiment_name=None, **train_args):
     """Convenience entry point using YOLO_MONITOR_URL/TOKEN environment variables."""
