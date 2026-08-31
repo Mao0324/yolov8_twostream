@@ -11,7 +11,10 @@ change_from_parent: 将三个尺度进入共享 neck 前的直接模态融合替
 architecture:
   summary: P3/P4/P5 ASSAFusion(DynK3, FFN2) -> ADD
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4-8
   flow:
     P3: ASSAFusion(heads=2, DynK3, FFN2) -> ADD
@@ -23,22 +26,24 @@ files:
   migration_script: null
   init_checkpoint: pre-pth/yolov8s-obb_twostream.pt
   module_files:
-    - ultralytics/nn/modules/assa_fusion.py
+  - ultralytics/nn/modules/assa_fusion.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/block.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/assanet/mainline/ASSA-001__assafusion-p345
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P345_H2-4-8_DynK3-FFN2_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports:
-  - analysis_reports/assa_vs_baseline_20260714
+- analysis_reports/assa_vs_baseline_20260714
 notes:
-  - 原始 v1 目录由模型 YAML 启动；正确加载迁移 checkpoint 的重跑目录为同名 v12。
-  - PT-R002 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。
+- 原始 v1 目录由模型 YAML 启动；正确加载迁移 checkpoint 的重跑目录为同名 v12。
+- PT-R002 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。

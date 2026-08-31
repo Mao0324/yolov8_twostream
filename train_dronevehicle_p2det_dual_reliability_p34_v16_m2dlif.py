@@ -26,12 +26,9 @@ LABEL_ROOT = Path(
 )
 PROJECT = ROOT / "runs/DroneVehicle_OBB_FusionTransfer"
 EXPERIMENT_NAME = "P2D-016_DualReliabilityPrompt-P34-PriorLAF-NoGDER_v16_M2DLIFLabels_v1"
-TEACHER_PROJECT = ROOT / "runs/DroneVehicle_OBB_SingleModalityTeachers"
-DEFAULT_RGB_TEACHER = TEACHER_PROJECT / "P2D-Teacher_RGBOnly_M2DLIFLabels_v1/weights/best.pt"
-DEFAULT_IR_TEACHER = TEACHER_PROJECT / "P2D-Teacher_IROnly_M2DLIFLabels_v1/weights/best.pt"
-TEACHER_PATTERNS = {
-    "P2DET_V16_RGB_TEACHER": "P2D-Teacher_RGBOnly_M2DLIFLabels_v*",
-    "P2DET_V16_IR_TEACHER": "P2D-Teacher_IROnly_M2DLIFLabels_v*",
+TEACHER_EXPERIMENTS = {
+    "P2DET_V16_RGB_TEACHER": "TCH-001__rgb-only",
+    "P2DET_V16_IR_TEACHER": "TCH-002__ir-only",
 }
 
 
@@ -52,29 +49,24 @@ def validate_ddp_checkpoint(model, checkpoint: str | Path) -> None:
         raise RuntimeError(f"model.ckpt_path={ckpt_path!r}, expected {str(expected)!r}")
 
 
-def discover_teacher(environment_name: str, default_path: Path) -> Path:
-    """Resolve an explicit teacher or the newest completed matching run."""
+def discover_teacher(environment_name: str) -> Path:
+    """Resolve an explicit teacher or the newest registered M2D-LIF attempt."""
 
     explicit = os.getenv(environment_name, "").strip()
     if explicit:
         return resolved(explicit)
-    default_path = resolved(default_path)
-    candidates = [
-        run / "weights/best.pt"
-        for run in TEACHER_PROJECT.glob(TEACHER_PATTERNS[environment_name])
-        if (run / "weights/best.pt").is_file()
-    ]
-    if not candidates:
-        return default_path
-    return max(candidates, key=lambda path: (path.stat().st_mtime_ns, str(path)))
+    from tools.experiment_layout import latest_run
+
+    run = latest_run(TEACHER_EXPERIMENTS[environment_name], train_labels="m2dlif-v1", require="weights/best.pt")
+    return run / "weights/best.pt"
 
 
 def require_teachers() -> dict[str, Path]:
     """Discover two distinct single-modality teachers and export them to DDP children."""
 
     resolved_paths = {
-        "P2DET_V16_RGB_TEACHER": discover_teacher("P2DET_V16_RGB_TEACHER", DEFAULT_RGB_TEACHER),
-        "P2DET_V16_IR_TEACHER": discover_teacher("P2DET_V16_IR_TEACHER", DEFAULT_IR_TEACHER),
+        "P2DET_V16_RGB_TEACHER": discover_teacher("P2DET_V16_RGB_TEACHER"),
+        "P2DET_V16_IR_TEACHER": discover_teacher("P2DET_V16_IR_TEACHER"),
     }
     for name, path in resolved_paths.items():
         if path.suffix.lower() != ".pt" or not path.is_file():

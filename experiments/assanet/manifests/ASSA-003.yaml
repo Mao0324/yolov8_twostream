@@ -11,7 +11,10 @@ change_from_parent: P3/P4 改为 C/4 部分通道、StaticDW K3、无 FFN 的 AS
 architecture:
   summary: P3/P4 PartialChannelASSAFusion(R4, StaticDW K3, NoFFN)
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4
   flow:
     P3: PartialChannelASSAFusion(heads=2, R4, StaticDW K3, NoFFN) -> ADD
@@ -23,22 +26,24 @@ files:
   migration_script: null
   init_checkpoint: pre-pth/yolov8s-obb_twostream_partialchannel_assafusion_p34_r4_staticdw_noffn.pt
   module_files:
-    - ultralytics/nn/modules/assa_fusion.py
-    - ultralytics/nn/modules/assa_fusion_static_noffn.py
-    - ultralytics/nn/modules/assa_partial_channel_fusion.py
+  - ultralytics/nn/modules/assa_fusion.py
+  - ultralytics/nn/modules/assa_fusion_static_noffn.py
+  - ultralytics/nn/modules/assa_partial_channel_fusion.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/block.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/assanet/mainline/ASSA-003__partial-channel-p34
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/ASSANet_PartialChannelASSAFusion_P34_H2-4_R4-StaticDW-NoFFN_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - PT-R004 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。
+- PT-R004 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。

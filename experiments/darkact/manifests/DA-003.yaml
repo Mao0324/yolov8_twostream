@@ -11,7 +11,10 @@ change_from_parent: 将 partial-channel LAF 替换为完整通道 PaperLAFMergeF
 architecture:
   summary: StaticMAA2D + stage features -> full-C PaperLAFMergeFeedback2D
   version: v3
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: HNA
   flow:
     P3: StaticMAA2D context + C2f stage features -> full-C PaperLAF feedback
@@ -23,22 +26,24 @@ files:
   migration_script: tools/make_twostream_obb_weights_darkact_v3.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_staticmaa_paperlaf_fullc_p345_v3.pt
   module_files:
-    - ultralytics/nn/modules/darkact_maalaf.py
-    - ultralytics/nn/modules/darkact_maalaf_v2.py
-    - ultralytics/nn/modules/darkact_maalaf_v3.py
+  - ultralytics/nn/modules/darkact_maalaf.py
+  - ultralytics/nn/modules/darkact_maalaf_v2.py
+  - ultralytics/nn/modules/darkact_maalaf_v3.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/block.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-003__paper-laf-fullc-p345
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_PaperLAFMergeFeedback2D_P345_HNA_FullC-DilK3-PoolK3-StaticMAA_v3
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports:
-  - analysis_reports/darkact_architecture_comparison_20260716
+- analysis_reports/darkact_architecture_comparison_20260716
 notes: []

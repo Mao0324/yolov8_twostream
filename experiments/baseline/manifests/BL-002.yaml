@@ -11,7 +11,10 @@ change_from_parent: 在 P3、P4、P5 的 ADD 输出后分别增加一个 e=0.5�
 architecture:
   summary: RGB/IR -> P3/P4/P5 ADD -> BottleneckRefine
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: HNA
   flow:
     P3: RGB C2f + IR C2f_Faster -> ADD -> Bottleneck(e=0.5, k=1/3)
@@ -23,20 +26,22 @@ files:
   migration_script: tools/make_twostream_obb_weights.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_baseline_add_p345_bottleneck_refine.pt
   module_files:
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/block.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: YOLOv8_BottleneckRefine_P345_HNA_E0p5-K1-3_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/baseline/mainline/BL-002__bottleneck-refine-p345
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/YOLOv8_BottleneckRefine_P345_HNA_E0p5-K1-3_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - 正确加载迁移 checkpoint 的重跑目录以相同实验名自动递增为 v12。
-  - PT-R006 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。
+- 正确加载迁移 checkpoint 的重跑目录以相同实验名自动递增为 v12。
+- PT-R006 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。

@@ -11,7 +11,10 @@ change_from_parent: 将 StaticMAA2D 后移到各尺度 C2f/SPPF 之后。
 architecture:
   summary: C2f/SPPF -> StaticMAA2D -> LAFMergeFeedback2D
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4-8
   flow:
     P3: C2f/C2f_Faster -> StaticMAA2D -> LAFMergeFeedback2D
@@ -23,21 +26,23 @@ files:
   migration_script: tools/make_twostream_obb_weights_darkact_postc2f.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_staticmaa_laffeedback_postc2f_p345_v1.pt
   module_files:
-    - ultralytics/nn/modules/darkact_maalaf.py
-    - ultralytics/nn/modules/darkact_maalaf_v2.py
+  - ultralytics/nn/modules/darkact_maalaf.py
+  - ultralytics/nn/modules/darkact_maalaf_v2.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/block.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-004__postc2f-staticmaa-laf-p345
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_StaticMAA2DLAFMergeFeedback_P345_H2-4-8_PostC2f-MSK3-5-R4-PosBeta-DW3D1-2-2_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports:
-  - analysis/darkact_postc2f_comparison
+- analysis/darkact_postc2f_comparison
 notes: []

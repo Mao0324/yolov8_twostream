@@ -208,13 +208,6 @@ def summarize_stage(records, target):
     return result
 
 
-def latest(pattern):
-    candidates = [path for path in ROOT.glob(pattern) if path.is_file()]
-    if not candidates:
-        raise FileNotFoundError(pattern)
-    return max(candidates, key=lambda path: (path.stat().st_mtime_ns, str(path)))
-
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--images", type=int, default=24)
@@ -242,16 +235,11 @@ def main():
     from ultralytics.utils.loss import v8OBBLoss
 
     device = torch.device(args.device)
-    checkpoint = latest(
-        "runs/DroneVehicle_OBB_FusionTransfer/"
-        "P2D-016_DualReliabilityPrompt-P34-PriorLAF-NoGDER_v16_M2DLIFLabels_v*/weights/best.pt"
-    )
-    rgb_teacher = latest(
-        "runs/DroneVehicle_OBB_SingleModalityTeachers/P2D-Teacher_RGBOnly_M2DLIFLabels_v*/weights/best.pt"
-    )
-    ir_teacher = latest(
-        "runs/DroneVehicle_OBB_SingleModalityTeachers/P2D-Teacher_IROnly_M2DLIFLabels_v*/weights/best.pt"
-    )
+    from tools.experiment_layout import latest_run
+
+    checkpoint = latest_run("P2D-016__dual-reliability-p34", train_labels="m2dlif-v1", require="weights/best.pt") / "weights/best.pt"
+    rgb_teacher = latest_run("TCH-001__rgb-only", train_labels="m2dlif-v1", require="weights/best.pt") / "weights/best.pt"
+    ir_teacher = latest_run("TCH-002__ir-only", train_labels="m2dlif-v1", require="weights/best.pt") / "weights/best.pt"
     model = YOLO(str(checkpoint), task="obb").model.float().to(device).eval()
     if isinstance(model.args, dict):
         model.args = get_cfg(overrides=model.args)

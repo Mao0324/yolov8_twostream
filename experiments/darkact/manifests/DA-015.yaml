@@ -11,7 +11,10 @@ change_from_parent: 仅在 P3/P4 的原 LAF 输出上增加零初始化的轻量
 architecture:
   summary: Post-C2f StaticMAA -> disagreement-aware LAF(P3/P4); original LAF(P5)
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4-8
   flow:
     P3: StaticMAA -> LAF + gamma*Project(RGB,IR,abs-diff,product)
@@ -23,26 +26,28 @@ files:
   migration_script: tools/make_darkact_da015_checkpoint.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_da015_disagreement_laf_p34.pt
   module_files:
-    - ultralytics/nn/modules/darkact_maalaf.py
-    - ultralytics/nn/modules/darkact_maalaf_v2.py
-    - ultralytics/nn/modules/darkact_disagreement_fusion.py
+  - ultralytics/nn/modules/darkact_maalaf.py
+  - ultralytics/nn/modules/darkact_maalaf_v2.py
+  - ultralytics/nn/modules/darkact_disagreement_fusion.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - tools/queue_runtime.py
-    - tools/training_monitor.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - tools/queue_runtime.py
+  - tools/training_monitor.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: DarkAct_DA015_PostC2f_DisagreementLAF_P34_H2-4-8_R4_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-015__disagreement-laf-p34
+    name: attempt=01
+    layout: seeded-v1
 legacy:
   run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - 架构母体为测试集 0.841 mAP50、0.708 mAP50-95 的 DA-004。
-  - 初始化严格从 pre-pth/yolov8s-obb.pt 迁移，不从 DA-004 训练权重继续训练。
-  - 独立训练脚本不导入 pretrained_rerun_tracker；也可使用 tools/train_experiment.py DA-015 启动。
-  - disagreement gamma=0，迁移完成时新增分支不改变各尺度原始 LAF 输出。
+- 架构母体为测试集 0.841 mAP50、0.708 mAP50-95 的 DA-004。
+- 初始化严格从 pre-pth/yolov8s-obb.pt 迁移，不从 DA-004 训练权重继续训练。
+- 独立训练脚本不导入 pretrained_rerun_tracker；也可使用 tools/train_experiment.py DA-015 启动。
+- disagreement gamma=0，迁移完成时新增分支不改变各尺度原始 LAF 输出。

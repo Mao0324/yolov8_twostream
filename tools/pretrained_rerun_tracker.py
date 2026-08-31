@@ -24,6 +24,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 STATE_PATH = ROOT / "experiments/pretrained_rerun_status.json"
 TABLE_PATH = ROOT / "experiments/PRETRAINED_RERUNS.md"
+RUN_REGISTRY_PATH = ROOT / "experiments/run_registry.yaml"
 COMPLETED_STATUS = "已正确加载预训练权重重新实验"
 
 RECORDS = (
@@ -251,9 +252,18 @@ def _same_path(left: Any, right: Path) -> bool:
 
 
 def _candidate_runs(record: Mapping[str, str]) -> Iterable[Path]:
+    relocated = []
+    if RUN_REGISTRY_PATH.is_file():
+        payload = yaml.safe_load(RUN_REGISTRY_PATH.read_text(encoding="utf-8")) or {}
+        prefix = record["legacy_run"]
+        relocated = [
+            repo_path(item["run_dir"])
+            for item in payload.get("runs", [])
+            if str(item.get("legacy_run_dir", "")).startswith(prefix)
+        ]
     project = repo_path(record["project"])
     if not project.is_dir():
-        return ()
+        return sorted(relocated, key=lambda path: (path.stat().st_mtime, path.name), reverse=True)
     name = record["name"]
     candidates = []
     for path in project.iterdir():
@@ -262,7 +272,19 @@ def _candidate_runs(record: Mapping[str, str]) -> Iterable[Path]:
         suffix = path.name[len(name) :]
         if suffix == "" or suffix.isdigit():
             candidates.append(path)
-    return sorted(candidates, key=lambda path: (path.stat().st_mtime, path.name), reverse=True)
+    return sorted(set((*relocated, *candidates)), key=lambda path: (path.stat().st_mtime, path.name), reverse=True)
+
+
+def _relocated_legacy_run(record: Mapping[str, str]) -> str:
+    """Link the historical row to its current immutable location."""
+
+    if not RUN_REGISTRY_PATH.is_file():
+        return record["legacy_run"]
+    payload = yaml.safe_load(RUN_REGISTRY_PATH.read_text(encoding="utf-8")) or {}
+    for item in payload.get("runs", []):
+        if item.get("legacy_run_dir") == record["legacy_run"]:
+            return str(item["run_dir"])
+    return record["legacy_run"]
 
 
 def _inspect_correct_run(
@@ -366,7 +388,7 @@ def _render_table(state: Mapping[str, Any]) -> None:
                 experiment=record["experiment"],
                 script=_markdown_link(record["script"], record["script"]),
                 checkpoint=_markdown_link(Path(record["checkpoint"]).name, record["checkpoint"]),
-                legacy=_markdown_link(record["legacy_run"], record["legacy_run"]),
+                legacy=_markdown_link(record["legacy_run"], _relocated_legacy_run(record)),
                 run=_markdown_link(snapshot.get("run_dir", ""), snapshot.get("run_dir", "")),
                 status=snapshot.get("status", "待正确加载预训练权重重新实验"),
             )

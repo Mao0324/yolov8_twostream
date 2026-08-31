@@ -667,6 +667,9 @@ class YoloExperimentMonitor:
 
     def train(self, model, **train_args):
         """Attach callbacks, train, and report exceptions before re-raising them."""
+        from tools.experiment_layout import organize_train_args
+
+        train_args = organize_train_args(self.experiment_name, train_args)
         self.attach(model)
         self._extra_parameters["model_config"] = _model_configuration(model)
         # Create the run before Ultralytics initializes datasets/devices so even an
@@ -690,6 +693,9 @@ class YoloExperimentMonitor:
         ``RemoteMonitorTrainerMixin`` so the generated DDP children attach the
         callbacks using the shared run ID.
         """
+        from tools.experiment_layout import organize_train_args
+
+        train_args = organize_train_args(self.experiment_name, train_args)
         if args:
             self._extra_parameters["model_config"] = _model_configuration(args[0])
         name = self.experiment_name or str(train_args.get("name") or f"YOLO-{self.run_id[:8]}")

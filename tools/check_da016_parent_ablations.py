@@ -70,8 +70,8 @@ def check_ddp_serialization(label, model, checkpoint):
             "device": "0,1",
             "batch": 64,
             "epochs": 100,
-            "project": str((ROOT / "runs/DroneVehicle_OBB_FusionTransfer").resolve()),
-            "name": f"DA016-{label}-ddp-audit",
+            "project": str((ROOT / "runs/DroneVehicle_OBB/_ddp-audits/da016/seed=000").resolve()),
+            "name": f"attempt={label}",
         },
     )
     temporary = Path(generate_ddp_file(shell))

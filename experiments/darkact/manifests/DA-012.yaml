@@ -7,11 +7,15 @@ lifecycle:
   status: auto
   recovery_confidence: confirmed
 hypothesis: DA-007 的融合特征可能需要轻量局部重整，但低分辨率 P5 不需要额外精炼；只精炼 P3/P4 可改善定位且控制容量。
-change_from_parent: 仅在 P3/P4 的 LAF fused lateral 后增加零初始化残差 Refine，P5 和两条 backbone 反馈路径不变。
+change_from_parent: 仅在 P3/P4 的 LAF fused lateral 后增加零初始化残差 Refine，P5 和两条 backbone
+  反馈路径不变。
 architecture:
   summary: C2f/SPPF -> LAFMergeFeedback2D -> fused Refine(P3/P4 only)
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4-8
   flow:
     P3: C2f/C2f_Faster -> LAF feedback -> zero-init fused Refine -> FPN
@@ -23,22 +27,24 @@ files:
   migration_script: tools/make_twostream_obb_weights_darkact_laf_refine_p34.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_laf_refine_p34_no_staticmaa_v1.pt
   module_files:
-    - ultralytics/nn/modules/darkact_maalaf.py
-    - ultralytics/nn/modules/darkact_maalaf_v2.py
-    - ultralytics/nn/modules/zero_init_refine.py
+  - ultralytics/nn/modules/darkact_maalaf.py
+  - ultralytics/nn/modules/darkact_maalaf_v2.py
+  - ultralytics/nn/modules/zero_init_refine.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-012__laf-refine-p34
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_RefineP34_H2-4-8_R4-NoStaticMAA_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - Refine 的 gamma=0，迁移后首个前向与 DA-007 的 fused lateral 完全一致。
-  - 本实验不在 P5 增加 Refine，用于隔离高分辨率定位层的收益。
+- Refine 的 gamma=0，迁移后首个前向与 DA-007 的 fused lateral 完全一致。
+- 本实验不在 P5 增加 Refine，用于隔离高分辨率定位层的收益。

@@ -11,9 +11,11 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import yaml
+
 
 ROOT = Path(__file__).resolve().parents[1]
-RUN_ROOT = ROOT / "runs" / "DroneVehicle_OBB_FusionTransfer"
+RUN_REGISTRY = ROOT / "experiments" / "run_registry.yaml"
 OUT = ROOT / "reports" / "da016_ablation_analysis_20260830"
 
 EXPERIMENTS = {
@@ -73,6 +75,21 @@ DISPLAY_CLASS = {
     "van": "van",
     "freight_car": "freight_car",
 }
+
+
+def relocated_run(run_name: str) -> Path:
+    """Resolve the exact historical run name without guessing an attempt."""
+
+    payload = yaml.safe_load(RUN_REGISTRY.read_text(encoding="utf-8"))
+    legacy_suffix = "/" + run_name
+    matches = [
+        ROOT / str(record["run_dir"])
+        for record in payload.get("runs", [])
+        if str(record.get("legacy_run_dir", "")).endswith(legacy_suffix)
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(f"expected one relocated run for {run_name}, got {matches}")
+    return matches[0]
 
 
 def parse_test(path: Path) -> tuple[dict[str, dict[str, float]], dict[str, str]]:
@@ -164,7 +181,7 @@ def main() -> None:
     last_by_exp = {}
 
     for exp, (run_name, _, _) in EXPERIMENTS.items():
-        run_dir = RUN_ROOT / run_name
+        run_dir = relocated_run(run_name)
         test_by_exp[exp], metadata_by_exp[exp] = parse_test(run_dir / "test_m2dlif" / "test.txt")
         train_by_exp[exp], last_by_exp[exp] = read_training(run_dir / "results.csv")
 
@@ -265,8 +282,8 @@ def main() -> None:
 
     source_inventory = {
         "generated_at": datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds"),
-        "test_files": {exp: f"runs/DroneVehicle_OBB_FusionTransfer/{run_name}/test_m2dlif/test.txt" for exp, (run_name, _, _) in EXPERIMENTS.items()},
-        "training_files": {exp: f"runs/DroneVehicle_OBB_FusionTransfer/{run_name}/results.csv" for exp, (run_name, _, _) in EXPERIMENTS.items()},
+        "test_files": {exp: (relocated_run(run_name) / "test_m2dlif/test.txt").relative_to(ROOT).as_posix() for exp, (run_name, _, _) in EXPERIMENTS.items()},
+        "training_files": {exp: (relocated_run(run_name) / "results.csv").relative_to(ROOT).as_posix() for exp, (run_name, _, _) in EXPERIMENTS.items()},
         "comparability": {key: base_meta[key] for key in comparable_keys},
         "datasets": {
             "summary": summary,

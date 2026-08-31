@@ -25,7 +25,8 @@
     由远程 Monitor Agent 启动时，使用队列分配的 batch、GPU 和断点续训权重。
 
 永久输出：
-    <本仓库>/runs_baseline/Baseline_M2DLIFLabels_v1/
+    <本仓库>/runs/DroneVehicle_OBB/train-labels=m2dlif-v1/baseline/mainline/
+    BL-001__add-p345/seed=<seed>/attempt=<attempt>/
     该目录保存训练权重、results.csv 和 Ultralytics 产生的常规结果。
 
 临时输出：
@@ -54,6 +55,7 @@ os.environ["COMET_MODE"] = "DISABLED"
 
 ROOT = Path(__file__).resolve().parent
 CHECKPOINT = ROOT / "pre-pth/yolov8s-obb_twostream_baseline.pt"
+# 该历史标记会由 YoloExperimentMonitor 按注册表转换为上述 seed/attempt 布局。
 PROJECT = ROOT / "runs_baseline"
 EXPERIMENT_NAME = "Baseline_M2DLIFLabels_v1"
 

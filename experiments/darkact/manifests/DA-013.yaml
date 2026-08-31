@@ -7,11 +7,15 @@ lifecycle:
   status: auto
   recovery_confidence: confirmed
 hypothesis: 原 sigmoid MAA 只能放大且易退化为常数增益；零中心双向门控可按位置和通道增强目标、抑制背景。
-change_from_parent: 仅将 StaticMAA2D 的 1+beta*sigmoid(logit) 改为有界的 1+beta*tanh(logit)，位置、容量及 LAF 均不变。
+change_from_parent: 仅将 StaticMAA2D 的 1+beta*sigmoid(logit) 改为有界的 1+beta*tanh(logit)，位置、容量及
+  LAF 均不变。
 architecture:
   summary: zero-centered StaticMAA2D -> C2f/SPPF -> LAFMergeFeedback2D
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4-8
   flow:
     P3: zero-centered bidirectional MAA -> C2f stage -> LAF feedback
@@ -23,21 +27,23 @@ files:
   migration_script: tools/make_twostream_obb_weights_darkact_zero_centered_maa.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_zerocenteredmaa_laffeedback_p345_v1.pt
   module_files:
-    - ultralytics/nn/modules/darkact_maalaf.py
-    - ultralytics/nn/modules/darkact_maalaf_v2.py
+  - ultralytics/nn/modules/darkact_maalaf.py
+  - ultralytics/nn/modules/darkact_maalaf_v2.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-013__zero-centered-maa
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_ZeroCenteredStaticMAA2D_LAFMergeFeedback2D_P345_H2-4-8_R4_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - beta_init=0.10、beta_max=0.50，缩放因子理论范围为 [0.5, 1.5]。
-  - 输出投影权重为零，迁移起点严格恒等；β 保持正值以便门控正负号直接表达增强或抑制。
+- beta_init=0.10、beta_max=0.50，缩放因子理论范围为 [0.5, 1.5]。
+- 输出投影权重为零，迁移起点严格恒等；β 保持正值以便门控正负号直接表达增强或抑制。

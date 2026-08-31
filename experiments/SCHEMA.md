@@ -1,14 +1,24 @@
 # 实验清单约定
 
-`experiments/` 是本仓库的实验注册层，不替代可执行的模型 YAML，也不移动历史训练目录。
+`experiments/` 是本仓库的实验注册层，不替代可执行的模型 YAML。
 
 ## 单一信息源
 
 - 模型结构的可执行真源：`files.model_yaml`。
 - 实验身份、父子关系、文件链路和运行规则的真源：对应的 Manifest。
 - `INDEX.md`、各论文族的 `README.md` 和 `registry.csv` 均由 Manifest 自动生成，不手工修改。
-- 历史训练目录只作为只读证据，由 `legacy.run_dir` 链接。
+- 已迁移训练目录的旧路径、新路径和内容哈希由 `experiments/run_registry.yaml` 记录。
 - 通用入口创建的新运行通过 `provenance/resolved_manifest.yaml` 中的永久 ID 自动归档；`name2`、`name3` 等重跑不会变成新的实验。
+
+## 运行目录层级
+
+```text
+runs/<dataset_task>/train-labels=<label-version>/<family>/<series>/
+  <experiment-id>__<slug>/seed=<NNN>/attempt=<NN>/
+```
+
+`seed` 是随机种子，`attempt` 是同一实验与随机种子下的重试次数。监控训练脚本可用
+`YOLO_QUEUE_SEED` 或 `YOLO_SEED` 指定种子；通用入口使用 `--seed`。
 
 ## 必填字段
 
@@ -44,10 +54,12 @@ training:
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: Paper_Module_Stages_Heads_Structure_Version
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-001__example
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/旧目录
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes: []
 ```
@@ -56,7 +68,7 @@ notes: []
 
 `lifecycle.status: auto` 时，工具按当前产物动态判断：
 
-1. 当前运行已跑满且有 `test_result/test.txt`：`tested`。
+1. 当前运行已跑满且有 `test_result/test.txt` 或 `test_m2dlif/test.txt`：`tested`。
 2. `results.csv` 已达到该运行自己 `args.yaml` 中的目标 epoch：`trained`。
 3. `results.csv` 未跑满且最近仍更新：`running`。
 4. `results.csv` 未跑满且长时间未更新：`interrupted`。

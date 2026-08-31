@@ -11,7 +11,10 @@ change_from_parent: 完全移除 P3/P4/P5 的 StaticMAA2D。
 architecture:
   summary: C2f/SPPF -> LAFMergeFeedback2D
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H2-4-8
   flow:
     P3: C2f/C2f_Faster -> LAFMergeFeedback2D
@@ -23,21 +26,23 @@ files:
   migration_script: tools/make_twostream_obb_weights_darkact_no_staticmaa.py
   init_checkpoint: pre-pth/yolov8s-obb_twostream_darkact_laffeedback2d_p345_r4_no_staticmaa_v1.pt
   module_files:
-    - ultralytics/nn/modules/darkact_maalaf.py
-    - ultralytics/nn/modules/darkact_maalaf_v2.py
+  - ultralytics/nn/modules/darkact_maalaf.py
+  - ultralytics/nn/modules/darkact_maalaf_v2.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/block.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/darkact/mainline/DA-007__laf-feedback-p345
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/DarkAct_LAFMergeFeedback2D_P345_H2-4-8_R4-DW3D1-2-2_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - 该历史运行仍可能在宿主机继续训练，状态由 results.csv 的进度和更新时间自动判断。
+- 该历史运行仍可能在宿主机继续训练，状态由 results.csv 的进度和更新时间自动判断。

@@ -11,7 +11,10 @@ change_from_parent: 仅保留 P4、4 heads 的跨模态注意力，将动态局�
 architecture:
   summary: P4 ASSAFusion(StaticDW K3, NoFFN); P3/P5 identity
   version: v1
-  stages: [P3, P4, P5]
+  stages:
+  - P3
+  - P4
+  - P5
   heads: H4
   flow:
     P3: RIFusion identity -> ADD
@@ -23,21 +26,23 @@ files:
   migration_script: null
   init_checkpoint: pre-pth/yolov8s-obb_twostream_assafusion_p4_staticdw_noffn.pt
   module_files:
-    - ultralytics/nn/modules/assa_fusion.py
-    - ultralytics/nn/modules/assa_fusion_static_noffn.py
+  - ultralytics/nn/modules/assa_fusion.py
+  - ultralytics/nn/modules/assa_fusion_static_noffn.py
   integration_files:
-    - ultralytics/nn/modules/__init__.py
-    - ultralytics/nn/tasks.py
-    - ultralytics/nn/modules/block.py
+  - ultralytics/nn/modules/__init__.py
+  - ultralytics/nn/tasks.py
+  - ultralytics/nn/modules/block.py
 training:
   profile: experiments/profiles/dronevehicle_obb_100e.yaml
   launch_mode: checkpoint
   trainer_class: ultralytics.models.yolo.obb.train:OBBTrainer
   output:
-    project: runs/DroneVehicle_OBB_FusionTransfer
-    name: ASSANet_ASSAFusion_P4_H4_StaticDW-NoFFN_v1
+    project: runs/DroneVehicle_OBB/train-labels=official-v1/assanet/mainline/ASSA-002__staticdw-p4
+    name: attempt=01
+    layout: seeded-v1
 legacy:
-  run_dir: DroneVehicle_OBB_FusionTransfer/ASSANet_ASSAFusion_P4_H4_StaticDW-NoFFN_v1
+  run_dir: null
+  relocated_runs: experiments/run_registry.yaml
 reports: []
 notes:
-  - PT-R003 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。
+- PT-R003 重跑记录与本 Manifest 表示同一个永久实验，不另分配实验 ID。

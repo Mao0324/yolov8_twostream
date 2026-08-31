@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -193,9 +194,14 @@ def _load_and_check_model(resolved: Mapping[str, Any]):
 
 def _candidate_paths(project: Path, name: str) -> Iterable[Tuple[Path, Path]]:
     reservation_dir = project / ".run-reservations"
+    attempt_match = re.fullmatch(r"attempt=(\d+)", name)
     for index in range(1, 10000):
-        suffix = "" if index == 1 else str(index)
-        candidate = project / f"{name}{suffix}"
+        if attempt_match:
+            candidate_name = f"attempt={int(attempt_match.group(1)) + index - 1:02d}"
+        else:
+            suffix = "" if index == 1 else str(index)
+            candidate_name = f"{name}{suffix}"
+        candidate = project / candidate_name
         reservation = reservation_dir / f"{candidate.name}.lock"
         yield candidate, reservation
 
@@ -388,6 +394,12 @@ def main() -> int:
             f"supported: {supported}"
         )
     train_args = _apply_cli_overrides(resolved, args)
+    output = manifest["training"]["output"]
+    if output.get("layout") == "seeded-v1":
+        seed = int(train_args.get("seed", 0))
+        if seed < 0:
+            raise RegistryError(f"seed must be non-negative, got {seed}")
+        train_args["project"] = str(Path(train_args["project"]) / f"seed={seed:03d}")
     project = Path(train_args["project"])
     name = str(train_args["name"])
     preview_dir, _ = _select_run_dir(project, name, reserve=False)

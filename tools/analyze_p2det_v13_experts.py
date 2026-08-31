@@ -24,8 +24,8 @@ from ultralytics.nn.modules import P2IRPromptAsymIdentityGDERMergeFeedback2D
 
 DEFAULT_WEIGHTS = (
     ROOT
-    / "DroneVehicle_OBB_FusionTransfer"
-    / "P2D-013_IRPrompt-AsymIdentityGDER-P4-NoStaticMAA_PostC2f_v13"
+    / "runs/DroneVehicle_OBB/train-labels=official-v1/p2det/mainline"
+    / "P2D-013__asymidentity-p4/seed=000/attempt=01"
     / "weights"
     / "best.pt"
 )

@@ -19,6 +19,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENTS_ROOT = ROOT / "experiments"
+RUN_REGISTRY_PATH = EXPERIMENTS_ROOT / "run_registry.yaml"
 MANIFEST_PATTERN = "*/manifests/*.yaml"
 ID_PATTERN = re.compile(r"^[A-Z][A-Z0-9]*-\d{3}$")
 ALLOWED_STATUSES = {
@@ -113,6 +114,18 @@ def load_registry() -> List[Dict[str, Any]]:
     return sorted(manifests, key=lambda item: str(item.get("id", "")))
 
 
+def load_run_registry() -> List[Dict[str, Any]]:
+    """Load relocated immutable run records, if the run registry exists."""
+
+    if not RUN_REGISTRY_PATH.is_file():
+        return []
+    payload = _read_yaml(RUN_REGISTRY_PATH)
+    records = payload.get("runs") or []
+    if not isinstance(records, list) or any(not isinstance(record, dict) for record in records):
+        raise RegistryError(f"run registry must contain a runs list: {RUN_REGISTRY_PATH}")
+    return records
+
+
 def get_manifest(experiment_id: str, manifests: Optional[Sequence[Dict[str, Any]]] = None) -> Dict[str, Any]:
     registry = list(manifests) if manifests is not None else load_registry()
     matches = [item for item in registry if item.get("id") == experiment_id]
@@ -199,6 +212,27 @@ def validate_registry(manifests: Optional[Sequence[Dict[str, Any]]] = None) -> T
             errors.append(f"duplicate experiment id: {experiment_id}")
 
     _validate_parent_graph(registry, errors)
+
+    run_records = load_run_registry()
+    run_dirs = [str(record.get("run_dir") or "") for record in run_records]
+    for run_dir, count in Counter(run_dirs).items():
+        if not run_dir:
+            errors.append("run registry record missing run_dir")
+        elif count > 1:
+            errors.append(f"duplicate relocated run_dir: {run_dir}")
+    for record in run_records:
+        run_dir_value = str(record.get("run_dir") or "")
+        run_dir = repo_path(run_dir_value)
+        if run_dir is None or not run_dir.is_dir():
+            errors.append(f"relocated run directory not found: {run_dir_value}")
+            continue
+        seed = int(record.get("seed", -1))
+        attempt = int(record.get("attempt", -1))
+        if run_dir.parent.name != f"seed={seed:03d}" or run_dir.name != f"attempt={attempt:02d}":
+            errors.append(f"run registry seed/attempt differs from path: {run_dir_value}")
+        inventory = record.get("inventory") or {}
+        if not inventory.get("tree_sha256") or int(inventory.get("file_count", -1)) < 0:
+            errors.append(f"run registry inventory is incomplete: {run_dir_value}")
 
     for manifest in registry:
         experiment_id = str(manifest.get("id", "<missing-id>"))
@@ -404,6 +438,7 @@ def _run_activity_mtime(run_dir: Path) -> float:
         run_dir / "args.yaml",
         run_dir / "results.csv",
         run_dir / "test_result/test.txt",
+        run_dir / "test_m2dlif/test.txt",
         run_dir / "weights/best.pt",
         run_dir / "weights/last.pt",
         run_dir / "provenance/resolved_manifest.yaml",
@@ -427,10 +462,8 @@ def _discover_registered_runs(manifest: Mapping[str, Any]) -> List[Path]:
 
     experiment_id = str(manifest.get("id"))
     matches: List[Path] = []
-    for child in project.iterdir():
-        if not child.is_dir() or child.name.startswith("."):
-            continue
-        provenance = child / "provenance/resolved_manifest.yaml"
+    for provenance in project.glob("seed=*/attempt=*/provenance/resolved_manifest.yaml"):
+        child = provenance.parents[1]
         if not provenance.is_file():
             continue
         try:
@@ -441,6 +474,28 @@ def _discover_registered_runs(manifest: Mapping[str, Any]) -> List[Path]:
         if isinstance(recorded, dict) and str(recorded.get("id")) == experiment_id:
             matches.append(child.resolve())
     return sorted(matches, key=lambda path: (_run_activity_mtime(path), path.name))
+
+
+def _discover_layout_runs(manifest: Mapping[str, Any]) -> List[Path]:
+    """Resolve runs moved into the dataset/labels/family/seed/attempt layout."""
+
+    experiment_id = str(manifest.get("id") or "")
+    output_value = ((manifest.get("training") or {}).get("output") or {}).get("project")
+    output_root = repo_path(output_value)
+    matches = []
+    fallback = []
+    for record in load_run_registry():
+        experiment = str(record.get("experiment") or "")
+        if experiment != experiment_id and not experiment.startswith(experiment_id + "__"):
+            continue
+        run_dir = repo_path(record.get("run_dir"))
+        if run_dir is not None and run_dir.is_dir():
+            resolved = run_dir.resolve()
+            fallback.append(resolved)
+            if output_root is not None and (resolved == output_root or output_root in resolved.parents):
+                matches.append(resolved)
+    selected = matches or fallback
+    return sorted(set(selected), key=lambda path: (_run_activity_mtime(path), path.name))
 
 
 def _discover_named_runs(manifest: Mapping[str, Any]) -> List[Path]:
@@ -507,7 +562,8 @@ def _run_target_epochs(run_dir: Path, fallback: int) -> int:
 
 def _inspect_run(run_dir: Path, profile_epochs: int, now: float) -> Dict[str, Any]:
     results = run_dir / "results.csv"
-    test_file = run_dir / "test_result/test.txt"
+    test_candidates = (run_dir / "test_result/test.txt", run_dir / "test_m2dlif/test.txt")
+    test_file = next((path for path in test_candidates if path.is_file()), test_candidates[0])
     best = run_dir / "weights/best.pt"
     last = run_dir / "weights/last.pt"
     target_epochs = _run_target_epochs(run_dir, profile_epochs)
@@ -551,7 +607,10 @@ def artifact_snapshot(manifest: Mapping[str, Any], now: Optional[float] = None) 
     reference_time = time.time() if now is None else now
     legacy_run_value = (manifest.get("legacy") or {}).get("run_dir")
     legacy_run = repo_path(legacy_run_value)
-    registered_runs = _discover_registered_runs(manifest)
+    registered_runs = sorted(
+        set((*_discover_registered_runs(manifest), *_discover_layout_runs(manifest))),
+        key=lambda path: (_run_activity_mtime(path), path.name),
+    )
     named_runs = _discover_named_runs(manifest)
 
     known_runs = {path.resolve() for path in (*registered_runs, *named_runs)}
